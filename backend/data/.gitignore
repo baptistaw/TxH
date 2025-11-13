@@ -1,0 +1,9 @@
+# Ignorar datos crudos y logs (contienen información sensible)
+raw/*.xlsx
+logs/*.json
+logs/*.log
+
+# Mantener las carpetas
+!.gitignore
+!raw/.gitkeep
+!logs/.gitkeep

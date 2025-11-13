@@ -1,0 +1,169 @@
+// Test Schema with SQLite
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Copy all models from main schema but adapted for SQLite
+// (SQLite doesn't support all PostgreSQL features)
+
+enum Sex {
+  M
+  F
+  O
+}
+
+enum ASA {
+  I
+  II
+  III
+  IV
+  V
+  VI
+}
+
+enum Role {
+  ADMIN
+  ANESTESIOLOGO
+  DATA_ANALYST
+}
+
+enum Specialty {
+  Anestesiologia
+  Cirugia
+  Hepatologia
+  CTI
+  Enfermeria
+}
+
+enum Provider {
+  ASSE
+  Mutualista
+  Seguro_Privado
+  Otro
+}
+
+enum IntraopPhase {
+  INDUCCION
+  DISECCION
+  ANHEPATICA_INICIAL
+  PRE_REPERFUSION
+  POST_REPERFUSION_INICIAL
+  FIN_VIA_BILIAR
+  CIERRE
+}
+
+model Patient {
+  ci         Int      @id
+  firstName  String?
+  lastName   String?
+  birthDate  DateTime?
+  sex        Sex?
+  provider   Provider?
+  bloodGroup String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  cases      Case[]
+}
+
+model Clinician {
+  ci        Int      @id
+  firstName String?
+  lastName  String?
+  specialty Specialty?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  teamMembers TeamMember[]
+}
+
+model Case {
+  id                Int       @id @default(autoincrement())
+  patientId         Int
+  surgeryDate       DateTime?
+  startAt           DateTime?
+  endAt             DateTime?
+  duration          Int?
+  isRetransplant    Boolean   @default(false)
+  isHepatoRenal     Boolean   @default(false)
+  isOptimalDonor    Boolean?
+  coldIschemiaTime  Int?
+  warmIschemiaTime  Int?
+  listingDate       DateTime?
+  transplantDate    DateTime?
+  observations      String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  patient           Patient   @relation(fields: [patientId], references: [ci])
+  teamMembers       TeamMember[]
+  preopEvaluations  PreopEvaluation[]
+  intraopRecords    IntraopRecord[]
+  postOpOutcomes    PostOpOutcome[]
+}
+
+model TeamMember {
+  id          Int      @id @default(autoincrement())
+  caseId      Int
+  clinicianId Int
+  role        String?
+  createdAt   DateTime @default(now())
+  
+  case        Case     @relation(fields: [caseId], references: [id])
+  clinician   Clinician @relation(fields: [clinicianId], references: [ci])
+}
+
+model PreopEvaluation {
+  id              Int      @id @default(autoincrement())
+  caseId          Int
+  evaluationDate  DateTime?
+  meld            Int?
+  meldNa          Int?
+  child           String?
+  etiology1       String?
+  etiology2       String?
+  etiology3       String?
+  observations    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  case            Case     @relation(fields: [caseId], references: [id])
+}
+
+model IntraopRecord {
+  id            Int           @id @default(autoincrement())
+  caseId        Int
+  phase         IntraopPhase
+  timestamp     DateTime?
+  fc            Int?
+  sys           Int?
+  dia           Int?
+  map           Int?
+  cvp           Int?
+  peep          Int?
+  fio2          Int?
+  vt            Int?
+  observations  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  case          Case          @relation(fields: [caseId], references: [id])
+}
+
+model PostOpOutcome {
+  id                    Int      @id @default(autoincrement())
+  caseId                Int
+  icuDays               Int?
+  hospitalDays          Int?
+  complications         String?
+  inHospitalMortality   Boolean  @default(false)
+  dischargeDate         DateTime?
+  observations          String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  case                  Case     @relation(fields: [caseId], references: [id])
+}

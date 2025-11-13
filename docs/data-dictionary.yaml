@@ -1,0 +1,6666 @@
+# DICCIONARIO DE DATOS - Sistema Registro Anestesiológico TxH
+# Fuente: Tablas Sistema Registro.xlsx
+# Generado: 2025-11-13
+#
+# Formato por campo:
+#   nombre:
+#     tipo: Tipo Prisma (String, Int, Float, Boolean, DateTime)
+#     nullable: true/false
+#     dominio: Rango de valores esperados
+#     unidad: Unidad de medida
+#     ejemplos: [muestra1, muestra2]
+#     transformación: Reglas de transformación desde Excel
+#     notas: Observaciones adicionales
+#
+# CLAVES:
+#   CI → Cédula de Identidad uruguaya (clave primaria clínica)
+#   CP → Código Personal (clave primaria de Equipo/Clinician)
+#   FechaT → Fecha de trasplante (parte de clave compuesta en Intraop*)
+#
+---
+
+## CONTEOS POR HOJA (verificación contra XLSX)
+
+Equipo: 38 filas, 5 columnas
+DatosTrasplante: 282 filas, 49 columnas
+DatosPaciente: 428 filas, 17 columnas
+Preoperatorio: 420 filas, 98 columnas
+Porcedimientos: 111 filas, 41 columnas
+IntraopProced: 167 filas, 87 columnas
+IntraopInducc: 292 filas, 95 columnas
+IntraopDisec: 522 filas, 89 columnas
+IntraopAnhep: 285 filas, 90 columnas
+IntraopPreReperf: 269 filas, 90 columnas
+IntraopPostRepef: 310 filas, 90 columnas
+IntropFinVB: 283 filas, 90 columnas
+IntraopCierre: 279 filas, 90 columnas
+PostOp: 146 filas, 21 columnas
+Mortalidad: 147 filas, 15 columnas
+
+---
+
+## Equipo
+
+### Descripción
+Catálogo del personal médico (anestesiólogos, cirujanos, intensivistas, hepatólogos, coordinadoras).
+
+### Clave primaria
+CP (Código Personal)
+
+### Campos
+
+  CP:
+    tipo: Int
+    nullable: false
+    ejemplos: ["70203", "111", "333"]
+
+  Nombre:
+    tipo: String
+    nullable: false
+    ejemplos: ["William Baptista", "Karina Rando", "Jessica Vega"]
+
+  Especialidad:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Anestesiólogo", "Cirujano", "Hepatologo"]
+
+  email:
+    tipo: String
+    nullable: false
+    ejemplos: ["baptistaw@gmail.com", "karina.rando@gmail.com", "jessivegat@icloud.com"]
+
+  Telefono:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["59899180851", "5.98992E+11"]
+    notas: "65.8% nulos (13/38 completos)"
+
+
+## DatosTrasplante
+
+### Descripción
+Datos generales de cada procedimiento de trasplante hepático.
+
+### Clave foránea
+CI → DatosPaciente.CI
+
+### Campos
+
+  Equipo:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (282)"
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["3068424", "1799538", "1490699"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Anestesista 1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["111: Karina Rando", "70203: William Baptista", "333: Jessica Vega"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "52.5% nulos (134/282 completos)"
+
+  Anestesista 2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["222: Yorley Andarcia", "70203: William Baptista", "111: Karina Rando"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "55.7% nulos (125/282 completos)"
+
+  Intensivista:
+    tipo: String?
+    nullable: true
+    ejemplos: ["555: Gustavo Greco", "666: Ileana Pedemonte", "444: Jorge Castelli"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "64.9% nulos (99/282 completos)"
+
+  Cirujano 1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["123: Alejandro Ettlin", "456: Martin Abelleira", "999: Martín Harguindegui"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "52.5% nulos (134/282 completos)"
+
+  Cirujano 2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["456: Martin Abelleira", "999: Martín Harguindegui", "123: Alejandro Ettlin"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "54.3% nulos (129/282 completos)"
+
+  Hepatólogo:
+    tipo: String?
+    nullable: true
+    ejemplos: ["44444: Victoria Mainardi", "777: Josema Menendez", "3333: Daniela Olivari"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "63.5% nulos (103/282 completos)"
+
+  NurseCoordinadora:
+    tipo: String?
+    nullable: true
+    ejemplos: ["789: Claudia Montaño", "999: Laura Ware", "22222: Paula Martinez"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "56.7% nulos (122/282 completos)"
+
+  Datos Inic:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (282)"
+
+  FechaHoraInicio:
+    tipo: DateTime?
+    nullable: true
+    ejemplos: ["18/9/2011", "6/4/2017", "20/3/2017"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  Retrasplante:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  HepatoRenal:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  DonanteOptimo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO", "Sin Datos"]
+    transformación: "SI → true, NO → false"
+    notas: "52.5% nulos (134/282 completos)"
+
+  Procedencia:
+    tipo: String?
+    nullable: true
+    ejemplos: ["domicilio", "CTI", "sala"]
+
+  Vias:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (282)"
+
+  SwanGanz:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.5% nulos (134/282 completos)"
+
+  VVC1:
+    tipo: String?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["VYIntDer", "VYIntIzq"]
+    notas: "52.8% nulos (133/282 completos)"
+
+  VVC2:
+    tipo: String?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["VYIntDer", "VYIntIzq"]
+    notas: "53.9% nulos (130/282 completos)"
+
+  VVC3:
+    tipo: String?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["VYIntDer", "VYIntIzq", "VFDer"]
+    notas: "67.4% nulos (92/282 completos)"
+
+  VA1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["ARDer", "ARIzq", "AHumeralDer"]
+    notas: "53.9% nulos (130/282 completos)"
+
+  VA2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["ARIzq", "ARDer"]
+    notas: "92.9% nulos (20/282 completos)"
+
+  Vvp:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["16 ,18", "Msder msisq", "20"]
+    notas: "56.4% nulos (123/282 completos)"
+
+  Anestesia:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (282)"
+
+  Premedicacion:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.5% nulos (134/282 completos)"
+
+  MorfinaIR:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.8% nulos (133/282 completos)"
+
+  SOT:
+    tipo: String?
+    nullable: true
+    ejemplos: ["No 7.5", "No 8", "No 7"]
+    notas: "60.6% nulos (111/282 completos)"
+
+  Sellick:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.5% nulos (134/282 completos)"
+
+  Laringoscopia:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Cormack Lehane I", "Cormack Lehane II", "Cormack Lehane III"]
+    notas: "59.9% nulos (113/282 completos)"
+
+  Incidentes:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Ninguno", "No", "no"]
+    transformación: "SI → true, NO → false"
+    notas: "67.7% nulos (91/282 completos)"
+
+  Vendas:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.5% nulos (134/282 completos)"
+
+  Level1:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.8% nulos (133/282 completos)"
+
+  CellSaver:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.8% nulos (133/282 completos)"
+
+  PuntosApoyo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.5% nulos (134/282 completos)"
+
+  Cobertor:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.5% nulos (134/282 completos)"
+
+  ATB:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Piperacilina tazobactam 4,5g
+Gentamicina 250mg", "PTZ + Gentamicina", "Piperazidina Tazobactan."]
+    notas: "60.6% nulos (111/282 completos)"
+
+  Salida:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (282)"
+
+  FechaHoraFin:
+    tipo: DateTime?
+    nullable: true
+    ejemplos: ["18/9/2011", "6/4/2017", "20/3/2017"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  Duracion:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["420", "390", "360"]
+    notas: "56.4% nulos (123/282 completos)"
+
+  TIsqFria:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["205", "265", "340"]
+
+  TisqCaliente:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["19", "24", "20"]
+
+  Eventos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Ninguno", "Hiperfibrinolisis. HTA que requirió tto con Labetalol", "Hipercoagulanilidad"]
+    transformación: "SI → true, NO → false"
+    notas: "63.8% nulos (102/282 completos)"
+
+  FechaTrasladoCTI:
+    tipo: String?
+    nullable: true
+    ejemplos: ["22/10/2019 6:00:00", "27/10/2019 2:30:00", "28/10/2019 5:00:00"]
+    notas: "52.8% nulos (133/282 completos)"
+
+  VA:
+    tipo: String?
+    nullable: true
+    ejemplos: ["VAN MFL", "IOT", "Otra"]
+    notas: "61.3% nulos (109/282 completos)"
+
+  Ventilacion:
+    tipo: String?
+    nullable: true
+    ejemplos: ["VENT ESP MFL", "VENT CONTROLADA AMBU", "ARM"]
+    notas: "61.3% nulos (109/282 completos)"
+
+  Hemodinamia:
+    tipo: String?
+    nullable: true
+    ejemplos: ["ESTABLE SIN INOTROPICOS", "ESTABLE CON INOTROPICOS", "INESTABLE"]
+    notas: "62.1% nulos (107/282 completos)"
+
+  Metabolico:
+    tipo: String?
+    nullable: true
+    ejemplos: ["ESTABLE", "INESTABLE COMPENSADO", "INESTABLE NO COMPENSADO"]
+    notas: "62.4% nulos (106/282 completos)"
+
+  Actualizar:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["9", "15", "3"]
+    notas: "57.1% nulos (121/282 completos)"
+
+  Observaciones:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Hiperglicemia en vías de corrección", "Estado de hipercoagulabilidad", "no"]
+    transformación: "SI → true, NO → false"
+    notas: "80.5% nulos (55/282 completos)"
+
+
+## DatosPaciente
+
+### Descripción
+Datos demográficos y clínicos de cada paciente.
+
+### Clave primaria
+CI (Cédula de Identidad)
+
+### Campos
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1043729", "1112069", "1139499"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Nombre:
+    tipo: String
+    nullable: false
+    ejemplos: ["Americo Devera", "María Rodriguez", "Hector SIlvera"]
+
+  FNR:
+    tipo: DateTime?
+    nullable: true
+    ejemplos: ["90194868", "22/01/20", "24/03/2020"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+    notas: "89.5% nulos (45/428 completos)"
+
+  LugarProced:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Montevideo", "Maldonado", "Tacuarembó"]
+
+  Prestador:
+    tipo: String?
+    nullable: true
+    ejemplos: ["SMI", "AsocEspañola", "ASSE Interior"]
+
+  FNac:
+    tipo: DateTime?
+    nullable: true
+    ejemplos: ["19/12/1961", "07/02/1960", "13/05/1961"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  Edad:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["67", "64", "58"]
+    notas: "67.1% nulos (141/428 completos)"
+
+  Sexo:
+    tipo: String?
+    nullable: true
+    ejemplos: ["M", "F"]
+
+  ASA:
+    tipo: String?
+    nullable: true
+    ejemplos: ["III", "IV", "II"]
+
+  Talla:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["175", "178", "172"]
+
+  Peso:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["79", "109", "77"]
+
+  GrupoS:
+    tipo: String?
+    nullable: true
+    ejemplos: ["A+", "O+", "B+"]
+    notas: "58.9% nulos (176/428 completos)"
+
+  FechaIngresoProg:
+    tipo: DateTime?
+    nullable: true
+    ejemplos: ["11/12/2019", "12/12/2019", "16/12/2019"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  Trasplantado:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Observaciones:
+    tipo: String?
+    nullable: true
+    ejemplos: ["ca min oincide con basal", "faltan examenes", "falta una hoja de goteo"]
+    notas: "75.5% nulos (105/428 completos)"
+
+  Anestesista 1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["70203: William Baptista", "111: Karina Rando", "333: Jessica Vega"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+
+  Anestesista 2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["111: Karina Rando", "333: Jessica Vega", "70203: William Baptista"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "88.6% nulos (49/428 completos)"
+
+
+## Preoperatorio
+
+### Descripción
+Evaluación preoperatoria (scores, comorbilidades, laboratorio).
+
+### Clave foránea
+CI → DatosPaciente.CI
+
+### Campos
+
+  Pagina 0:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (420)"
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1043729", "1112069", "1139499"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: DateTime
+    nullable: false
+    ejemplos: ["12/10/2012", "27/4/2013", "12/12/2012"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  Página 1:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (420)"
+
+  MELD:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["22", "13", "11"]
+
+  MELDe:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["22", "15", "19"]
+    notas: "69.5% nulos (128/420 completos)"
+
+  Child:
+    tipo: String?
+    nullable: true
+    ejemplos: ["C", "A", "B"]
+    notas: "52.9% nulos (198/420 completos)"
+
+  Etiologia1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["HAI", "HVC", "CRIPTO"]
+
+  Etiologia2:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["HCC", "NASH", "COLANGIOCARCINOMA"]
+    transformación: "SI → true, NO → false"
+    notas: "55.5% nulos (187/420 completos)"
+
+  Fulminante:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Retraspalnte:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI", "N/C"]
+    transformación: "SI → true, NO → false"
+
+  Página 2:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (420)"
+
+  FechaLaboratorio:
+    tipo: DateTime?
+    nullable: true
+    ejemplos: ["09/01/2021", "20/07/2020", "09/10/2019"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  Hb:
+    tipo: Float?
+    nullable: true
+    dominio: "6-18"
+    unidad: "g/dL"
+    ejemplos: ["11.4", "14.9", "43535"]
+
+  Hto:
+    tipo: Int?
+    nullable: true
+    dominio: "18-54"
+    unidad: "%"
+    ejemplos: ["34", "40", "31"]
+
+  Plaquetas:
+    tipo: Int?
+    nullable: true
+    dominio: "20-500"
+    unidad: "10^3/µL"
+    ejemplos: ["102000", "64000", "136000"]
+
+  TP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["78", "39", "35"]
+
+  INR:
+    tipo: Float?
+    nullable: true
+    dominio: "0.8-5.0"
+    unidad: "ratio"
+    ejemplos: ["2", "1.69", "1.14"]
+
+  Fib:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["314", "256", "193"]
+
+  Glicemia:
+    tipo: Float?
+    nullable: true
+    dominio: "60-300"
+    unidad: "mg/dL"
+    ejemplos: ["0.88", "89", "91"]
+
+  Na:
+    tipo: Int?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["141", "136", "135"]
+
+  K:
+    tipo: Float?
+    nullable: true
+    dominio: "3.0-6.0"
+    unidad: "mEq/L"
+    ejemplos: ["4.2", "3.9", "4.5"]
+
+  CaIonico:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1.11", "1.22", "1.19"]
+    notas: "79.3% nulos (87/420 completos)"
+
+  Mg:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1.6", "2.7", "0"]
+    notas: "98.8% nulos (5/420 completos)"
+
+  Azo:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["39", "25", "126"]
+
+  Crea:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0.83", "0.8", "2.25"]
+
+  IFG:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["35", "9", "60"]
+    notas: "82.1% nulos (75/420 completos)"
+
+  TGO:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["35", "82", "34"]
+
+  TGP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["30", "53", "32"]
+
+  Btotal:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1", "10.7", "8.8"]
+
+  Albumina:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["2.7", "3.1", "3.4"]
+
+  TSH:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["4.53", "1.24", "2.62"]
+    notas: "55.5% nulos (187/420 completos)"
+
+  Página 3:
+    tipo: String?
+    nullable: true
+    ejemplos: ["I-II"]
+    notas: "99.8% nulos (1/420 completos)"
+
+  MPT:
+    tipo: String?
+    nullable: true
+    ejemplos: ["I-II", "III-IV"]
+
+  AperturaBucal:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Normal", "< 3 cm"]
+
+  ExFisicoObs:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Obeso G III", "Retrógnato", "Prótesis superior completa, la trajo a block"]
+
+  Página 4:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Bradicardia sinusal  48cpm, P y PR normal.BIRD. Repolarización normal"]
+    notas: "99.8% nulos (1/420 completos)"
+
+  ECG:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Normal", "BCRD HVI,", "RS 80 cpm P y PR normal QRS fino sin elementos de isquemia aguda"]
+    notas: "54.8% nulos (190/420 completos)"
+
+  ECoCardio:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Normal", "HVI severa FEVI 65%", "FEVI 60%, velos de valvas mitral y Ao engrosadas con leve reflujo de ambas"]
+    notas: "51% nulos (206/420 completos)"
+
+  Informe Eco:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Preoperatorio_Images/1363601210-22-2019.Informe Eco.043354.jpg", "Preoperatorio_Images/349748304-04-2019.Informe Eco.203624.jpg", "Preoperatorio_Images/4792999611-27-2019.Informe Eco.190622.jpg"]
+    notas: "59.3% nulos (171/420 completos)"
+
+  EstudioFuncional:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Normal", "Pendiente ECO estrés", "Se adjunta informe de cardiólogo"]
+    notas: "74.5% nulos (107/420 completos)"
+
+  Informe Est Funcional:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Hilios de aspecto vascular. Aumento de trama vascular", "Preoperatorio_Images/1538699411-20-2019.Informe Est Funcional.215105.jpg", "Preoperatorio_Images/1818582003-24-2020.Informe Est Funcional.225710.jpg"]
+    notas: "85% nulos (63/420 completos)"
+
+  RxTx:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Normal", "Derrame pleural izquierdo", "Sp"]
+    notas: "83.6% nulos (69/420 completos)"
+
+  Fresp:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Normal", "Preoperatorio_Images/164056912-11-2019.Informe F.Resp.194954.jpg", "Patrón restrictivo moderadamente severo. Probablemente relacionado a asfixia y derrame pleural"]
+    notas: "70% nulos (126/420 completos)"
+
+  Informe F.Resp:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Preoperatorio_Images/4792999611-27-2019.Informe F.Resp.190622.jpg", "Preoperatorio_Images/5611579411-27-2019.Informe F.Resp.193953.jpg", "Preoperatorio_Images/319369712-11-2019.Informe F.Resp.202630.jpg"]
+    notas: "72.4% nulos (116/420 completos)"
+
+  Informe CACG 1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Preoperatorio_Images/262855602-24-2021.Informe CACG 1.151108.jpg", "Preoperatorio_Images/1705076508-11-2021.Informe CACG 1.141057.jpg", "Preoperatorio_Images/264473108-17-2021.Informe CACG 1.141029.jpg"]
+    notas: "90% nulos (42/420 completos)"
+
+  Informe CACG 2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Preoperatorio_Images/120237211-18-2020.Informe CACG 2.230716.jpg", "Preoperatorio_Images/264473108-17-2021.Informe CACG 2.141031.jpg", "Preoperatorio_Images/445833209-07-2021.Informe CACG 2.121918.jpg"]
+    notas: "96.4% nulos (15/420 completos)"
+
+  Informe AngioTAC C 1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Preoperatorio_Images/120237211-18-2020.Informe AngioTAC C 1.230717.jpg", "Preoperatorio_Images/264473108-17-2021.Informe AngioTAC C 1.141034.jpg", "Preoperatorio_Images/202281806-26-2023.Informe AngioTAC C 1.185127.jpg"]
+    notas: "91.7% nulos (35/420 completos)"
+
+  Informe AngioTAC C 2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Pendiente eco stress", "Preoperatorio_Images/398302303-31-2021.Informe AngioTAC C 2.181335.jpg", "Preoperatorio_Images/264473108-17-2021.Informe AngioTAC C 2.141028.jpg"]
+    notas: "94% nulos (25/420 completos)"
+
+  ExamCompOtros:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Preoperatorio_Images/164056912-11-2019.Informes Otros 1.194954.jpg", "ECG", "Pendiente eco dobuta"]
+    notas: "86.9% nulos (55/420 completos)"
+
+  Informes Otros 1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Preoperatorio_Images/149069903-07-2017.Informes Otros 1.144142.jpg", "Preoperatorio_Images/6346820311-27-2019.Informes Otros 1.201849.jpg", "Preoperatorio_Images/319369712-11-2019.Informes Otros 1.202630.jpg"]
+    notas: "66.2% nulos (142/420 completos)"
+
+  Informes Otros 2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Preoperatorio_Images/149069903-07-2017.Informes Otros 2.144142.jpg", "Preoperatorio_Images/3343968001-15-2020.Informes Otros 2.221516.jpg", "Preoperatorio_Images/375175302-12-2020.Informes Otros 2.211727.jpg"]
+    notas: "83.6% nulos (69/420 completos)"
+
+  Página 5:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "99.8% nulos (1/420 completos)"
+
+  SndHepatorenal:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  SindHepatoPulmonar:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  HTPulmonar:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Leve", "Moderada"]
+    transformación: "SI → true, NO → false"
+
+  HTPortal:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Moderada", "Leve"]
+    transformación: "SI → true, NO → false"
+
+  Ascitis:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Leve", "Severa"]
+    transformación: "SI → true, NO → false"
+
+  Hidrotorax:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Leve", "Severo"]
+    transformación: "SI → true, NO → false"
+
+  PBE:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  TrobosisP:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  VaricesEsof:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Grado I--II", "Grado III-IV"]
+    transformación: "SI → true, NO → false"
+
+  Encefalopatia:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Grado II", "Grado I"]
+    transformación: "SI → true, NO → false"
+
+  Hepatocarcinoma:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Sangrado:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Hiponatremia:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Moderada", "Leve"]
+    transformación: "SI → true, NO → false"
+
+  ObsComplicaciones:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Trombosis", "Trombosis VCI crónica", "Colangitis a repetición"]
+
+  Página 6:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "98.8% nulos (5/420 completos)"
+
+  Puerperio:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  IRenal:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Monorreno:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  EnfCoronaria:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "IAM previo", "RVM Previa Angioplastia Coronaria"]
+    transformación: "SI → true, NO → false"
+
+  HTA:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "HTA Crónica Leve/Moderada", "HTA Crónica Severa"]
+    transformación: "SI → true, NO → false"
+
+  Valvulopatia:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Insuficiencia Mitral Leve/Moderada", "Insuficiencia Ao Leve/Moderada"]
+    transformación: "SI → true, NO → false"
+
+  Valvulopatia2:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Insuficiencia Tricuspidea Leve/Moderada", "Insuficiencia Mitral Leve/Moderada"]
+    transformación: "SI → true, NO → false"
+    notas: "96.9% nulos (13/420 completos)"
+
+  Valvulopatia3:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Insuficiencia Tricuspidea Leve/Moderada"]
+    transformación: "SI → true, NO → false"
+    notas: "99.5% nulos (2/420 completos)"
+
+  ArritmiaMarcapaso:
+    tipo: Boolean?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["NO", "Arritmia supraventricular"]
+    transformación: "SI → true, NO → false"
+
+  CardiopDilatada:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "CF II", "CF I"]
+    transformación: "SI → true, NO → false"
+
+  CardiopHTA:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Moderada", "Leve"]
+    transformación: "SI → true, NO → false"
+
+  Fumador/EPOC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "Fumador", "EPOC leve/moderado"]
+    transformación: "SI → true, NO → false"
+
+  ASMA:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Asma Intermitente Leve", "NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Diabetes:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "PreDiabetes", "DM Tipo II Estable"]
+    transformación: "SI → true, NO → false"
+
+  DisfTiroidea:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "RGE Sintomatico", "Hipotiroidismo Leve/Moderado"]
+    transformación: "SI → true, NO → false"
+
+  CirugiaAbdominal:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  CirAbdominalDetalle:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Trasplante Hepático", "Colecistectomia Laparoscopica", "2 Tx renal hace 16 y 4 años"]
+    notas: "57.9% nulos (177/420 completos)"
+
+  RGEUlcus:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["RGE Asintomatico", "NO", "UGD Asintomatico"]
+    transformación: "SI → true, NO → false"
+
+  Alergias:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "AINES", "Vancomicina y no recuerda el otro atb (rush)"]
+    transformación: "SI → true, NO → false"
+
+  ObsComorbilidades:
+    tipo: String?
+    nullable: true
+    ejemplos: ["TVP MInf hace 4 años sin tto actual", "SAOS tto CPAP", "No"]
+    notas: "54% nulos (193/420 completos)"
+
+  ClaseFuncional:
+    tipo: String?
+    nullable: true
+    ejemplos: ["I", "II", "Pendiente"]
+
+  ARM:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  MedicacionHabitual:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Propanolol espironolactona furosemide lanzoprazol rifaximina clonazepam kalitron melatonina ursocel", "Omeprazol rifaximina duro se mide espironolactona", "Enalapril, amlodipina, espironolactona, furosemide, omeprazol, salbutamol"]
+
+  Página 7:
+    tipo: String?
+    nullable: true
+    ejemplos: ["222: Yorley Andarcia"]
+    notas: "99.8% nulos (1/420 completos)"
+
+  IngresaLista:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "333: Jessica Vega", "Pendiente"]
+    transformación: "SI → true, NO → false"
+
+  CausaNoIngreso:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["—", "0", "Falta valoración CV, realizar HbA1c"]
+    notas: "63.6% nulos (153/420 completos)"
+
+  Problemas:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Sangrado", "Falla extubacion", "Sagrado insuficiencia renal,"]
+
+  Anestesista 1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["222: Yorley Andarcia", "70203: William Baptista", "333: Jessica Vega"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+
+  Anestesista 2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["222: Yorley Andarcia", "333: Jessica Vega", "111: Karina Rando"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "86.7% nulos (56/420 completos)"
+
+  Actualizar:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["7", "2", "0"]
+
+
+## Porcedimientos
+
+### Campos
+
+  FechaP:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (111)"
+
+  CI:
+    tipo: String
+    nullable: false
+    ejemplos: ["3870894", "4645745", "6275133"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Inicio:
+    tipo: String
+    nullable: false
+    ejemplos: ["23/10/2019 10:15:00", "20/12/2019 16:16:56", "20/12/2019 16:30:00"]
+
+  Equipo:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (111)"
+
+  Anestesista1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["70203: William Baptista", "222: Yorley Andarcia", "333: Jessica Vega"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+
+  Anestesista2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["333: Jessica Vega", "222: Yorley Andarcia", "111: Karina Rando"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "85.6% nulos (16/111 completos)"
+
+  Cirujano1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["123: Alejandro Ettlin", "111: Alonso", "11111: Patricio Vanerio"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+
+  Cirujano2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["456: Martin Abelleira", "999: Martín Harguindegui", "123: Alejandro Ettlin"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "69.4% nulos (34/111 completos)"
+
+  OtroTecnico:
+    tipo: String?
+    nullable: true
+    ejemplos: ["6666: Marcelo Valverde", "111: Alonso", "4444: Gonzalo San Martin"]
+    notas: "66.7% nulos (37/111 completos)"
+
+  Procedimiento:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (111)"
+
+  Lugar:
+    tipo: String?
+    nullable: true
+    ejemplos: ["BQ", "Tomografo", "Sala Hemodinamia"]
+
+  Tipo:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Otros Procedimientos ", "Biopsia Hepática Percutanea", "Fgc FCC Diagnóstica"]
+
+  TipoDetalle:
+    tipo: String?
+    nullable: true
+    ejemplos: ["FGC Biopsia", "CER", "FBC con biopsia"]
+
+  Preoperatorio:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (111)"
+
+  ASA:
+    tipo: String?
+    nullable: true
+    ejemplos: ["III", "II", "IV"]
+
+  VAPreop:
+    tipo: String?
+    nullable: true
+    ejemplos: ["VAN", "IOT", "VNI"]
+
+  VentPreop:
+    tipo: String?
+    nullable: true
+    ejemplos: ["VAN", "IOT ", "Otra"]
+
+  HemodinamiaPreop:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Estable", "Inestable con Inotropicos ", "Shock refractario"]
+
+  GCS:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["15", "3", "14"]
+
+  Procedencia:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Sala", "CTI ", "Ambulatorio"]
+
+  Intraoperatorio:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (111)"
+
+  Premedicacion:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  ATB:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Unasym", "No", "Piperazina Tazobactan"]
+
+  VAIop:
+    tipo: String?
+    nullable: true
+    ejemplos: ["VAN", "Máscara Facial ", "IOT"]
+
+  EstOcupado:
+    tipo: Boolean?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["NO", "Si"]
+    transformación: "SI → true, NO → false"
+
+  SecuenciaRap:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  IOTDificil:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Posicion:
+    tipo: String
+    nullable: false
+    ejemplos: ["DD", "Trendelemburg", "Ginecologica"]
+
+  TecnicaA:
+    tipo: String?
+    nullable: true
+    ejemplos: ["AL Potenciada ", "Sedacion Leve Moderada ", "AGB"]
+
+  VentIop:
+    tipo: String?
+    nullable: true
+    ejemplos: ["VAN", "MF Espontánea", "ARM"]
+
+  PatronVent:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["VCV", "Vcv", "VCV, FiO2 1"]
+
+  ARegional:
+    tipo: String?
+    nullable: true
+    ejemplos: ["No", "no", "Morfina Intrarraquidea "]
+    notas: "53.2% nulos (52/111 completos)"
+
+  PostOp:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (111)"
+
+  Finalizacion:
+    tipo: String
+    nullable: false
+    ejemplos: ["23/10/2019 11:00:00", "20/12/2019 16:16:00", "20/12/2019 16:50:00"]
+
+  Destino:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Sala", "CTI", "Ambulatorio"]
+
+  VApostop:
+    tipo: String?
+    nullable: true
+    ejemplos: ["VAN", "IOT", "VNI"]
+
+  VentPostop:
+    tipo: String?
+    nullable: true
+    ejemplos: ["VEsp", "ARM", "V Controlada "]
+
+  HemodinamiaPostop:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Estable", "Estable con Inotropicos ", "Inestable con Inotropicos"]
+
+  Complicaciones:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["No", "Hipoglucemia leve que se corrige", "-"]
+    transformación: "SI → true, NO → false"
+
+  Observaciones:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Estómago ocupado", "Procedimiento sin incidentes", "se traslada a CTI IOT con Na a iguales dosis preoperatoria"]
+    notas: "52.3% nulos (53/111 completos)"
+
+  Actualizar:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["3", "1", "2"]
+    notas: "69.4% nulos (34/111 completos)"
+
+
+## IntraopProced
+
+### Descripción
+Registros intraoperatorios fase: Proced. Múltiples snapshots por caso.
+
+### Claves
+- CI → DatosPaciente.CI
+- FechaT → DatosTrasplante.FechaHoraInicio (identificador del caso)
+- Fecha → timestamp del snapshot
+
+### Campos
+
+  NO :
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  CI:
+    tipo: String
+    nullable: false
+    ejemplos: ["999999: 10/18/2019 08:38:00", "999999: 10/22/2019 01:43:00", "3870894: 10/23/2019 10:15:00"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: String
+    nullable: false
+    ejemplos: ["21/10/2019 1:30:00", "21/10/2019 1:45:00", "21/10/2019 9:50:00"]
+
+  PatronVent:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  FIO2:
+    tipo: Float?
+    nullable: true
+    unidad: "fracción (0-1)"
+    ejemplos: ["1", "0.5", "0.6"]
+    transformación: "mantener como fracción"
+
+  VC:
+    tipo: Int?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["450", "300", "600"]
+    notas: "58.7% nulos (69/167 completos)"
+
+  Fr:
+    tipo: Int?
+    nullable: true
+    dominio: "8-20"
+    unidad: "rpm"
+    ejemplos: ["12", "16", "14"]
+    notas: "57.5% nulos (71/167 completos)"
+
+  PVA:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["15", "10", "18"]
+    notas: "58.7% nulos (69/167 completos)"
+
+  PEEP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["3", "4", "5"]
+    notas: "58.7% nulos (69/167 completos)"
+
+  Monitoriz:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  FC:
+    tipo: Int?
+    nullable: true
+    dominio: "40-140"
+    unidad: "lpm"
+    ejemplos: ["98", "86", "65"]
+
+  SatO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["99", "98", "96"]
+
+  PAS:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["170", "138", "132"]
+
+  PAD:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["98", "65", "85"]
+
+  PAm:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["119", "100", "77"]
+    notas: "61.1% nulos (65/167 completos)"
+
+  EtCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["35", "32", "37"]
+
+  Temp:
+    tipo: Float?
+    nullable: true
+    dominio: "34-38"
+    unidad: "°C"
+    ejemplos: ["36.8", "36.7", "36.5"]
+    notas: "69.5% nulos (51/167 completos)"
+
+  PVC:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["0", "8", "5"]
+    notas: "91.6% nulos (14/167 completos)"
+
+  PAPS:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "165"]
+    notas: "95.2% nulos (8/167 completos)"
+
+  PAPD:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "95.8% nulos (7/167 completos)"
+
+  PAPm:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "96.4% nulos (6/167 completos)"
+
+  PCP:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "9"]
+    notas: "96.4% nulos (6/167 completos)"
+
+  GC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "95.8% nulos (7/167 completos)"
+
+  BIS:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "índice"
+    ejemplos: ["0", "43", "52"]
+    notas: "86.8% nulos (22/167 completos)"
+
+  PIC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "95.8% nulos (7/167 completos)"
+
+  SatVMixta:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["0"]
+    notas: "95.8% nulos (7/167 completos)"
+
+  Farmacos:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  AgenteInhalatorio:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO", "Ninguno"]
+    transformación: "SI → true, NO → false"
+
+  Opiaceos bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Opiaceos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Hipnoticos bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Hipnoticos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  RM Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  RM IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Lidocaina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Adrenalina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Adrenalina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  DBT:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Dopa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  NA:
+    tipo: Boolean?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Insulina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Insulina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Furosemide:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Tranexamico:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Otros Farmacos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Dexmedetomidina", "Midazolam Fentanil", "gluconato de calcio"]
+    transformación: "SI → true, NO → false"
+    notas: "64.1% nulos (60/167 completos)"
+
+  Reposicion:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  Plasmalyte(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["6", "3", "0"]
+
+  RLactato(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["6", "4", "100"]
+
+  CAlbumina(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["100", "0", "200"]
+
+  SG(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "50", "100"]
+
+  SF(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["250", "0", "200"]
+
+  GR(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["-1", "0", "1"]
+
+  Plasma(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "2", "1"]
+
+  CPlaquetas(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "1"]
+
+  Crioprecipitados(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0"]
+
+  CellSaver(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0"]
+
+  Otros Fluidos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SBM 100", "SBM 100, GELOPLASMA 500"]
+    transformación: "SI → true, NO → false"
+
+  Perdidas:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  Perd Insens(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "100", "50"]
+    notas: "55.1% nulos (75/167 completos)"
+
+  Ascitis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "200", "300"]
+
+  Aspirador(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "100", "200"]
+
+  Gasas(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "150", "200"]
+
+  Diuresis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "50", "100"]
+
+  Paraclinica:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  Hb:
+    tipo: Float?
+    nullable: true
+    dominio: "6-18"
+    unidad: "g/dL"
+    ejemplos: ["9", "10.7", "4.5"]
+    notas: "95.8% nulos (7/167 completos)"
+
+  Hto:
+    tipo: Int?
+    nullable: true
+    dominio: "18-54"
+    unidad: "%"
+    ejemplos: ["28", "33", "13"]
+    notas: "97% nulos (5/167 completos)"
+
+  Na+:
+    tipo: Int?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["132", "140", "137"]
+    notas: "98.2% nulos (3/167 completos)"
+
+  K+:
+    tipo: Float?
+    nullable: true
+    dominio: "3.0-6.0"
+    unidad: "mEq/L"
+    ejemplos: ["3", "3.6", "3.9"]
+    notas: "97.6% nulos (4/167 completos)"
+
+  Ca++:
+    tipo: String?
+    nullable: true
+    dominio: "0.9-1.3"
+    unidad: "mmol/L"
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  pH:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["7.22", "7.35", "7.2"]
+    notas: "97.6% nulos (4/167 completos)"
+
+  PaO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["146", "230"]
+    notas: "98.8% nulos (2/167 completos)"
+
+  PaCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["50", "27"]
+    notas: "98.2% nulos (3/167 completos)"
+
+  Phv:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  PvO2:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  PvCO2:
+    tipo: String?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  Glicemia:
+    tipo: Float?
+    nullable: true
+    dominio: "60-300"
+    unidad: "mg/dL"
+    ejemplos: ["0.76", "79"]
+    notas: "98.8% nulos (2/167 completos)"
+
+  Lactato:
+    tipo: Float?
+    nullable: true
+    dominio: "0.5-10"
+    unidad: "mmol/L"
+    ejemplos: ["9", "1.7", "1.8"]
+    notas: "97.6% nulos (4/167 completos)"
+
+  Mg:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  Proteinas:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["3"]
+    notas: "99.4% nulos (1/167 completos)"
+
+  Creatinina:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1.3", "1.97"]
+    notas: "98.8% nulos (2/167 completos)"
+
+  TP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["38", "37", "18"]
+    notas: "98.2% nulos (3/167 completos)"
+
+  INR:
+    tipo: Float?
+    nullable: true
+    dominio: "0.8-5.0"
+    unidad: "ratio"
+    ejemplos: ["1.99", "3.4"]
+    notas: "98.8% nulos (2/167 completos)"
+
+  Plaquetas:
+    tipo: Int?
+    nullable: true
+    dominio: "20-500"
+    unidad: "10^3/µL"
+    ejemplos: ["133000", "16000", "118000"]
+    notas: "97.6% nulos (4/167 completos)"
+
+  Fibrinogeno:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["568", "291"]
+    notas: "98.8% nulos (2/167 completos)"
+
+  Otra Paraclinica:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Balance:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+  Actualizar:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (167)"
+
+
+## IntraopInducc
+
+### Descripción
+Registros intraoperatorios fase: Inducc. Múltiples snapshots por caso.
+
+### Claves
+- CI → DatosPaciente.CI
+- FechaT → DatosTrasplante.FechaHoraInicio (identificador del caso)
+- Fecha → timestamp del snapshot
+
+### Campos
+
+  FechaT:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (292)"
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1294197", "3428611", "3717164"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: DateTime
+    nullable: false
+    ejemplos: ["14/7/2009", "22/7/2009", "12/8/2009"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  PatronVent:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (292)"
+
+  FIO2:
+    tipo: Float?
+    nullable: true
+    unidad: "fracción (0-1)"
+    ejemplos: ["0.8", "0.6", "0.7"]
+    transformación: "mantener como fracción"
+    notas: "56.5% nulos (127/292 completos)"
+
+  VC:
+    tipo: Int?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["508", "450", "600"]
+    notas: "55.5% nulos (130/292 completos)"
+
+  Fr:
+    tipo: Int?
+    nullable: true
+    dominio: "8-20"
+    unidad: "rpm"
+    ejemplos: ["12", "13", "11"]
+    notas: "55.5% nulos (130/292 completos)"
+
+  PVA:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["17", "18", "15"]
+    notas: "56.5% nulos (127/292 completos)"
+
+  PEEP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["3", "4", "5"]
+    notas: "56.2% nulos (128/292 completos)"
+
+  Monitoriz:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (292)"
+
+  FC:
+    tipo: Int?
+    nullable: true
+    dominio: "40-140"
+    unidad: "lpm"
+    ejemplos: ["56", "86", "69"]
+    notas: "55.5% nulos (130/292 completos)"
+
+  SatO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["100", "99", "96"]
+    notas: "56.5% nulos (127/292 completos)"
+
+  PAS:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["115", "110", "162"]
+    notas: "55.5% nulos (130/292 completos)"
+
+  PAD:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["45", "52", "62"]
+    notas: "56.2% nulos (128/292 completos)"
+
+  PAm:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["65", "98", "60"]
+    notas: "78.1% nulos (64/292 completos)"
+
+  PVC:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["12", "7", "18"]
+    notas: "80.5% nulos (57/292 completos)"
+
+  EtCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["33", "28", "32"]
+    notas: "69.5% nulos (89/292 completos)"
+
+  Temp:
+    tipo: Float?
+    nullable: true
+    dominio: "34-38"
+    unidad: "°C"
+    ejemplos: ["35.9", "36.7", "36.6"]
+    notas: "77.4% nulos (66/292 completos)"
+
+  BIS:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "índice"
+    ejemplos: ["43", "61", "40"]
+    notas: "71.6% nulos (83/292 completos)"
+
+  PAPS:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "99.3% nulos (2/292 completos)"
+
+  PAPD:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "80"]
+    notas: "99% nulos (3/292 completos)"
+
+  PAPm:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "30"]
+    notas: "99.3% nulos (2/292 completos)"
+
+  PCP:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "99.7% nulos (1/292 completos)"
+
+  GC:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0", "5.5", "7200"]
+    notas: "98.3% nulos (5/292 completos)"
+
+  PIC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99.7% nulos (1/292 completos)"
+
+  Reposicion:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (292)"
+
+  Plasmalyte(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1000", "2000", "208"]
+
+  RLactato(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["500", "1000", "157"]
+
+  SF(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1000", "400", "500"]
+
+  Coloides(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["500", "0"]
+    notas: "79.8% nulos (59/292 completos)"
+
+  SG(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["400", "250", "600"]
+
+  CAlbumina(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["250", "500", "1000"]
+
+  GR(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["6", "1000", "300"]
+
+  Plasma(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["4", "600", "200"]
+
+  CPlaquetas(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["5", "500", "1000"]
+
+  Crioprecipitados(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["200", "300", "2300"]
+
+  CellSaver(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["500", "1200", "200"]
+
+  Otros Fluidos:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0", "100 Fibrinógeno", "fibrinogeno"]
+    notas: "53.4% nulos (136/292 completos)"
+
+  Perdidas:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (292)"
+
+  Perd Insens(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["2000", "200", "1200"]
+    notas: "51% nulos (143/292 completos)"
+
+  Ascitis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1000", "200", "300"]
+
+  Aspirador(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["2300", "1000", "1200"]
+
+  Gasas(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["300", "2300", "200"]
+
+  Diuresis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["400", "300", "100"]
+
+  Farmacos:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (292)"
+
+  AgenteInhalatorio:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "Isof", "Sevf"]
+    transformación: "SI → true, NO → false"
+
+  Opiaceos bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.4% nulos (139/292 completos)"
+
+  Opiaceos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53.1% nulos (137/292 completos)"
+
+  Hipnotico bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (138/292 completos)"
+
+  Hipnotico IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.1% nulos (137/292 completos)"
+
+  RM Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (138/292 completos)"
+
+  RM IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (138/292 completos)"
+
+  Lidocaina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (138/292 completos)"
+
+  Lidocaina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53.1% nulos (137/292 completos)"
+
+  Adrenalina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53.1% nulos (137/292 completos)"
+
+  Adrenalina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.1% nulos (137/292 completos)"
+
+  DBT:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Dopa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  NA:
+    tipo: Boolean?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Fenilefrina:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (138/292 completos)"
+
+  SB1M Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (138/292 completos)"
+
+  SB1M i/c:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (138/292 completos)"
+
+  GluconatoCa Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (138/292 completos)"
+
+  Insulina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Insulina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Furosemide:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Tranexamico:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.1% nulos (140/292 completos)"
+
+  ATB:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Piperacidina Tazobactan y Gentamicina", "Gentamicina + Piperazina Tazobactam", "Tigeciclina 200, Colostina 400"]
+    transformación: "SI → true, NO → false"
+    notas: "73.6% nulos (77/292 completos)"
+
+  Otros Famacos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Ranitidina", "Propofol scc ", "Ketamina 40 mg bolo inducción "]
+    transformación: "SI → true, NO → false"
+    notas: "75% nulos (73/292 completos)"
+
+  Paraclinica:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (292)"
+
+  Hb:
+    tipo: Float?
+    nullable: true
+    dominio: "6-18"
+    unidad: "g/dL"
+    ejemplos: ["11.0", "43624", "12.2"]
+    notas: "71.9% nulos (82/292 completos)"
+
+  Hto:
+    tipo: Int?
+    nullable: true
+    dominio: "18-54"
+    unidad: "%"
+    ejemplos: ["33", "23", "32"]
+    notas: "74.3% nulos (75/292 completos)"
+
+  Na+:
+    tipo: Int?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["135", "134", "138"]
+    notas: "72.3% nulos (81/292 completos)"
+
+  K+:
+    tipo: Float?
+    nullable: true
+    dominio: "3.0-6.0"
+    unidad: "mEq/L"
+    ejemplos: ["4.5", "3.7", "4.7"]
+    notas: "74% nulos (76/292 completos)"
+
+  Ca++:
+    tipo: Float?
+    nullable: true
+    dominio: "0.9-1.3"
+    unidad: "mmol/L"
+    ejemplos: ["1.2", "1.11", "0.99"]
+    notas: "79.5% nulos (60/292 completos)"
+
+  pH:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["7.47", "7.45", "7.43"]
+    notas: "80.1% nulos (58/292 completos)"
+
+  PaO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["200", "300", "273"]
+    notas: "79.8% nulos (59/292 completos)"
+
+  PaCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["34", "45", "37"]
+    notas: "79.8% nulos (59/292 completos)"
+
+  Phv:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99% nulos (3/292 completos)"
+
+  PvO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0", "72"]
+    notas: "98.6% nulos (4/292 completos)"
+
+  PvCO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["0", "38"]
+    notas: "98.6% nulos (4/292 completos)"
+
+  Glicemia:
+    tipo: Float?
+    nullable: true
+    dominio: "60-300"
+    unidad: "mg/dL"
+    ejemplos: ["1.34", "1.45", "1"]
+    notas: "77.1% nulos (67/292 completos)"
+
+  Lactato:
+    tipo: Float?
+    nullable: true
+    dominio: "0.5-10"
+    unidad: "mmol/L"
+    ejemplos: ["2", "1.2", "1.1"]
+    notas: "85.3% nulos (43/292 completos)"
+
+  Mg:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["2.3", "1.4", "1.9"]
+    notas: "85.3% nulos (43/292 completos)"
+
+  Proteinas:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["3", "6", "5.8"]
+    notas: "88.7% nulos (33/292 completos)"
+
+  Creatinina:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1,25", "1.4", "0.66"]
+    notas: "80.5% nulos (57/292 completos)"
+
+  Azoemia:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["38", "30", "60"]
+    notas: "79.8% nulos (59/292 completos)"
+
+  TP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["67", "56", "66"]
+    notas: "76.7% nulos (68/292 completos)"
+
+  INR:
+    tipo: Float?
+    nullable: true
+    dominio: "0.8-5.0"
+    unidad: "ratio"
+    ejemplos: ["3", "1.8", "1.33"]
+    notas: "78.8% nulos (62/292 completos)"
+
+  Plaquetas:
+    tipo: Int?
+    nullable: true
+    dominio: "20-500"
+    unidad: "10^3/µL"
+    ejemplos: ["200000", "140", "60000"]
+    notas: "74.7% nulos (74/292 completos)"
+
+  Fibrinogeno:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["200", "303", "126"]
+    notas: "79.8% nulos (59/292 completos)"
+
+  SatVMixta:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["0", "526", "280"]
+    notas: "98.6% nulos (4/292 completos)"
+
+  Otra Paraclinica:
+    tipo: String?
+    nullable: true
+    ejemplos: ["TEG normal", "alb 3.6", "No"]
+    notas: "96.9% nulos (9/292 completos)"
+
+  Balance:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (292)"
+
+  Actualizar:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (292)"
+
+
+## IntraopDisec
+
+### Descripción
+Registros intraoperatorios fase: Disec. Múltiples snapshots por caso.
+
+### Claves
+- CI → DatosPaciente.CI
+- FechaT → DatosTrasplante.FechaHoraInicio (identificador del caso)
+- Fecha → timestamp del snapshot
+
+### Campos
+
+  FechaT:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (522)"
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1294197", "3428611", "3717164"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: DateTime
+    nullable: false
+    ejemplos: ["14/7/2009", "22/7/2009", "12/8/2009"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  PatronVent:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (522)"
+
+  FIO2:
+    tipo: Float?
+    nullable: true
+    unidad: "fracción (0-1)"
+    ejemplos: ["0.8", "0.6", "0.5"]
+    transformación: "mantener como fracción"
+    notas: "63.2% nulos (192/522 completos)"
+
+  VC:
+    tipo: Int?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["500", "550", "540"]
+    notas: "53.4% nulos (243/522 completos)"
+
+  Fr:
+    tipo: Int?
+    nullable: true
+    dominio: "8-20"
+    unidad: "rpm"
+    ejemplos: ["12", "14", "15"]
+    notas: "53.6% nulos (242/522 completos)"
+
+  PVA:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["15", "14", "12"]
+    notas: "54.2% nulos (239/522 completos)"
+
+  PEEP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["3", "5", "7"]
+    notas: "53.3% nulos (244/522 completos)"
+
+  Monitoriz:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (522)"
+
+  FC:
+    tipo: Int?
+    nullable: true
+    dominio: "40-140"
+    unidad: "lpm"
+    ejemplos: ["67", "76", "66"]
+
+  SatO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["99", "100", "98"]
+
+  PAS:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["156", "138", "137"]
+
+  PAD:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["58", "53", "65"]
+
+  PAm:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["92", "77", "97"]
+    notas: "58.2% nulos (218/522 completos)"
+
+  PVC:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["5", "3", "13"]
+
+  EtCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["33", "30", "27"]
+
+  PAPS:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "28"]
+    notas: "97.5% nulos (13/522 completos)"
+
+  PAPD:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "65"]
+    notas: "97.9% nulos (11/522 completos)"
+
+  PAPm:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.3% nulos (9/522 completos)"
+
+  PCP:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "5"]
+    notas: "98.3% nulos (9/522 completos)"
+
+  GC:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0", "4.5", "9"]
+    notas: "97.1% nulos (15/522 completos)"
+
+  BIS:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "índice"
+    ejemplos: ["45", "42", "43"]
+
+  PIC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0", "-3"]
+    notas: "98.1% nulos (10/522 completos)"
+
+  Temp:
+    tipo: Float?
+    nullable: true
+    dominio: "34-38"
+    unidad: "°C"
+    ejemplos: ["36", "36.3", "36.5"]
+
+  Reposicion:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (522)"
+
+  Plasmalyte(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["2000", "208", "100"]
+
+  RLactato(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1000", "157", "200"]
+
+  CAlbumina(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["500", "1000", "2"]
+
+  SG(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["250", "600", "334"]
+
+  SF(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["400", "500", "0"]
+
+  Coloides(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["100", "0", "500"]
+    notas: "66.3% nulos (176/522 completos)"
+
+  GR(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["1000", "300", "0"]
+
+  Plasma(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["600", "200", "0"]
+
+  CPlaquetas(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["500", "1000", "0"]
+
+  Crioprecipitados(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["300", "2300", "44"]
+
+  CellSaver(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1200", "200", "0"]
+
+  Perdidas:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (522)"
+
+  Perd Insens(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["2465", "122", "300"]
+
+  Ascitis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["200", "300", "343"]
+
+  Aspirador(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1000", "1200", "0"]
+
+  Gasas(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["2300", "200", "0"]
+
+  Diuresis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["300", "111", "400"]
+
+  Farmacos:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (522)"
+
+  AgenteInhalatorio:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "Sevof", "Isof"]
+    transformación: "SI → true, NO → false"
+
+  Opiaceos Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Opiaceos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI"]
+    transformación: "SI → true, NO → false"
+
+  Hipnotico bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Hipnotico IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  RM Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  RM IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI"]
+    transformación: "SI → true, NO → false"
+
+  Lidocaina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Lidocaina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Adrenalina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Adrenalina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  DBT:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Dopa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  NA:
+    tipo: Boolean?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Insulina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Insulina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "0", "Si"]
+    transformación: "SI → true, NO → false"
+
+  Furosemide:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Tranexamico:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  ATB:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Infusión más repique", "Repique Gentamicina + PTZ", "infusión PTZ"]
+    notas: "92% nulos (42/522 completos)"
+
+  Otros Faramacos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Gluconato de Ca 1g/h", "NO", "CALCIO,"]
+    transformación: "SI → true, NO → false"
+
+  Paraclinica:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (522)"
+
+  Hb:
+    tipo: Float?
+    nullable: true
+    dominio: "6-18"
+    unidad: "g/dL"
+    ejemplos: ["43624", "12.2", "13"]
+    notas: "80.7% nulos (101/522 completos)"
+
+  Hto:
+    tipo: Float?
+    nullable: true
+    dominio: "18-54"
+    unidad: "%"
+    ejemplos: ["39", "37", "18"]
+    notas: "79.7% nulos (106/522 completos)"
+
+  Na+:
+    tipo: Int?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["134", "135", "140"]
+    notas: "79.5% nulos (107/522 completos)"
+
+  K+:
+    tipo: Float?
+    nullable: true
+    dominio: "3.0-6.0"
+    unidad: "mEq/L"
+    ejemplos: ["5.2", "4.9", "4.3"]
+    notas: "81.6% nulos (96/522 completos)"
+
+  Ca++:
+    tipo: Float?
+    nullable: true
+    dominio: "0.9-1.3"
+    unidad: "mmol/L"
+    ejemplos: ["1.25", "1.12", "1.1"]
+    notas: "80.7% nulos (101/522 completos)"
+
+  pH:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["7.56", "7.45", "7.4"]
+    notas: "79.9% nulos (105/522 completos)"
+
+  PaO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["200", "199", "210"]
+    notas: "77.2% nulos (119/522 completos)"
+
+  PaCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["23", "46", "41"]
+    notas: "78% nulos (115/522 completos)"
+
+  Phv:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99.2% nulos (4/522 completos)"
+
+  PvO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99.2% nulos (4/522 completos)"
+
+  PvCO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["0"]
+    notas: "99.2% nulos (4/522 completos)"
+
+  SatVMixta:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["0"]
+    notas: "99% nulos (5/522 completos)"
+
+  Glicemia:
+    tipo: Float?
+    nullable: true
+    dominio: "60-300"
+    unidad: "mg/dL"
+    ejemplos: ["0.93", "0.96", "144"]
+    notas: "81.6% nulos (96/522 completos)"
+
+  Lactato:
+    tipo: Float?
+    nullable: true
+    dominio: "0.5-10"
+    unidad: "mmol/L"
+    ejemplos: ["1.8", "3.1", "1.28"]
+    notas: "82.6% nulos (91/522 completos)"
+
+  Mg:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["5.6", "1.8", "1.6"]
+    notas: "89.8% nulos (53/522 completos)"
+
+  Proteinas:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["2", "5.8", "0"]
+    notas: "95.8% nulos (22/522 completos)"
+
+  Creatinina:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1.45", "0.92", "0.9"]
+    notas: "89.7% nulos (54/522 completos)"
+
+  TP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["100", "41", "55"]
+    notas: "84.3% nulos (82/522 completos)"
+
+  INR:
+    tipo: Float?
+    nullable: true
+    dominio: "0.8-5.0"
+    unidad: "ratio"
+    ejemplos: ["2.4", "1.9", "1.52"]
+    notas: "85.8% nulos (74/522 completos)"
+
+  Plaquetas:
+    tipo: Int?
+    nullable: true
+    dominio: "20-500"
+    unidad: "10^3/µL"
+    ejemplos: ["50", "66", "155000"]
+    notas: "82% nulos (94/522 completos)"
+
+  Fibrinogeno:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["160", "272", "316"]
+    notas: "84.7% nulos (80/522 completos)"
+
+  Otra Paraclinica:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["TEG hipocoagulación", "HCo3: 25", "0"]
+    notas: "97.9% nulos (11/522 completos)"
+
+  Balance:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (522)"
+
+  Actualizar:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (522)"
+
+
+## IntraopAnhep
+
+### Descripción
+Registros intraoperatorios fase: Anhep. Múltiples snapshots por caso.
+
+### Claves
+- CI → DatosPaciente.CI
+- FechaT → DatosTrasplante.FechaHoraInicio (identificador del caso)
+- Fecha → timestamp del snapshot
+
+### Campos
+
+  FechaT:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (285)"
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1294197", "3428611", "3717164"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: DateTime
+    nullable: false
+    ejemplos: ["14/7/2009", "22/7/2009", "12/8/2009"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  PatronVent:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (285)"
+
+  FIO2:
+    tipo: Float?
+    nullable: true
+    unidad: "fracción (0-1)"
+    ejemplos: ["1", "0.8", "0.5"]
+    transformación: "mantener como fracción"
+    notas: "71.9% nulos (80/285 completos)"
+
+  VC:
+    tipo: Int?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["500", "400", "450"]
+    notas: "65.6% nulos (98/285 completos)"
+
+  Fr:
+    tipo: Int?
+    nullable: true
+    dominio: "8-20"
+    unidad: "rpm"
+    ejemplos: ["15", "10", "12"]
+    notas: "66% nulos (97/285 completos)"
+
+  PVA:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["13", "15", "14"]
+    notas: "68.1% nulos (91/285 completos)"
+
+  PEEP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["4", "5", "7"]
+    notas: "66% nulos (97/285 completos)"
+
+  Monitoriz:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (285)"
+
+  FC:
+    tipo: Int?
+    nullable: true
+    dominio: "40-140"
+    unidad: "lpm"
+    ejemplos: ["74", "69", "78"]
+    notas: "53.7% nulos (132/285 completos)"
+
+  SatO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["99", "100", "96"]
+    notas: "51.6% nulos (138/285 completos)"
+
+  PAS:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["148", "123", "135"]
+    notas: "53% nulos (134/285 completos)"
+
+  PAD:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["68", "57", "78"]
+    notas: "53.3% nulos (133/285 completos)"
+
+  PAm:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["92", "80", "91"]
+    notas: "69.8% nulos (86/285 completos)"
+
+  PVC:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["3", "12", "10"]
+    notas: "56.1% nulos (125/285 completos)"
+
+  PAPS:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.6% nulos (4/285 completos)"
+
+  PAPD:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.6% nulos (4/285 completos)"
+
+  PAPm:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.6% nulos (4/285 completos)"
+
+  PCP:
+    tipo: String?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0.00%"]
+    notas: "97.9% nulos (6/285 completos)"
+
+  GC:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0", "9", "5"]
+    notas: "97.5% nulos (7/285 completos)"
+
+  BIS:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "índice"
+    ejemplos: ["44", "39", "46"]
+    notas: "60.4% nulos (113/285 completos)"
+
+  PIC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["61", "0", "54"]
+    notas: "98.2% nulos (5/285 completos)"
+
+  Temp:
+    tipo: Float?
+    nullable: true
+    dominio: "34-38"
+    unidad: "°C"
+    ejemplos: ["35.8", "36.3", "36.6"]
+    notas: "61.4% nulos (110/285 completos)"
+
+  EtCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["29", "33", "28"]
+    notas: "56.1% nulos (125/285 completos)"
+
+  SatVMixta:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/285 completos)"
+
+  Reposicion:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (285)"
+
+  Plasmalyte(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["123", "800", "2800"]
+    notas: "53.7% nulos (132/285 completos)"
+
+  RLactato(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1231", "500", "0"]
+    notas: "89.5% nulos (30/285 completos)"
+
+  CAlbumina(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["11", "0", "1500"]
+    notas: "73.3% nulos (76/285 completos)"
+
+  SG(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["12", "0", "300"]
+    notas: "94% nulos (17/285 completos)"
+
+  Coloides(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["500", "1000", "1500"]
+    notas: "86.3% nulos (39/285 completos)"
+
+  SF(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1212", "400", "0"]
+    notas: "82.8% nulos (49/285 completos)"
+
+  GR(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["1", "0", "5"]
+    notas: "78.2% nulos (62/285 completos)"
+
+  Plasma(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["1", "0", "4"]
+    notas: "91.6% nulos (24/285 completos)"
+
+  CPlaquetas(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "10", "1"]
+    notas: "95.4% nulos (13/285 completos)"
+
+  Crioprecipitados(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "200", "250"]
+    notas: "94.4% nulos (16/285 completos)"
+
+  CellSaver(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "100"]
+    notas: "96.5% nulos (10/285 completos)"
+
+  Otros Fluidos:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0", "complejo protrombìnico 2 ampolllas", "Fibrinógeno 1g"]
+    notas: "95.8% nulos (12/285 completos)"
+
+  Perdidas:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (285)"
+
+  Perd Insens(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["400", "550", "500"]
+    notas: "51.2% nulos (139/285 completos)"
+
+  Ascitis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["100", "0", "200"]
+    notas: "75.8% nulos (69/285 completos)"
+
+  Aspirador(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["100", "1000", "700"]
+    notas: "51.6% nulos (138/285 completos)"
+
+  Gasas(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["200", "150", "100"]
+    notas: "63.5% nulos (104/285 completos)"
+
+  Diuresis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["200", "600", "1200"]
+    notas: "54% nulos (131/285 completos)"
+
+  Farmacos:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (285)"
+
+  AgenteInhalatorio:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "Isof", "Sevof"]
+    transformación: "SI → true, NO → false"
+    notas: "51.9% nulos (137/285 completos)"
+
+  Opiaceso Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  Opiaceos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  Hipnoticos Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  Hipnoticos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  RM Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  RM IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  Lidocaina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  Lidocaina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  Adrenalina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  Adrenalina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (136/285 completos)"
+
+  DBT:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "51.6% nulos (138/285 completos)"
+
+  Dopa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "51.6% nulos (138/285 completos)"
+
+  NA:
+    tipo: Boolean?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "51.6% nulos (138/285 completos)"
+
+  Insulina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "51.6% nulos (138/285 completos)"
+
+  Insulina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "51.6% nulos (138/285 completos)"
+
+  Furosemide:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "51.2% nulos (139/285 completos)"
+
+  Tranexamico:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "51.2% nulos (139/285 completos)"
+
+  ATB:
+    tipo: String?
+    nullable: true
+    ejemplos: ["infusión", "Meropenem 500mg", "PTZ, Gentamicina"]
+    notas: "96.8% nulos (9/285 completos)"
+
+  Otros Farmacos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Gluconato de Ca 1g/h", "Calcio", "Fenilefrina"]
+    transformación: "SI → true, NO → false"
+    notas: "51.9% nulos (137/285 completos)"
+
+  Paraclinica:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (285)"
+
+  Hb:
+    tipo: Float?
+    nullable: true
+    dominio: "6-18"
+    unidad: "g/dL"
+    ejemplos: ["13", "11.6", "12.6"]
+    notas: "85.3% nulos (42/285 completos)"
+
+  Hto:
+    tipo: Float?
+    nullable: true
+    dominio: "18-54"
+    unidad: "%"
+    ejemplos: ["40", "33", "36"]
+    notas: "86.3% nulos (39/285 completos)"
+
+  Na+:
+    tipo: Int?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["156", "134", "136"]
+    notas: "84.2% nulos (45/285 completos)"
+
+  K+:
+    tipo: Float?
+    nullable: true
+    dominio: "3.0-6.0"
+    unidad: "mEq/L"
+    ejemplos: ["4.6", "4.1", "5.3"]
+    notas: "85.6% nulos (41/285 completos)"
+
+  Ca++:
+    tipo: Float?
+    nullable: true
+    dominio: "0.9-1.3"
+    unidad: "mmol/L"
+    ejemplos: ["1.8", "1.19", "103"]
+    notas: "87.4% nulos (36/285 completos)"
+
+  pH:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["7.56", "7.4", "7.47"]
+    notas: "84.2% nulos (45/285 completos)"
+
+  PaO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["190", "236", "186"]
+    notas: "83.2% nulos (48/285 completos)"
+
+  PaCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["34", "37", "44"]
+    notas: "83.5% nulos (47/285 completos)"
+
+  Phv:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/285 completos)"
+
+  PvO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0", "67"]
+    notas: "98.9% nulos (3/285 completos)"
+
+  PvCO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["45", "0", "23"]
+    notas: "98.6% nulos (4/285 completos)"
+
+  Glicemia:
+    tipo: Float?
+    nullable: true
+    dominio: "60-300"
+    unidad: "mg/dL"
+    ejemplos: ["1.8", "144", "2"]
+    notas: "89.5% nulos (30/285 completos)"
+
+  Lactato:
+    tipo: Float?
+    nullable: true
+    dominio: "0.5-10"
+    unidad: "mmol/L"
+    ejemplos: ["1.6", "3.8", "6.8"]
+    notas: "88.8% nulos (32/285 completos)"
+
+  Mg:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["2.8", "2", "2.2"]
+    notas: "97.2% nulos (8/285 completos)"
+
+  Proteinas:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["2", "0", "2.3"]
+    notas: "98.9% nulos (3/285 completos)"
+
+  Creatinina:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1.7", "0.73", "0.8"]
+    notas: "95.8% nulos (12/285 completos)"
+
+  TP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["100", "29", "35"]
+    notas: "94% nulos (17/285 completos)"
+
+  INR:
+    tipo: Float?
+    nullable: true
+    dominio: "0.8-5.0"
+    unidad: "ratio"
+    ejemplos: ["1.6", "2.58", "2.18"]
+    notas: "94.7% nulos (15/285 completos)"
+
+  Plaquetas:
+    tipo: Int?
+    nullable: true
+    dominio: "20-500"
+    unidad: "10^3/µL"
+    ejemplos: ["101000", "68000", "38000"]
+    notas: "91.9% nulos (23/285 completos)"
+
+  Fibrinogeno:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["129", "114", "253"]
+    notas: "94% nulos (17/285 completos)"
+
+  Otra Paraclinica:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99.6% nulos (1/285 completos)"
+
+  Balance:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0.05"]
+    notas: "99.6% nulos (1/285 completos)"
+
+  Actualizar:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (285)"
+
+
+## IntraopPreReperf
+
+### Descripción
+Registros intraoperatorios fase: PreReperf. Múltiples snapshots por caso.
+
+### Claves
+- CI → DatosPaciente.CI
+- FechaT → DatosTrasplante.FechaHoraInicio (identificador del caso)
+- Fecha → timestamp del snapshot
+
+### Campos
+
+  FechaT:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (269)"
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1294197", "3428611", "3717164"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: DateTime
+    nullable: false
+    ejemplos: ["14/7/2009", "22/7/2009", "12/8/2009"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  PatronVent:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (269)"
+
+  FIO2:
+    tipo: Float?
+    nullable: true
+    unidad: "fracción (0-1)"
+    ejemplos: ["1", "0.5", "0.6"]
+    transformación: "mantener como fracción"
+    notas: "78.1% nulos (59/269 completos)"
+
+  VC:
+    tipo: Int?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["450", "425", "525"]
+    notas: "71% nulos (78/269 completos)"
+
+  Fr:
+    tipo: Int?
+    nullable: true
+    dominio: "8-20"
+    unidad: "rpm"
+    ejemplos: ["12", "10", "14"]
+    notas: "71% nulos (78/269 completos)"
+
+  PVA:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["15", "18", "14"]
+    notas: "72.1% nulos (75/269 completos)"
+
+  PEEP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["4", "5", "7"]
+    notas: "71% nulos (78/269 completos)"
+
+  Monitoriz:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (269)"
+
+  FC:
+    tipo: Int?
+    nullable: true
+    dominio: "40-140"
+    unidad: "lpm"
+    ejemplos: ["86", "87", "80"]
+    notas: "55.8% nulos (119/269 completos)"
+
+  SatO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["99", "100"]
+    notas: "54.6% nulos (122/269 completos)"
+
+  PAS:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["145", "123", "160"]
+    notas: "55.4% nulos (120/269 completos)"
+
+  PAD:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["63", "65", "70"]
+    notas: "55.4% nulos (120/269 completos)"
+
+  PAm:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["80", "74", "110"]
+    notas: "70.3% nulos (80/269 completos)"
+
+  PVC:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["2", "14", "5"]
+    notas: "59.1% nulos (110/269 completos)"
+
+  PAPS:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "10"]
+    notas: "98.5% nulos (4/269 completos)"
+
+  PAPD:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/269 completos)"
+
+  PAPm:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "-1"]
+    notas: "98.9% nulos (3/269 completos)"
+
+  PCP:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/269 completos)"
+
+  GC:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0", "4", "4.5"]
+    notas: "97.8% nulos (6/269 completos)"
+
+  BIS:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "índice"
+    ejemplos: ["40", "45", "60"]
+    notas: "60.2% nulos (107/269 completos)"
+
+  PIC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99.3% nulos (2/269 completos)"
+
+  Reposicion:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (269)"
+
+  Plasmalyte(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["100", "1400", "2500"]
+    notas: "56.9% nulos (116/269 completos)"
+
+  RLactato(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["200", "500", "2000"]
+    notas: "91.4% nulos (23/269 completos)"
+
+  CAlbumina(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["2", "0", "2000"]
+    notas: "72.5% nulos (74/269 completos)"
+
+  SG(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["2", "0", "1000"]
+    notas: "93.7% nulos (17/269 completos)"
+
+  Coloides(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["500", "1000", "0"]
+    notas: "87% nulos (35/269 completos)"
+
+  SF(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["121", "400", "700"]
+    notas: "84.4% nulos (42/269 completos)"
+
+  GR(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["1", "0", "4"]
+    notas: "76.2% nulos (64/269 completos)"
+
+  Plasma(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "15", "10"]
+    notas: "91.8% nulos (22/269 completos)"
+
+  CPlaquetas(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "1", "2"]
+    notas: "96.3% nulos (10/269 completos)"
+
+  Crioprecipitados(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "500", "200"]
+    notas: "95.5% nulos (12/269 completos)"
+
+  CellSaver(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "200", "2600"]
+    notas: "97.4% nulos (7/269 completos)"
+
+  Otros Fluidos:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["complejo protrombìnico 2 amp", "500", "Geloplasma"]
+    notas: "96.3% nulos (10/269 completos)"
+
+  Perdidas:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (269)"
+
+  Perd Insens(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["200", "600", "2160"]
+    notas: "56.9% nulos (116/269 completos)"
+
+  Ascitis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["100", "0", "1800"]
+    notas: "76.6% nulos (63/269 completos)"
+
+  Aspirador(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["200", "1000", "3400"]
+    notas: "56.5% nulos (117/269 completos)"
+
+  Gasas(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "100", "500"]
+    notas: "64.3% nulos (96/269 completos)"
+
+  Diuresis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["100", "700", "1075"]
+    notas: "59.5% nulos (109/269 completos)"
+
+  Farmacos:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (269)"
+
+  AgenteInhalatorio:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "Isof", "Sevof"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  Opiaceos bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  Opiaceos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  Hipnotico bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  Hinotico IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  RM Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  RM IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  Lidocaina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  Lidocaina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "55.8% nulos (119/269 completos)"
+
+  Adrenalina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  Adrenalina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "55.4% nulos (120/269 completos)"
+
+  DBT:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "55% nulos (121/269 completos)"
+
+  Dopa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "54.6% nulos (122/269 completos)"
+
+  NA:
+    tipo: Boolean?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "55% nulos (121/269 completos)"
+
+  Insulina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "54.6% nulos (122/269 completos)"
+
+  Insulina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "54.6% nulos (122/269 completos)"
+
+  Furosemide:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "54.3% nulos (123/269 completos)"
+
+  Tranexamico:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "55% nulos (121/269 completos)"
+
+  ATB:
+    tipo: String?
+    nullable: true
+    ejemplos: ["infusión", "BIC", "Repique: Gentamicina + PTZ"]
+    notas: "95.9% nulos (11/269 completos)"
+
+  Otros Farmacos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Basilucimav y gluconato de calcio", "NO", "calcio"]
+    transformación: "SI → true, NO → false"
+    notas: "56.9% nulos (116/269 completos)"
+
+  Paraclinica:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (269)"
+
+  Hb:
+    tipo: Float?
+    nullable: true
+    dominio: "6-18"
+    unidad: "g/dL"
+    ejemplos: ["10", "12.3", "12"]
+    notas: "86.2% nulos (37/269 completos)"
+
+  Hto:
+    tipo: Int?
+    nullable: true
+    dominio: "18-54"
+    unidad: "%"
+    ejemplos: ["45", "36", "33"]
+    notas: "86.6% nulos (36/269 completos)"
+
+  Na+:
+    tipo: Int?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["134", "139", "138"]
+    notas: "83.6% nulos (44/269 completos)"
+
+  K+:
+    tipo: Float?
+    nullable: true
+    dominio: "3.0-6.0"
+    unidad: "mEq/L"
+    ejemplos: ["5.5", "3.6", "4"]
+    notas: "84% nulos (43/269 completos)"
+
+  Ca++:
+    tipo: Float?
+    nullable: true
+    dominio: "0.9-1.3"
+    unidad: "mmol/L"
+    ejemplos: ["1.09", "0.8", "1.06"]
+    notas: "85.9% nulos (38/269 completos)"
+
+  pH:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["7.45", "7.4", "7.39"]
+    notas: "85.1% nulos (40/269 completos)"
+
+  PaO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["400", "249", "171"]
+    notas: "83.3% nulos (45/269 completos)"
+
+  PaCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["23", "38", "34"]
+    notas: "85.5% nulos (39/269 completos)"
+
+  Phv:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99.6% nulos (1/269 completos)"
+
+  PvO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99.6% nulos (1/269 completos)"
+
+  PvCO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["0"]
+    notas: "99.6% nulos (1/269 completos)"
+
+  Glicemia:
+    tipo: Float?
+    nullable: true
+    dominio: "60-300"
+    unidad: "mg/dL"
+    ejemplos: ["2", "1.76", "184"]
+    notas: "85.5% nulos (39/269 completos)"
+
+  Lactato:
+    tipo: Float?
+    nullable: true
+    dominio: "0.5-10"
+    unidad: "mmol/L"
+    ejemplos: ["2.4", "1.2", "5.2"]
+    notas: "85.9% nulos (38/269 completos)"
+
+  Mg:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["2", "1.7", "0"]
+    notas: "93.7% nulos (17/269 completos)"
+
+  Proteinas:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["2", "0", "4"]
+    notas: "97.8% nulos (6/269 completos)"
+
+  Creatinina:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["2.6", "0.68", "0.6"]
+    notas: "93.7% nulos (17/269 completos)"
+
+  TP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["67", "69", "27"]
+    notas: "92.6% nulos (20/269 completos)"
+
+  INR:
+    tipo: Float?
+    nullable: true
+    dominio: "0.8-5.0"
+    unidad: "ratio"
+    ejemplos: ["1.8", "1.29", "1.3"]
+    notas: "93.3% nulos (18/269 completos)"
+
+  Plaquetas:
+    tipo: Int?
+    nullable: true
+    dominio: "20-500"
+    unidad: "10^3/µL"
+    ejemplos: ["79000", "55000", "278"]
+    notas: "89.2% nulos (29/269 completos)"
+
+  Fibrinogeno:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["274", "707", "179"]
+    notas: "91.8% nulos (22/269 completos)"
+
+  Temp:
+    tipo: Float?
+    nullable: true
+    dominio: "34-38"
+    unidad: "°C"
+    ejemplos: ["36.1", "35.9", "36.2"]
+    notas: "88.8% nulos (30/269 completos)"
+
+  EtCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["27", "30", "37"]
+    notas: "89.6% nulos (28/269 completos)"
+
+  SatVMixta:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["0"]
+    notas: "99.6% nulos (1/269 completos)"
+
+  Otra Paraclinica:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Lactato 1.2", "Rotem alterado", "Rotem incoagulable"]
+    notas: "98.9% nulos (3/269 completos)"
+
+  Balance:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (269)"
+
+  Actualizar:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (269)"
+
+
+## IntraopPostRepef
+
+### Descripción
+Registros intraoperatorios fase: PostRepef. Múltiples snapshots por caso.
+
+### Claves
+- CI → DatosPaciente.CI
+- FechaT → DatosTrasplante.FechaHoraInicio (identificador del caso)
+- Fecha → timestamp del snapshot
+
+### Campos
+
+  FechaT:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (310)"
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1294197", "3428611", "3717164"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: DateTime
+    nullable: false
+    ejemplos: ["14/7/2009", "22/7/2009", "12/8/2009"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  PatronVent:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (310)"
+
+  FIO2:
+    tipo: Float?
+    nullable: true
+    unidad: "fracción (0-1)"
+    ejemplos: ["0.8", "0.6", "1"]
+    transformación: "mantener como fracción"
+    notas: "74.2% nulos (80/310 completos)"
+
+  VC:
+    tipo: Int?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["522", "450", "520"]
+    notas: "68.1% nulos (99/310 completos)"
+
+  Fr:
+    tipo: Int?
+    nullable: true
+    dominio: "8-20"
+    unidad: "rpm"
+    ejemplos: ["15", "12", "10"]
+    notas: "68.1% nulos (99/310 completos)"
+
+  PVA:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["14", "13", "15"]
+    notas: "69% nulos (96/310 completos)"
+
+  PEEP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["4", "3", "5"]
+    notas: "67.7% nulos (100/310 completos)"
+
+  Monitoriz:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (310)"
+
+  FC:
+    tipo: Int?
+    nullable: true
+    dominio: "40-140"
+    unidad: "lpm"
+    ejemplos: ["79", "92", "65"]
+
+  SatO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["99", "100", "95"]
+
+  PAS:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["162", "160", "118"]
+
+  PAD:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["48", "76", "57"]
+
+  PAm:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["76", "105", "73"]
+    notas: "67.1% nulos (102/310 completos)"
+
+  PVC:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["7", "14", "4"]
+    notas: "52.9% nulos (146/310 completos)"
+
+  EtCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["40", "38", "34"]
+
+  Temp:
+    tipo: Float?
+    nullable: true
+    dominio: "34-38"
+    unidad: "°C"
+    ejemplos: ["36", "35.5", "36.5"]
+    notas: "56.5% nulos (135/310 completos)"
+
+  PAPS:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "122"]
+    notas: "98.1% nulos (6/310 completos)"
+
+  PAPD:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "54"]
+    notas: "98.1% nulos (6/310 completos)"
+
+  PAPm:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.4% nulos (5/310 completos)"
+
+  PCP:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.4% nulos (5/310 completos)"
+
+  GC:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0", "4.2", "5.3"]
+    notas: "96.8% nulos (10/310 completos)"
+
+  BIS:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "índice"
+    ejemplos: ["43", "39", "41"]
+    notas: "54.5% nulos (141/310 completos)"
+
+  PIC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0", "4"]
+    notas: "98.4% nulos (5/310 completos)"
+
+  Reposicion:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (310)"
+
+  Plasmalyte(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["121", "1800", "4000"]
+
+  RLactato(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["121", "500", "0"]
+    notas: "67.7% nulos (100/310 completos)"
+
+  CAlbumina(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["12", "0", "1500"]
+    notas: "62.9% nulos (115/310 completos)"
+
+  SG(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["12", "0", "50"]
+    notas: "72.9% nulos (84/310 completos)"
+
+  Coloides(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["500", "1000", "1500"]
+    notas: "71.6% nulos (88/310 completos)"
+
+  SF(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["254", "400", "0"]
+    notas: "61.6% nulos (119/310 completos)"
+
+  GR(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["2", "0", "7"]
+    notas: "61% nulos (121/310 completos)"
+
+  Plasma(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["1", "0", "8"]
+    notas: "69.7% nulos (94/310 completos)"
+
+  CPlaquetas(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["1", "0", "8"]
+    notas: "74.2% nulos (80/310 completos)"
+
+  Crioprecipitados(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["255", "0", "300"]
+    notas: "73.5% nulos (82/310 completos)"
+
+  CellSaver(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "200", "400"]
+    notas: "75.5% nulos (76/310 completos)"
+
+  Otros Fluidos:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["60", "Albúmina 150 ml", "500 gelo"]
+    notas: "75.5% nulos (76/310 completos)"
+
+  Perdidas:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (310)"
+
+  Perd Insens(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["177", "700", "900"]
+
+  Ascitis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1212", "0", "200"]
+    notas: "62.6% nulos (116/310 completos)"
+
+  Aspirador(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["121", "1200", "1000"]
+
+  Gasas(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["12", "200", "300"]
+    notas: "53.5% nulos (144/310 completos)"
+
+  Diuresis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1212", "800", "1400"]
+
+  Farmacos:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (310)"
+
+  AgenteInhalatorio:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "Isof", "Sevof"]
+    transformación: "SI → true, NO → false"
+
+  Opiaceos bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Opiaceos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Hipnotico bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Hipnotico IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  RM Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  RM IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Lidocaina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Lidocaina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  Adrenalina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Adrenalina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  DBT:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Dopa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+
+  NA:
+    tipo: Boolean?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Insulina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Insulina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Furosemide:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Tranexamico:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  ATB:
+    tipo: String?
+    nullable: true
+    ejemplos: ["gentamicina 120mg", "ptz", "PTZ + Gentamicina"]
+    notas: "95.8% nulos (13/310 completos)"
+
+  Otros Farmacos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Fenilefrina, calcio", "NO", "Calcio 2 gramos"]
+    transformación: "SI → true, NO → false"
+
+  Paraclinica:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (310)"
+
+  Hb:
+    tipo: Float?
+    nullable: true
+    dominio: "6-18"
+    unidad: "g/dL"
+    ejemplos: ["11.8", "9.7", "9.9"]
+    notas: "79% nulos (65/310 completos)"
+
+  Hto:
+    tipo: Int?
+    nullable: true
+    dominio: "18-54"
+    unidad: "%"
+    ejemplos: ["36", "29", "31"]
+    notas: "79.4% nulos (64/310 completos)"
+
+  Na+:
+    tipo: Float?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["133", "134", "138"]
+    notas: "78.4% nulos (67/310 completos)"
+
+  K+:
+    tipo: Float?
+    nullable: true
+    dominio: "3.0-6.0"
+    unidad: "mEq/L"
+    ejemplos: ["4.9", "3.7", "3.6"]
+    notas: "80.6% nulos (60/310 completos)"
+
+  Ca++:
+    tipo: Float?
+    nullable: true
+    dominio: "0.9-1.3"
+    unidad: "mmol/L"
+    ejemplos: ["1.35", "1.26", "1.09"]
+    notas: "80.6% nulos (60/310 completos)"
+
+  pH:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["7.35", "7.24", "7.3"]
+    notas: "77.4% nulos (70/310 completos)"
+
+  PaO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["182", "387", "178"]
+    notas: "77.4% nulos (70/310 completos)"
+
+  PaCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["45", "52", "37"]
+    notas: "78.7% nulos (66/310 completos)"
+
+  Phv:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99.4% nulos (2/310 completos)"
+
+  PvO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "99.4% nulos (2/310 completos)"
+
+  PvCO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["0"]
+    notas: "99.4% nulos (2/310 completos)"
+
+  SatVMixta:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["0"]
+    notas: "99.4% nulos (2/310 completos)"
+
+  Glicemia:
+    tipo: Float?
+    nullable: true
+    dominio: "60-300"
+    unidad: "mg/dL"
+    ejemplos: ["171", "2.45", "1.98"]
+    notas: "82.9% nulos (53/310 completos)"
+
+  Lactato:
+    tipo: Float?
+    nullable: true
+    dominio: "0.5-10"
+    unidad: "mmol/L"
+    ejemplos: ["5.5", "5.3", "2.3"]
+    notas: "81.6% nulos (57/310 completos)"
+
+  Mg:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1.9", "2", "1.6"]
+    notas: "94.2% nulos (18/310 completos)"
+
+  Proteinas:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0", "2.8", "1"]
+    notas: "99% nulos (3/310 completos)"
+
+  Creatinina:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0.84", "1.03", "0.54"]
+    notas: "92.9% nulos (22/310 completos)"
+
+  TP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["55", "34", "66"]
+    notas: "88.4% nulos (36/310 completos)"
+
+  INR:
+    tipo: Float?
+    nullable: true
+    dominio: "0.8-5.0"
+    unidad: "ratio"
+    ejemplos: ["1.52", "2.29", "1.36"]
+    notas: "89% nulos (34/310 completos)"
+
+  Plaquetas:
+    tipo: Int?
+    nullable: true
+    dominio: "20-500"
+    unidad: "10^3/µL"
+    ejemplos: ["73000", "76", "167000"]
+    notas: "83.2% nulos (52/310 completos)"
+
+  Fibrinogeno:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["223", "152", "218"]
+    notas: "87.7% nulos (38/310 completos)"
+
+  Otra Paraclinica:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Bradicardi Ritmo escape ventricular que se interpreta como de causa hiperpotasémica. Se corrige con tto especifico.", "Azo: 20", "Rotem con alteraciones pero sin sangrado"]
+    notas: "97.4% nulos (8/310 completos)"
+
+  Balance:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (310)"
+
+  Actualizar:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (310)"
+
+
+## IntropFinVB
+
+### Campos
+
+  FechaT:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1294197", "3428611", "3717164"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: DateTime
+    nullable: false
+    ejemplos: ["14/7/2009", "22/7/2009", "12/8/2009"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  PatronVent:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  FIO2:
+    tipo: Float?
+    nullable: true
+    unidad: "fracción (0-1)"
+    ejemplos: ["0.7", "1", "0.5"]
+    transformación: "mantener como fracción"
+    notas: "71.7% nulos (80/283 completos)"
+
+  VC:
+    tipo: Int?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["500", "450", "556"]
+    notas: "67.8% nulos (91/283 completos)"
+
+  Fr:
+    tipo: Int?
+    nullable: true
+    dominio: "8-20"
+    unidad: "rpm"
+    ejemplos: ["12", "14", "10"]
+    notas: "67.8% nulos (91/283 completos)"
+
+  PVA:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["15", "14", "12"]
+    notas: "69.6% nulos (86/283 completos)"
+
+  PEEP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["4", "7", "5"]
+    notas: "66.8% nulos (94/283 completos)"
+
+  Monitoriz:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  FC:
+    tipo: Int?
+    nullable: true
+    dominio: "40-140"
+    unidad: "lpm"
+    ejemplos: ["77", "74", "82"]
+    notas: "53.7% nulos (131/283 completos)"
+
+  SatO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["99", "100", "97"]
+    notas: "54.1% nulos (130/283 completos)"
+
+  PAS:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["170", "120", "180"]
+    notas: "53.7% nulos (131/283 completos)"
+
+  PAD:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["55", "92", "45"]
+    notas: "53.7% nulos (131/283 completos)"
+
+  PAm:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["87", "74", "110"]
+    notas: "70% nulos (85/283 completos)"
+
+  PVC:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["7", "12", "5"]
+    notas: "61.1% nulos (110/283 completos)"
+
+  EtCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["42", "38", "36"]
+    notas: "55.1% nulos (127/283 completos)"
+
+  Temp:
+    tipo: Float?
+    nullable: true
+    dominio: "34-38"
+    unidad: "°C"
+    ejemplos: ["36.4", "37", "37.1"]
+    notas: "58% nulos (119/283 completos)"
+
+  PAPS:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.6% nulos (4/283 completos)"
+
+  PAPD:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.6% nulos (4/283 completos)"
+
+  PAPm:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/283 completos)"
+
+  PCP:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.6% nulos (4/283 completos)"
+
+  GC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0", "5"]
+    notas: "97.5% nulos (7/283 completos)"
+
+  BIS:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "índice"
+    ejemplos: ["45", "58", "60"]
+    notas: "60.1% nulos (113/283 completos)"
+
+  PIC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/283 completos)"
+
+  Reposicion:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  Plasmalyte(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "1212", "2300"]
+
+  RLactato(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "12", "500"]
+
+  CAlbumina(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "121", "1500"]
+
+  SG(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "121", "50"]
+
+  Coloides(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["500", "1000", "1500"]
+    notas: "71.4% nulos (81/283 completos)"
+
+  SF(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "455", "400"]
+
+  GR(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "2", "8"]
+
+  Plasma(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "1", "8"]
+
+  CPlaquetas(U):
+    tipo: Int?
+    nullable: true
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "1", "2"]
+
+  Crioprecipitados(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "100", "300"]
+
+  CellSaver(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "200", "400"]
+
+  Otros Fluidos:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["Albumina 150ml", "500", "0"]
+    notas: "74.2% nulos (73/283 completos)"
+
+  Perdidas:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  Perd Insens(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "3434", "750"]
+
+  Ascitis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "200", "100"]
+
+  Aspirador(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "343", "1300"]
+
+  Gasas(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "45", "200"]
+
+  Diuresis(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "234", "900"]
+
+  Farmacos:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  AgenteInhalatorio:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "Sevof", "Isof"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (134/283 completos)"
+
+  Opiaceos bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  Opiaceos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (134/283 completos)"
+
+  Hipnoticos bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  Hipnoticos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  RM Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  RM IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (134/283 completos)"
+
+  Lidocaina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  Lidocaina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  Adrenalina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  Adrenalina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  DBT:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (134/283 completos)"
+
+  Dopa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (134/283 completos)"
+
+  NA:
+    tipo: Boolean?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.3% nulos (135/283 completos)"
+
+  Insulina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  Insulina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53% nulos (133/283 completos)"
+
+  Furosemide:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (134/283 completos)"
+
+  Tranexamico:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "52.7% nulos (134/283 completos)"
+
+  ATB:
+    tipo: String?
+    nullable: true
+    ejemplos: ["BIC", "piperacidina tazobactam", "Meropenem"]
+    notas: "95.8% nulos (12/283 completos)"
+
+  Otros Farmacos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Labetalol", "NO", "10UI insulina"]
+    transformación: "SI → true, NO → false"
+    notas: "54.1% nulos (130/283 completos)"
+
+  Paraclinica:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  Hb:
+    tipo: Float?
+    nullable: true
+    dominio: "6-18"
+    unidad: "g/dL"
+    ejemplos: ["12", "9.3", "11.3"]
+    notas: "82.3% nulos (50/283 completos)"
+
+  Hto:
+    tipo: Int?
+    nullable: true
+    dominio: "18-54"
+    unidad: "%"
+    ejemplos: ["26", "34", "30"]
+    notas: "83.7% nulos (46/283 completos)"
+
+  Na+:
+    tipo: Float?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["134", "135", "137"]
+    notas: "85.2% nulos (42/283 completos)"
+
+  K+:
+    tipo: Float?
+    nullable: true
+    dominio: "3.0-6.0"
+    unidad: "mEq/L"
+    ejemplos: ["4.3", "3.6", "3.3"]
+    notas: "85.5% nulos (41/283 completos)"
+
+  Ca++:
+    tipo: Float?
+    nullable: true
+    dominio: "0.9-1.3"
+    unidad: "mmol/L"
+    ejemplos: ["1.5", "1.11", "0.52"]
+    notas: "88.3% nulos (33/283 completos)"
+
+  pH:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["7.36", "7.34", "7.25"]
+    notas: "84.1% nulos (45/283 completos)"
+
+  PaO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["177", "190", "403"]
+    notas: "82.7% nulos (49/283 completos)"
+
+  PaCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["43", "40", "37"]
+    notas: "83.4% nulos (47/283 completos)"
+
+  Phv:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  PvO2:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  PvCO2:
+    tipo: String?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  Glicemia:
+    tipo: Float?
+    nullable: true
+    dominio: "60-300"
+    unidad: "mg/dL"
+    ejemplos: ["1.6", "202", "247"]
+    notas: "86.2% nulos (39/283 completos)"
+
+  Lactato:
+    tipo: Float?
+    nullable: true
+    dominio: "0.5-10"
+    unidad: "mmol/L"
+    ejemplos: ["2.6", "7.9", "3.3"]
+    notas: "86.2% nulos (39/283 completos)"
+
+  Mg:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["2.5", "1.6", "1.9"]
+    notas: "96.5% nulos (10/283 completos)"
+
+  Proteinas:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["4", "3.9", "1.9"]
+    notas: "98.2% nulos (5/283 completos)"
+
+  Creatinina:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1.5", "0.73", "0.82"]
+    notas: "92.6% nulos (21/283 completos)"
+
+  TP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["30", "33", "65"]
+    notas: "89% nulos (31/283 completos)"
+
+  INR:
+    tipo: Float?
+    nullable: true
+    dominio: "0.8-5.0"
+    unidad: "ratio"
+    ejemplos: ["2.3", "2.28", "1.37"]
+    notas: "90.5% nulos (27/283 completos)"
+
+  Plaquetas:
+    tipo: Int?
+    nullable: true
+    dominio: "20-500"
+    unidad: "10^3/µL"
+    ejemplos: ["77000", "189", "70000"]
+    notas: "88% nulos (34/283 completos)"
+
+  Fibrinogeno:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["100", "146", "222"]
+    notas: "89.8% nulos (29/283 completos)"
+
+  SatVMixta:
+    tipo: String?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  Otra Paraclinica:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Cloruro de K 2000mg, Gluconato de Ca 1g, Bicarbonato 1 molar 30ml"]
+    notas: "99.6% nulos (1/283 completos)"
+
+  Balance:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+  Actualizar:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (283)"
+
+
+## IntraopCierre
+
+### Descripción
+Registros intraoperatorios fase: Cierre. Múltiples snapshots por caso.
+
+### Claves
+- CI → DatosPaciente.CI
+- FechaT → DatosTrasplante.FechaHoraInicio (identificador del caso)
+- Fecha → timestamp del snapshot
+
+### Campos
+
+  FechaT:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (279)"
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1294197", "3428611", "3717164"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: DateTime
+    nullable: false
+    ejemplos: ["14/7/2009", "22/7/2009", "12/8/2009"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  PatronVent:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (279)"
+
+  FIO2:
+    tipo: Float?
+    nullable: true
+    unidad: "fracción (0-1)"
+    ejemplos: ["1", "0.5", "0.6"]
+    transformación: "mantener como fracción"
+    notas: "73.1% nulos (75/279 completos)"
+
+  VC:
+    tipo: Int?
+    nullable: true
+    dominio: "400-800"
+    unidad: "ml"
+    ejemplos: ["500", "420", "560"]
+    notas: "70.3% nulos (83/279 completos)"
+
+  Fr:
+    tipo: Int?
+    nullable: true
+    dominio: "8-20"
+    unidad: "rpm"
+    ejemplos: ["14", "10", "12"]
+    notas: "69.9% nulos (84/279 completos)"
+
+  PVA:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["12", "14", "22"]
+    notas: "70.6% nulos (82/279 completos)"
+
+  PEEP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["4", "7", "5"]
+    notas: "69.5% nulos (85/279 completos)"
+
+  Monitoriz:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (279)"
+
+  FC:
+    tipo: Int?
+    nullable: true
+    dominio: "40-140"
+    unidad: "lpm"
+    ejemplos: ["77", "84", "70"]
+    notas: "55.2% nulos (125/279 completos)"
+
+  SatO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["99", "100", "93"]
+    notas: "53.8% nulos (129/279 completos)"
+
+  PAS:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["162", "126", "178"]
+    notas: "56.3% nulos (122/279 completos)"
+
+  PAD:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["52", "61", "92"]
+    notas: "56.3% nulos (122/279 completos)"
+
+  PAm:
+    tipo: Int?
+    nullable: true
+    dominio: "40-200"
+    unidad: "mmHg"
+    ejemplos: ["82", "109", "80"]
+    notas: "72.4% nulos (77/279 completos)"
+
+  PVC:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["8", "12", "5"]
+    notas: "64.9% nulos (98/279 completos)"
+
+  EtCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["36", "37", "38"]
+    notas: "59.5% nulos (113/279 completos)"
+
+  Temp:
+    tipo: Float?
+    nullable: true
+    dominio: "34-38"
+    unidad: "°C"
+    ejemplos: ["36.7", "36.5", "36.2"]
+    notas: "64.2% nulos (100/279 completos)"
+
+  PAPS:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "35"]
+    notas: "97.8% nulos (6/279 completos)"
+
+  PAPD:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.6% nulos (4/279 completos)"
+
+  PAPm:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0", "65"]
+    notas: "98.2% nulos (5/279 completos)"
+
+  PCP:
+    tipo: Int?
+    nullable: true
+    dominio: "10-80"
+    unidad: "mmHg"
+    ejemplos: ["0"]
+    notas: "98.6% nulos (4/279 completos)"
+
+  GC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0", "5", "11"]
+    notas: "97.8% nulos (6/279 completos)"
+
+  BIS:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "índice"
+    ejemplos: ["65", "56", "72"]
+    notas: "63.1% nulos (103/279 completos)"
+
+  PIC:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "98.2% nulos (5/279 completos)"
+
+  Reposicion:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (279)"
+
+  Plasmalyte(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "1000", "100"]
+
+  RLactato(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "3000", "2000"]
+
+  CAlbumina(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "250", "300"]
+
+  SG(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "200", "400"]
+
+  Coloides(ml):
+    tipo: Int?
+    nullable: true
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["1000", "1500", "500"]
+    notas: "69.5% nulos (85/279 completos)"
+
+  SF(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "1000", "2000"]
+
+  GR(U):
+    tipo: Int
+    nullable: false
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "3", "1"]
+
+  Plasma(U):
+    tipo: Int
+    nullable: false
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "4", "2"]
+
+  CPlaquetas(U):
+    tipo: Int
+    nullable: false
+    dominio: "0-50"
+    unidad: "unidades"
+    ejemplos: ["0", "6", "10"]
+
+  Crioprecipitados(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "200", "100"]
+
+  CellSaver(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "400", "200"]
+
+  Otros Fluidos:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["Albúmina 150ml", "500", "geloplasma 500"]
+    notas: "62.7% nulos (104/279 completos)"
+
+  Perdidas:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (279)"
+
+  Perd Insens(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "2000", "4000"]
+
+  Ascitis(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "1000", "2000"]
+
+  Aspirador(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "2000", "300"]
+
+  Gasas(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "500", "234"]
+
+  Diuresis(ml):
+    tipo: Int
+    nullable: false
+    dominio: "0-10000"
+    unidad: "ml"
+    ejemplos: ["0", "1000", "123"]
+
+  Farmacos:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (279)"
+
+  AgenteInhalatorio:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "Sevof", "Ninguno"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  Opiaceos bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  Opiaceos IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  Hipnotico bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  Hipnotico IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  RM Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  RM IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  Lidocaina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  Lidocaina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  Adrenalina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  Adrenalina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.8% nulos (129/279 completos)"
+
+  DBT:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.4% nulos (130/279 completos)"
+
+  Dopa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO"]
+    transformación: "SI → true, NO → false"
+    notas: "53.4% nulos (130/279 completos)"
+
+  NA:
+    tipo: Boolean?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.4% nulos (130/279 completos)"
+
+  Insulina Bolo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.4% nulos (130/279 completos)"
+
+  Insulina IC:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.4% nulos (130/279 completos)"
+
+  Furosemide:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.4% nulos (130/279 completos)"
+
+  Tranexamico:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "53.4% nulos (130/279 completos)"
+
+  ATB:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Enalaprilato 2,5mg, Flumazenilo, Atenolol 10mg", "si", "Imipenem"]
+    notas: "98.6% nulos (4/279 completos)"
+
+  Otros Faramacos:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Gluconato de Ca 1g/h", "NO", "CALCIO,"]
+    transformación: "SI → true, NO → false"
+    notas: "69.2% nulos (86/279 completos)"
+
+  Paraclinica:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (279)"
+
+  Hb:
+    tipo: Float?
+    nullable: true
+    dominio: "6-18"
+    unidad: "g/dL"
+    ejemplos: ["11.5", "8.8", "10.6"]
+    notas: "80.6% nulos (54/279 completos)"
+
+  Hto:
+    tipo: Int?
+    nullable: true
+    dominio: "18-54"
+    unidad: "%"
+    ejemplos: ["34", "25", "33"]
+    notas: "83.5% nulos (46/279 completos)"
+
+  Na+:
+    tipo: Float?
+    nullable: true
+    dominio: "130-150"
+    unidad: "mEq/L"
+    ejemplos: ["139", "136", "138"]
+    notas: "83.2% nulos (47/279 completos)"
+
+  K+:
+    tipo: Float?
+    nullable: true
+    dominio: "3.0-6.0"
+    unidad: "mEq/L"
+    ejemplos: ["3.6", "4.9", "3.9"]
+    notas: "83.5% nulos (46/279 completos)"
+
+  Ca++:
+    tipo: Float?
+    nullable: true
+    dominio: "0.9-1.3"
+    unidad: "mmol/L"
+    ejemplos: ["1.5", "1.15", "1.06"]
+    notas: "86% nulos (39/279 completos)"
+
+  pH:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["7.32", "7.39", "7.36"]
+    notas: "80.3% nulos (55/279 completos)"
+
+  PaO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["280", "190", "180"]
+    notas: "80.3% nulos (55/279 completos)"
+
+  PaCO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["44", "45", "36"]
+    notas: "81% nulos (53/279 completos)"
+
+  Phv:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/279 completos)"
+
+  SatVMixta:
+    tipo: Int?
+    nullable: true
+    dominio: "0-100"
+    unidad: "%"
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/279 completos)"
+
+  PvO2:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/279 completos)"
+
+  PvCO2:
+    tipo: Int?
+    nullable: true
+    dominio: "0-20"
+    unidad: "cmH2O"
+    ejemplos: ["0"]
+    notas: "98.9% nulos (3/279 completos)"
+
+  Glicemia:
+    tipo: Float?
+    nullable: true
+    dominio: "60-300"
+    unidad: "mg/dL"
+    ejemplos: ["2.1", "1.2", "1.54"]
+    notas: "86.4% nulos (38/279 completos)"
+
+  Lactato:
+    tipo: Float?
+    nullable: true
+    dominio: "0.5-10"
+    unidad: "mmol/L"
+    ejemplos: ["1.9", "8.1", "4"]
+    notas: "83.5% nulos (46/279 completos)"
+
+  Mg:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["1.8", "2.6", "0"]
+    notas: "97.1% nulos (8/279 completos)"
+
+  Proteinas:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0", "56000", "2.1"]
+    notas: "97.8% nulos (6/279 completos)"
+
+  Creatinina:
+    tipo: Float?
+    nullable: true
+    ejemplos: ["0.7", "8.14", "0"]
+    notas: "96.4% nulos (10/279 completos)"
+
+  TP:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["45", "27", "47"]
+    notas: "91.8% nulos (23/279 completos)"
+
+  INR:
+    tipo: Float?
+    nullable: true
+    dominio: "0.8-5.0"
+    unidad: "ratio"
+    ejemplos: ["1.49", "2.75", "1.76"]
+    notas: "92.1% nulos (22/279 completos)"
+
+  Plaquetas:
+    tipo: Int?
+    nullable: true
+    dominio: "20-500"
+    unidad: "10^3/µL"
+    ejemplos: ["97000", "77000", "56"]
+    notas: "88.5% nulos (32/279 completos)"
+
+  Fibrinogeno:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["220", "131", "308"]
+    notas: "91.8% nulos (23/279 completos)"
+
+  Otra Paraclinica:
+    tipo: String?
+    nullable: true
+    ejemplos: ["Glucemia capilar 304.", "rotem corregido luego de fibrinogeno", "Rotem con hipofibrinogenemia . Sin sangrado activo . No se repone"]
+    notas: "98.9% nulos (3/279 completos)"
+
+  Balance:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (279)"
+
+  Actualizar:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (279)"
+
+
+## PostOp
+
+### Descripción
+Resultados postoperatorios inmediatos y complicaciones.
+
+### Clave foránea
+CI → DatosTrasplante.CI
+
+### Campos
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["3428611", "1490699", "3384634"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  Fecha:
+    tipo: DateTime
+    nullable: false
+    ejemplos: ["22/7/2009", "7/3/2017", "1/9/2011"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+  Extubado BQ:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  ARMhs:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["> 24", "0", "3"]
+
+  ARMdias:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["1", "0", "2"]
+
+  FallaExtubacion24hs:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Reintervencion:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Causa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SANGRADO", "NO", "FPI"]
+    transformación: "SI → true, NO → false"
+
+  FallaInjerto:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  IRA:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  EPA:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Neurotoxicidad:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Rechazo:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  APACHEIni:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["24", "12", "5"]
+
+  ComplicBiliares:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "EA", "COLANGITIS LITIASICA"]
+    transformación: "SI → true, NO → false"
+
+  ComplicVasculares:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "ESTENOSIS ARTERIA", "DESGARRO AORTA I/O"]
+    transformación: "SI → true, NO → false"
+
+  SangradoQ:
+    tipo: Boolean
+    nullable: false
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  OtrasCompl:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["Shock hipovolémico+ distributivo/ acidoSIs metabólica/ aumento PIA/SDRA/anuria", "REINGRESA A CTI POR NEUROTOXCICIDAD /CONVULCION", "NO"]
+    transformación: "SI → true, NO → false"
+
+  DiasCTI:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["1", "2", "3"]
+
+  DiasIntSala:
+    tipo: String?
+    nullable: true
+    notas: "Campo completamente vacío en todas las filas (146)"
+
+  FechaAltaTx:
+    tipo: DateTime?
+    nullable: true
+    ejemplos: ["24/7/2009", "12/9/2011", "11/9/2009"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+
+
+## Mortalidad
+
+### Descripción
+Seguimiento de mortalidad precoz/tardía y reingresos.
+
+### Clave foránea
+CI → DatosPaciente.CI
+
+### Campos
+
+  CI:
+    tipo: String
+    nullable: true
+    ejemplos: ["1350131", "1525080", "3875885"]
+    transformación: "Normalizar: remover puntos/guiones, preservar en ci_raw"
+    notas: "Clave primaria clínica. Algunos duplicados indican retrasplantes."
+
+  MuertePrecoz:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Causa:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "FALLA CARDIACA IAM", "RECHAZO AGUDO/ESTENOSIS ARTERIAL"]
+    transformación: "SI → true, NO → false"
+
+  FechaMuerte:
+    tipo: DateTime?
+    nullable: true
+    ejemplos: ["2/05/2016", "18/09/2011", "26/03/2015"]
+    transformación: "dd/mm/yyyy → ISO 8601 UTC (asumir America/Montevideo)"
+    notas: "81.6% nulos (27/147 completos)"
+
+  VivoAlta:
+    tipo: Boolean
+    nullable: false
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Vivo1Año:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  Vivo3años:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+
+  Vivo5años:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["NO", "SI"]
+    transformación: "SI → true, NO → false"
+    notas: "58.5% nulos (61/147 completos)"
+
+  CausaMuerteTardia:
+    tipo: String?
+    nullable: true
+    ejemplos: ["IAM", "N/C", "NEO LARINGE"]
+    notas: "91.2% nulos (13/147 completos)"
+
+  Reingreso6meses:
+    tipo: Boolean?
+    nullable: true
+    ejemplos: ["SI", "NO"]
+    transformación: "SI → true, NO → false"
+
+  DiasHasta1erReingreso:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["4", "36", "28"]
+    notas: "69.4% nulos (45/147 completos)"
+
+  DiasHasta2oReingreso:
+    tipo: Int?
+    nullable: true
+    ejemplos: ["4", "58", "66"]
+    notas: "90.5% nulos (14/147 completos)"
+
+  CausaReingreso:
+    tipo: String?
+    nullable: true
+    ejemplos: ["RECHAZO AGUDO", "Reactivación VHC/ Actividad viral", "Reactivación de CMV"]
+    notas: "68.7% nulos (46/147 completos)"
+
+  Anestesista 1:
+    tipo: String?
+    nullable: true
+    ejemplos: ["111: Karina Rando", "222: Yorley Andarcia", "70203: William Baptista"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "98% nulos (3/147 completos)"
+
+  Anestesista 2:
+    tipo: String?
+    nullable: true
+    ejemplos: ["333: Jessica Vega"]
+    transformación: "Parsear formato 'CP: Nombre' → extraer CP como FK a Equipo"
+    notas: "99.3% nulos (1/147 completos)"
+
+
+---
+
+## PROPUESTA DE NORMALIZACIÓN MÍNIMA VIABLE
+
+### Catálogos (lookup tables)
+
+#### Clinician (desde Equipo)
+- id: CP (Int, PK)
+- name: String
+- specialty: String? (enum: Anestesiólogo, Cirujano, Intensivista, Hepatólogo, Coordinadora)
+- email: String
+- phone: String?
+
+#### Provider (Prestador de salud)
+- Extraer valores únicos desde DatosPaciente.Prestador
+- Enum sugerido: ASSE, FEMI, CASMU, MP, Otra
+
+#### Role (Rol en equipo)
+- Enum: ANEST1, ANEST2, CIRUJANO1, CIRUJANO2, INTENSIVISTA, HEPATOLOGO, NURSE_COORD
+
+#### VentilationMode
+- Extraer desde campos PatronVent
+- Enum sugerido: VC, PC, SIMV, PSV
+
+#### AirwayGrade (Cormack-Lehane)
+- Enum: I, II, III, IV
+
+#### IntraopPhase
+- Enum: INDUCCION, DISECCION, ANHEPATICA, PRE_REPERFUSION, POST_REPERFUSION, FIN_VIA_BILIAR, CIERRE
+
+### División de tablas
+
+#### PreopEvaluation + PreopLabs
+- Separar campos de laboratorio (Hb, Hto, Plaquetas, TP, INR, etc.) en tabla PreopLabs
+- Mantener scores (MELD, Child) y comorbilidades en PreopEvaluation
+
+#### IntraopRecord (unificación de Intraop*)
+- Modelo único con campo "phase" (enum IntraopPhase)
+- Cada snapshot incluye: timestamp, phase, ventilación, hemodinamia
+- Relaciones separadas: FluidsAndBlood, DrugsGiven, Labs
+
+#### FluidsAndBlood (desde columnas de Reposicion/Perdidas)
+- caseId, phase, timestamp
+- Campos: plasmalyte_ml, rlactato_ml, gr_units, plasma_units, plaquetas_units, etc.
+- Pérdidas: ascitis_ml, aspirador_ml, gasas_ml, diuresis_ml
+- balance_ml (calculado)
+
+#### DrugsGiven (desde columnas de Farmacos)
+- caseId, phase, timestamp
+- Clase: enum (Opiaceo, Hipnotico, Relajante, Vasopresor, Insulina, etc.)
+- Campos específicos por tipo (bolo vs infusión continua)
+
+### Campos calculados
+Los siguientes campos se calcularán en backend (no almacenar en BD):
+- Balance = Reposiciones - Pérdidas
+- Duracion = FechaHoraFin - FechaHoraInicio
+- PAm = (PAS + 2*PAD) / 3
+- Edad = FechaTrasplante - FNac
+

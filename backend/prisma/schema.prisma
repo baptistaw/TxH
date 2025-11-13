@@ -1,0 +1,694 @@
+// Schema Prisma - Sistema Registro Anestesiológico TxH
+// Migración desde AppSheet + Google Sheets
+// Clave primaria clínica: CI (Cédula de Identidad uruguaya)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS - Catálogos de referencia
+// ============================================================================
+
+/// Sexo biológico del paciente
+enum Sex {
+  M // Masculino
+  F // Femenino
+  O // Otro/No especificado
+}
+
+/// Clasificación ASA (American Society of Anesthesiologists)
+enum ASA {
+  I
+  II
+  III
+  IV
+  V
+  VI
+}
+
+/// Rol del clínico en el equipo quirúrgico
+enum Role {
+  ANEST1 // Anestesiólogo principal
+  ANEST2 // Anestesiólogo ayudante
+  CIRUJANO1 // Cirujano principal
+  CIRUJANO2 // Cirujano ayudante
+  INTENSIVISTA // Médico intensivista
+  HEPATOLOGO // Hepatólogo
+  NURSE_COORD // Enfermera coordinadora
+}
+
+/// Especialidad del clínico
+enum Specialty {
+  ANESTESIOLOGO
+  CIRUJANO
+  INTENSIVISTA
+  HEPATOLOGO
+  COORDINADORA
+  OTRO
+}
+
+/// Prestador de salud (mutualista/público)
+enum Provider {
+  ASSE
+  FEMI
+  CASMU
+  MP
+  OTRA
+}
+
+/// Fase del procedimiento intraoperatorio
+enum IntraopPhase {
+  INDUCCION // Inducción anestésica
+  DISECCION // Disección hepática
+  ANHEPATICA // Fase anhepática (sin hígado)
+  PRE_REPERFUSION // Pre-reperfusión del injerto
+  POST_REPERFUSION // Post-reperfusión inmediata
+  FIN_VIA_BILIAR // Finalización vía biliar
+  CIERRE // Cierre de pared
+}
+
+/// Modo de ventilación mecánica
+enum VentilationMode {
+  VC // Volumen controlado
+  PC // Presión controlada
+  SIMV // Ventilación intermitente sincronizada
+  PSV // Presión de soporte
+  CPAP // Presión positiva continua
+  OTRO
+}
+
+/// Grado Cormack-Lehane (dificultad de intubación)
+enum AirwayGrade {
+  I
+  II
+  III
+  IV
+}
+
+/// Clase funcional del paciente (NYHA/capacidad funcional)
+enum FunctionalClass {
+  I
+  II
+  III
+  IV
+}
+
+// ============================================================================
+// MODELOS PRINCIPALES
+// ============================================================================
+
+/// Paciente - datos demográficos y clínicos básicos
+model Patient {
+  // Clave primaria clínica
+  id    String  @id @db.VarChar(20) // CI normalizado (sin puntos)
+  ciRaw String? @db.VarChar(30) // CI original del Excel (auditoría)
+
+  // Datos demográficos
+  name       String
+  fnr        String? // Número de historia clínica
+  birthDate  DateTime?
+  sex        Sex?
+  provider   Provider?
+  height     Float? // Talla en cm
+  weight     Float? // Peso en kg
+  bloodGroup String?   @db.VarChar(5) // A+, B-, O+, etc.
+
+  // Datos administrativos
+  admissionDate DateTime? // Fecha de ingreso a lista de espera
+  transplanted  Boolean   @default(false)
+
+  // Metadatos
+  observations String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  cases  TransplantCase[]
+  preops PreopEvaluation[]
+
+  @@index([name])
+  @@index([provider])
+  @@map("patients")
+}
+
+/// Clínico - personal médico del equipo
+model Clinician {
+  id        Int        @id // CP (Código Personal)
+  name      String
+  specialty Specialty?
+  email     String     @unique
+  phone     String?
+
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  teamAssignments TeamAssignment[]
+
+  @@index([specialty])
+  @@map("clinicians")
+}
+
+/// Caso de trasplante hepático
+/// Representa un procedimiento completo (un paciente puede tener múltiples casos si es retrasplante)
+model TransplantCase {
+  id String @id @default(cuid())
+
+  // Relación con paciente
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  // Fechas del procedimiento
+  startAt  DateTime? // Inicio quirófano
+  endAt    DateTime? // Fin procedimiento
+  duration Int? // Duración en minutos (calculado)
+
+  // Características del caso
+  isRetransplant Boolean  @default(false)
+  isHepatoRenal  Boolean  @default(false) // Trasplante hepato-renal simultáneo
+  optimalDonor   Boolean? // Donante óptimo
+  provenance     String? // Procedencia: domicilio, CTI, sala, etc.
+
+  // Tiempos de isquemia (minutos)
+  coldIschemiaTime Int? // Tiempo isquemia fría
+  warmIschemiaTime Int? // Tiempo isquemia caliente
+
+  // Estado post-procedimiento
+  icuTransferDate DateTime?
+
+  // Metadatos
+  observations String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  team             TeamAssignment[]
+  preops           PreopEvaluation[]
+  intraopRecords   IntraopRecord[]
+  fluidsBlood      FluidsAndBlood[]
+  drugs            DrugsGiven[]
+  linesMonitoring  LinesAndMonitoring?
+  postOp           PostOpOutcome?
+  mortality        Mortality?
+  observations_rel Observation[]
+  attachments      Attachment[]
+
+  @@index([patientId, startAt])
+  @@index([startAt])
+  @@index([isRetransplant])
+  @@map("transplant_cases")
+}
+
+/// Asignación de equipo quirúrgico por caso
+model TeamAssignment {
+  id String @id @default(cuid())
+
+  caseId String
+  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  clinicianId Int
+  clinician   Clinician @relation(fields: [clinicianId], references: [id])
+
+  role Role
+
+  createdAt DateTime @default(now())
+
+  @@unique([caseId, clinicianId, role])
+  @@index([caseId])
+  @@index([clinicianId])
+  @@map("team_assignments")
+}
+
+/// Evaluación preoperatoria - scores y comorbilidades
+model PreopEvaluation {
+  id String @id @default(cuid())
+
+  // Relaciones
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  caseId String?
+  case   TransplantCase? @relation(fields: [caseId], references: [id])
+
+  evaluationDate DateTime
+
+  // Scores pronósticos
+  meld   Int? // Model for End-Stage Liver Disease
+  meldNa Int? // MELD-Na (con sodio)
+  child  String? @db.VarChar(10) // Child-Pugh: A, B, C
+
+  // Etiología de la hepatopatía
+  etiology1   String?
+  etiology2   String?
+  isFulminant Boolean @default(false)
+
+  // Examen físico
+  mpt             String? // Mallampati
+  mouthOpening    String?
+  physicalExamObs String? @db.Text
+
+  // Comorbilidades cardiovasculares
+  coronaryDisease Boolean @default(false)
+  hypertension    Boolean @default(false)
+  valvulopathy    String? // Tipo de valvulopatía
+  arrhythmia      Boolean @default(false)
+  dilatedCardio   Boolean @default(false)
+
+  // Comorbilidades respiratorias
+  smokerCOPD Boolean @default(false)
+  asthma     Boolean @default(false)
+
+  // Otras comorbilidades
+  renalFailure       Boolean @default(false)
+  singleKidney       Boolean @default(false)
+  diabetes           Boolean @default(false)
+  thyroidDysfunction Boolean @default(false)
+  previousAbdSurgery Boolean @default(false)
+  abdSurgeryDetail   String? @db.Text
+  refluxUlcer        Boolean @default(false)
+  allergies          String? @db.Text
+
+  // Complicaciones de la cirrosis
+  hepatoRenalSyndrome   Boolean @default(false)
+  hepatoPulmonarySyndr  Boolean @default(false)
+  pulmonaryHypertension Boolean @default(false)
+  portalHypertension    Boolean @default(false)
+  ascites               Boolean @default(false)
+  hydrothorax           Boolean @default(false)
+  sbe                   Boolean @default(false) // Peritonitis bacteriana espontánea
+  portalThrombosis      Boolean @default(false)
+  esophagealVarices     Boolean @default(false)
+  encephalopathy        Boolean @default(false)
+  hepatocarcinoma       Boolean @default(false)
+  bleeding              Boolean @default(false)
+  hyponatremia          Boolean @default(false)
+
+  complicationsObs String? @db.Text
+
+  // Estado funcional
+  functionalClass FunctionalClass?
+  mechanicalVent  Boolean          @default(false)
+  habitualMeds    String?          @db.Text
+
+  // Decision de lista
+  inList          Boolean @default(false)
+  reasonNotInList String? @db.Text
+  problems        String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relación con laboratorios
+  labs PreopLabs[]
+
+  @@index([patientId])
+  @@index([caseId])
+  @@index([evaluationDate])
+  @@map("preop_evaluations")
+}
+
+/// Laboratorios preoperatorios
+model PreopLabs {
+  id String @id @default(cuid())
+
+  preopId String
+  preop   PreopEvaluation @relation(fields: [preopId], references: [id], onDelete: Cascade)
+
+  labDate DateTime
+
+  // Hematología
+  hb        Float? // Hemoglobina g/dL
+  hto       Float? // Hematocrito %
+  platelets Float? // Plaquetas 10^3/µL
+
+  // Coagulación
+  pt         Float? // Tiempo de protrombina seg
+  inr        Float? // International Normalized Ratio
+  fibrinogen Float? // mg/dL
+
+  // Bioquímica
+  glucose      Float? // mg/dL
+  sodium       Float? // mEq/L
+  potassium    Float? // mEq/L
+  ionicCalcium Float? // mmol/L
+  magnesium    Float? // mEq/L
+  azotemia     Float? // mg/dL
+  creatinine   Float? // mg/dL
+  gfr          Float? // mL/min/1.73m² (Índice filtrado glomerular)
+
+  // Función hepática
+  sgot      Float? // TGO/AST U/L
+  sgpt      Float? // TGP/ALT U/L
+  totalBili Float? // mg/dL
+  albumin   Float? // g/dL
+
+  // Otros
+  tsh Float? // µUI/mL
+
+  createdAt DateTime @default(now())
+
+  @@index([preopId])
+  @@index([labDate])
+  @@map("preop_labs")
+}
+
+/// Registro intraoperatorio por fase (snapshot de constantes vitales y ventilación)
+/// Cada fila representa un punto temporal en una fase específica
+model IntraopRecord {
+  id String @id @default(cuid())
+
+  caseId String
+  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  phase     IntraopPhase
+  timestamp DateTime // Momento del registro
+
+  // Ventilación
+  ventMode     VentilationMode?
+  fio2         Float? // Fracción inspirada O2 (0-1, ej: 0.5 = 50%)
+  tidalVolume  Int? // mL
+  respRate     Int? // rpm
+  peep         Int? // cmH2O
+  peakPressure Int? // PVA cmH2O
+
+  // Hemodinamia
+  heartRate Int? // lpm
+  satO2     Int? // %
+  pas       Int? // mmHg
+  pad       Int? // mmHg
+  pam       Int? // mmHg (calculado: (PAS + 2*PAD)/3)
+  cvp       Int? // PVC cmH2O
+  etCO2     Int? // mmHg
+  temp      Float? // °C
+
+  // Presión arterial pulmonar (Swan-Ganz)
+  paps          Int? // mmHg
+  papd          Int? // mmHg
+  papm          Int? // mmHg
+  pcwp          Int? // PCP mmHg (presión capilar pulmonar)
+  cardiacOutput Float? // GC L/min
+
+  // Monitoreo avanzado
+  bis  Int? // Índice biespectral (0-100)
+  icp  Int? // Presión intracraneal mmHg
+  svO2 Int? // Saturación venosa mixta %
+
+  createdAt DateTime @default(now())
+
+  @@index([caseId, phase, timestamp])
+  @@index([timestamp])
+  @@map("intraop_records")
+}
+
+/// Fluidos y hemoderivados administrados por fase
+model FluidsAndBlood {
+  id String @id @default(cuid())
+
+  caseId String
+  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  phase     IntraopPhase
+  timestamp DateTime
+
+  // Reposición de cristaloides (ml)
+  plasmalyte Int @default(0)
+  ringer     Int @default(0)
+  saline     Int @default(0)
+  dextrose   Int @default(0)
+
+  // Coloides (ml)
+  colloids Int @default(0)
+  albumin  Int @default(0)
+
+  // Hemoderivados (unidades o ml)
+  redBloodCells Int @default(0) // Unidades
+  plasma        Int @default(0) // Unidades
+  platelets     Int @default(0) // Concentrados de plaquetas
+  cryoprecip    Int @default(0) // ml
+  cellSaver     Int @default(0) // ml
+
+  otherFluids String? @db.Text
+
+  // Pérdidas (ml)
+  insensibleLoss Int @default(0)
+  ascites        Int @default(0)
+  suction        Int @default(0) // Aspirador
+  gauze          Int @default(0) // Gasas
+  urine          Int @default(0) // Diuresis
+
+  // Balance neto (calculado: reposición - pérdidas)
+  balance Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([caseId, phase, timestamp])
+  @@map("fluids_and_blood")
+}
+
+/// Fármacos administrados durante el procedimiento
+model DrugsGiven {
+  id String @id @default(cuid())
+
+  caseId String
+  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  phase     IntraopPhase
+  timestamp DateTime
+
+  // Agentes inhalatorios
+  inhalAgent String?
+
+  // Opiáceos
+  opioidBolus    String? // ej: "Fentanilo 100 mcg"
+  opioidInfusion String? // ej: "Remifentanilo 0.1 mcg/kg/min"
+
+  // Hipnóticos
+  hypnoticBolus    String? // ej: "Propofol 150 mg"
+  hypnoticInfusion String?
+
+  // Relajantes musculares
+  relaxantBolus    String? // ej: "Rocuronio 50 mg"
+  relaxantInfusion String?
+
+  // Anestésicos locales
+  lidocaineBolus    String?
+  lidocaineInfusion String?
+
+  // Vasopresores e inotrópicos
+  adrenalineBolus    String?
+  adrenalineInfusion String?
+  dobutamine         String? // mcg/kg/min
+  dopamine           String?
+  noradrenaline      String?
+  phenylephrine      String?
+
+  // Otros fármacos relevantes
+  insulinBolus    String?
+  insulinInfusion String?
+  furosemide      String?
+  tranexamic      String? // Ácido tranexámico
+  calciumGlucon   String?
+  sodiumBicarb    String?
+  antibiotics     String?
+  otherDrugs      String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([caseId, phase, timestamp])
+  @@map("drugs_given")
+}
+
+/// Líneas vasculares y monitoreo instalado
+model LinesAndMonitoring {
+  id String @id @default(cuid())
+
+  caseId String         @unique
+  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  // Vías venosas centrales
+  cvc1 String? // Ej: "yugular derecha 3 lúmenes"
+  cvc2 String?
+  cvc3 String?
+
+  // Líneas arteriales
+  arterialLine1 String? // Ej: "radial derecha"
+  arterialLine2 String?
+
+  // Catéter Swan-Ganz
+  swanGanz Boolean @default(false)
+
+  // Vía venosa periférica
+  peripheralIV String?
+
+  // Vía aérea
+  airwayType   String? // IOT, TQT, otro
+  tubeSellick  Boolean      @default(false)
+  laryngoscopy AirwayGrade?
+
+  // Tipo de anestesia
+  anesthesiaType String? // General, combinada, etc.
+  premedication  String?
+
+  // Equipamiento
+  warmer          Boolean @default(false) // Calentador (Level1, etc.)
+  cellSaverUsed   Boolean @default(false)
+  elasticBandages Boolean @default(false)
+  pressurePoints  String? @db.Text
+  thermalBlanket  Boolean @default(false)
+
+  // Antibióticos profilácticos
+  prophylacticATB String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("lines_and_monitoring")
+}
+
+/// Resultados postoperatorios inmediatos
+model PostOpOutcome {
+  id String @id @default(cuid())
+
+  caseId String         @unique
+  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  evaluationDate DateTime
+
+  // Extubación
+  extubatedInOR   Boolean @default(false) // Extubado en block quirúrgico
+  mechVentHours   Int? // Horas de ARM
+  mechVentDays    Int? // Días de ARM
+  reintubation24h Boolean @default(false)
+
+  // Reopeación
+  reoperation      Boolean @default(false)
+  reoperationCause String? @db.Text
+
+  // Complicaciones mayores
+  primaryGraftFailure Boolean @default(false)
+  acuteRenalFailure   Boolean @default(false)
+  pulmonaryEdema      Boolean @default(false)
+  neurotoxicity       Boolean @default(false)
+  rejection           Boolean @default(false)
+
+  // Scores de gravedad
+  apacheInitial Int?
+
+  // Complicaciones específicas
+  biliaryComplications  Boolean @default(false)
+  vascularComplications Boolean @default(false)
+  surgicalBleeding      Boolean @default(false)
+  otherComplications    String? @db.Text
+
+  // Estancia
+  icuDays       Int?
+  wardDays      Int?
+  dischargeDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseId])
+  @@map("postop_outcomes")
+}
+
+/// Seguimiento de mortalidad y reingresos
+model Mortality {
+  id String @id @default(cuid())
+
+  caseId String         @unique
+  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  // Mortalidad precoz (<30 días post-Tx)
+  earlyDeath Boolean   @default(false)
+  deathDate  DateTime?
+  deathCause String?   @db.Text
+
+  // Seguimiento
+  aliveAtDischarge Boolean  @default(true)
+  aliveAt1Year     Boolean?
+  aliveAt3Years    Boolean?
+  aliveAt5Years    Boolean?
+
+  lateDeathCause String? @db.Text
+
+  // Reingresos
+  readmissionWithin6m Boolean @default(false)
+  daysToFirstReadm    Int?
+  daysToSecondReadm   Int?
+  readmissionCause    String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseId])
+  @@map("mortality")
+}
+
+/// Observaciones clínicas por caso
+model Observation {
+  id String @id @default(cuid())
+
+  caseId String
+  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  category  String? // Ej: "Incidente", "Nota anestésica", "Evolución"
+  content   String   @db.Text
+  authorId  Int? // FK a Clinician (opcional)
+  createdAt DateTime @default(now())
+
+  @@index([caseId])
+  @@index([createdAt])
+  @@map("observations")
+}
+
+/// Archivos adjuntos (consentimientos, imágenes, PDFs)
+model Attachment {
+  id String @id @default(cuid())
+
+  caseId String
+  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  type      String // Ej: "Consentimiento", "Imagen", "Lab", "Informe"
+  url       String // URL de almacenamiento (S3, etc.)
+  fileHash  String? // SHA256 para integridad
+  fileName  String
+  mimeType  String?
+  sizeBytes Int?
+
+  uploadedAt DateTime @default(now())
+  uploadedBy Int? // FK a Clinician
+
+  @@index([caseId])
+  @@map("attachments")
+}
+
+// ============================================================================
+// AUDITORÍA (opcional, para tracking de cambios)
+// ============================================================================
+
+/// Log de auditoría para cambios críticos
+model AuditLog {
+  id String @id @default(cuid())
+
+  tableName String
+  recordId  String
+  action    String // CREATE, UPDATE, DELETE
+  userId    Int? // Clinician que realizó el cambio
+  changes   Json // JSON con campos modificados
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tableName, recordId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

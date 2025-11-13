@@ -1,0 +1,8 @@
+# Mapa manual de variaciones de nombres de clínicos
+# Formato: nombreVariante,cpCanónico
+# Ejemplo:
+# "Dr. William Baptista",70203
+# "W. Baptista",70203
+# "Karina M. Rando",111
+#
+# Completar según sea necesario para consolidar duplicados
