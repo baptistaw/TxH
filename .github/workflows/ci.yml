@@ -79,7 +79,7 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        run: npm test
+        run: npm test -- --runInBand
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
