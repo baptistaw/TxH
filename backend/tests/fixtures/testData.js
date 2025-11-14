@@ -103,7 +103,6 @@ const testPreops = [
     child: 'B',
     etiology1: 'Cirrosis alcohólica',
     etiology2: 'Hepatitis C',
-    etiology3: null,
     observations: 'Función renal preservada',
   },
   {
@@ -113,8 +112,6 @@ const testPreops = [
     meldNa: 35,
     child: 'C',
     etiology1: 'Cirrosis biliar primaria',
-    etiology2: null,
-    etiology3: null,
     observations: 'Insuficiencia renal crónica asociada',
   },
 ];
