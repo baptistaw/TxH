@@ -19,11 +19,26 @@ const prisma = new PrismaClient();
  */
 async function cleanDatabase() {
   // Delete in reverse order of dependencies
+  // First: audit logs (no foreign keys, just references)
+  await prisma.auditLog.deleteMany({});
+
+  // Second: tables that reference TransplantCase
+  await prisma.mortality.deleteMany({});
+  await prisma.attachment.deleteMany({});
+  await prisma.observation.deleteMany({});
+  await prisma.linesAndMonitoring.deleteMany({});
+  await prisma.drugsGiven.deleteMany({});
+  await prisma.fluidsAndBlood.deleteMany({});
   await prisma.postOpOutcome.deleteMany({});
-  await prisma.teamAssignment.deleteMany({});
   await prisma.intraopRecord.deleteMany({});
+  await prisma.preopLabs.deleteMany({});
   await prisma.preopEvaluation.deleteMany({});
+  await prisma.teamAssignment.deleteMany({});
+
+  // Third: TransplantCase (references Patient)
   await prisma.transplantCase.deleteMany({});
+
+  // Fourth: base entities
   await prisma.clinician.deleteMany({});
   await prisma.patient.deleteMany({});
 }
