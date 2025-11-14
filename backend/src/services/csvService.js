@@ -97,22 +97,21 @@ async function generateCaseSummaryCSV(caseId) {
   // Create summary row
   const row = {
     // Patient
-    'CI': formatCI(patient.ci),
-    'Apellido': patient.lastName || '',
-    'Nombre': patient.firstName || '',
+    'CI': formatCI(patient.id),
+    'CI Raw': patient.ciRaw || '',
+    'Nombre Completo': patient.name || '',
     'Fecha Nacimiento': formatDate(patient.birthDate),
     'Sexo': patient.sex || '',
     'Prestador': patient.provider || '',
     'Grupo Sanguíneo': patient.bloodGroup || '',
 
     // Case
-    'Fecha Caso': formatDate(c.surgeryDate),
-    'Año': c.surgeryDate ? new Date(c.surgeryDate).getFullYear() : '',
+    'Fecha Inicio': formatDate(c.startAt),
+    'Fecha Fin': formatDate(c.endAt),
+    'Año': c.startAt ? new Date(c.startAt).getFullYear() : '',
     'Es Retrasplante': c.isRetransplant ? 'Sí' : 'No',
     'Hepato-Renal': c.isHepatoRenal ? 'Sí' : 'No',
-    'Donante Óptimo': c.isOptimalDonor ? 'Sí' : 'No',
-    'Fecha Listado': formatDate(c.listingDate),
-    'Fecha Trasplante': formatDate(c.transplantDate),
+    'Donante Óptimo': c.optimalDonor ? 'Sí' : 'No',
     'Duración Cirugía': formatDuration(c.duration),
     'Tiempo Isquemia Fría (min)': c.coldIschemiaTime || '',
     'Tiempo Isquemia Caliente (min)': c.warmIschemiaTime || '',
@@ -123,18 +122,17 @@ async function generateCaseSummaryCSV(caseId) {
     'Child-Pugh': preop?.child || '',
     'Etiología 1': preop?.etiology1 || '',
     'Etiología 2': preop?.etiology2 || '',
-    'Etiología 3': preop?.etiology3 || '',
     'Fecha Evaluación Preop': formatDate(preop?.evaluationDate),
 
     // Postop
     'Días UCI': postop?.icuDays || '',
-    'Días Hospitalización': postop?.hospitalDays || '',
-    'Complicaciones': postop?.complications || '',
-    'Mortalidad Hospitalaria': postop?.inHospitalMortality ? 'Sí' : 'No',
+    'Días Hospitalización': postop?.wardDays || '',
+    'Insuf. Renal Aguda': postop?.acuteRenalFailure ? 'Sí' : 'No',
+    'Otras Complicaciones': postop?.otherComplications || '',
     'Fecha Alta': formatDate(postop?.dischargeDate),
 
     // Team
-    'Equipo (nombres)': team.map(t => `${t.clinician.firstName} ${t.clinician.lastName}`).join('; '),
+    'Equipo (nombres)': team.map(t => t.clinician.name).join('; '),
     'Equipo (roles)': team.map(t => t.role).join('; '),
 
     // Observations
@@ -163,26 +161,23 @@ async function generateIntraopRecordsCSV(caseId) {
   const rows = intraop.map(record => ({
     // Case info
     'ID Caso': c.id,
-    'CI Paciente': formatCI(patient.ci),
-    'Apellido': patient.lastName || '',
-    'Nombre': patient.firstName || '',
-    'Fecha Caso': formatDate(c.surgeryDate),
+    'CI Paciente': formatCI(patient.id),
+    'Nombre Completo': patient.name || '',
+    'Fecha Inicio Caso': formatDate(c.startAt),
 
     // Intraop record
     'ID Registro': record.id,
     'Fase': record.phase,
     'Timestamp': record.timestamp ? new Date(record.timestamp).toISOString() : '',
-    'FC (bpm)': record.fc || '',
-    'PAS (mmHg)': record.sys || '',
-    'PAD (mmHg)': record.dia || '',
-    'PAm (mmHg)': record.map || '',
+    'FC (bpm)': record.heartRate || '',
+    'PAS (mmHg)': record.pas || '',
+    'PAD (mmHg)': record.pad || '',
+    'PAm (mmHg)': record.pam || '',
     'PVC (cmH₂O)': record.cvp || '',
     'PEEP (cmH₂O)': record.peep || '',
-    'FiO₂ (%)': record.fio2 || '',
-    'Vt (ml)': record.vt || '',
-    'Observaciones': record.observations || '',
+    'FiO₂': record.fio2 || '',
+    'Vt (ml)': record.tidalVolume || '',
     'Creado': record.createdAt ? new Date(record.createdAt).toISOString() : '',
-    'Actualizado': record.updatedAt ? new Date(record.updatedAt).toISOString() : '',
   }));
 
   if (rows.length === 0) {
@@ -190,9 +185,8 @@ async function generateIntraopRecordsCSV(caseId) {
     rows.push({
       'ID Caso': '',
       'CI Paciente': '',
-      'Apellido': '',
-      'Nombre': '',
-      'Fecha Caso': '',
+      'Nombre Completo': '',
+      'Fecha Inicio Caso': '',
       'ID Registro': '',
       'Fase': '',
       'Timestamp': '',
@@ -202,11 +196,9 @@ async function generateIntraopRecordsCSV(caseId) {
       'PAm (mmHg)': '',
       'PVC (cmH₂O)': '',
       'PEEP (cmH₂O)': '',
-      'FiO₂ (%)': '',
+      'FiO₂': '',
       'Vt (ml)': '',
-      'Observaciones': '',
       'Creado': '',
-      'Actualizado': '',
     });
   }
 
@@ -231,19 +223,18 @@ async function generateCompleteCaseCSV(caseId) {
   // Create rows for each intraop record, with case summary repeated
   const rows = intraop.map(record => ({
     // Patient
-    'CI': formatCI(patient.ci),
-    'Apellido': patient.lastName || '',
-    'Nombre': patient.firstName || '',
+    'CI': formatCI(patient.id),
+    'Nombre': patient.name || '',
     'Fecha Nacimiento': formatDate(patient.birthDate),
     'Sexo': patient.sex || '',
     'Prestador': patient.provider || '',
     'Grupo Sanguíneo': patient.bloodGroup || '',
 
     // Case
-    'Fecha Caso': formatDate(c.surgeryDate),
+    'Fecha Inicio': formatDate(c.startAt),
     'Es Retrasplante': c.isRetransplant ? 'Sí' : 'No',
     'Hepato-Renal': c.isHepatoRenal ? 'Sí' : 'No',
-    'Donante Óptimo': c.isOptimalDonor ? 'Sí' : 'No',
+    'Donante Óptimo': c.optimalDonor ? 'Sí' : 'No',
     'Duración Cirugía': formatDuration(c.duration),
     'Tiempo Isquemia Fría (min)': c.coldIschemiaTime || '',
     'Tiempo Isquemia Caliente (min)': c.warmIschemiaTime || '',
@@ -257,37 +248,34 @@ async function generateCompleteCaseCSV(caseId) {
     // Intraop record
     'Fase': record.phase,
     'Hora': record.timestamp ? new Date(record.timestamp).toLocaleTimeString('es-UY') : '',
-    'FC': record.fc || '',
-    'PAS': record.sys || '',
-    'PAD': record.dia || '',
-    'PAm': record.map || '',
+    'FC': record.heartRate || '',
+    'PAS': record.pas || '',
+    'PAD': record.pad || '',
+    'PAm': record.pam || '',
     'PVC': record.cvp || '',
     'PEEP': record.peep || '',
     'FiO₂': record.fio2 || '',
-    'Vt': record.vt || '',
-    'Obs Intraop': record.observations || '',
+    'Vt': record.tidalVolume || '',
 
     // Postop
     'Días UCI': postop?.icuDays || '',
-    'Días Hosp': postop?.hospitalDays || '',
-    'Complicaciones': postop?.complications || '',
-    'Mortalidad': postop?.inHospitalMortality ? 'Sí' : 'No',
+    'Días Hosp': postop?.wardDays || '',
+    'Insuf. Renal': postop?.acuteRenalFailure ? 'Sí' : 'No',
   }));
 
   // If no intraop records, add one summary row
   if (rows.length === 0) {
     rows.push({
-      'CI': formatCI(patient.ci),
-      'Apellido': patient.lastName || '',
-      'Nombre': patient.firstName || '',
+      'CI': formatCI(patient.id),
+      'Nombre': patient.name || '',
       'Fecha Nacimiento': formatDate(patient.birthDate),
       'Sexo': patient.sex || '',
       'Prestador': patient.provider || '',
       'Grupo Sanguíneo': patient.bloodGroup || '',
-      'Fecha Caso': formatDate(c.surgeryDate),
+      'Fecha Inicio': formatDate(c.startAt),
       'Es Retrasplante': c.isRetransplant ? 'Sí' : 'No',
       'Hepato-Renal': c.isHepatoRenal ? 'Sí' : 'No',
-      'Donante Óptimo': c.isOptimalDonor ? 'Sí' : 'No',
+      'Donante Óptimo': c.optimalDonor ? 'Sí' : 'No',
       'Duración Cirugía': formatDuration(c.duration),
       'Tiempo Isquemia Fría (min)': c.coldIschemiaTime || '',
       'Tiempo Isquemia Caliente (min)': c.warmIschemiaTime || '',
@@ -305,11 +293,9 @@ async function generateCompleteCaseCSV(caseId) {
       'PEEP': '',
       'FiO₂': '',
       'Vt': '',
-      'Obs Intraop': '',
       'Días UCI': postop?.icuDays || '',
-      'Días Hosp': postop?.hospitalDays || '',
-      'Complicaciones': postop?.complications || '',
-      'Mortalidad': postop?.inHospitalMortality ? 'Sí' : 'No',
+      'Días Hosp': postop?.wardDays || '',
+      'Insuf. Renal': postop?.acuteRenalFailure ? 'Sí' : 'No',
     });
   }
 
