@@ -6,27 +6,27 @@
  */
 const testPatients = [
   {
-    ci: 12345678,
-    firstName: 'Juan',
-    lastName: 'Pérez',
+    id: '12345678',
+    ciRaw: '1.234.567-8',
+    name: 'Juan Pérez',
     birthDate: new Date('1970-05-15'),
     sex: 'M',
     provider: 'ASSE',
     bloodGroup: 'O+',
   },
   {
-    ci: 23456789,
-    firstName: 'María',
-    lastName: 'González',
+    id: '23456789',
+    ciRaw: '2.345.678-9',
+    name: 'María González',
     birthDate: new Date('1965-08-22'),
     sex: 'F',
-    provider: 'Mutualista',
+    provider: 'ASSE',
     bloodGroup: 'A+',
   },
   {
-    ci: 34567890,
-    firstName: 'Pedro',
-    lastName: 'Rodríguez',
+    id: '34567890',
+    ciRaw: '3.456.789-0',
+    name: 'Pedro Rodríguez',
     birthDate: new Date('1958-12-10'),
     sex: 'M',
     provider: 'ASSE',
@@ -39,22 +39,25 @@ const testPatients = [
  */
 const testClinicians = [
   {
-    ci: 45678901,
-    firstName: 'Dr. Carlos',
-    lastName: 'Martínez',
-    specialty: 'Anestesiología',
+    id: 45678901,
+    name: 'Dr. Carlos Martínez',
+    specialty: 'ANESTESIOLOGO',
+    email: 'carlos.martinez@test.com',
+    phone: '099123456',
   },
   {
-    ci: 56789012,
-    firstName: 'Dra. Ana',
-    lastName: 'Fernández',
-    specialty: 'Cirugía',
+    id: 56789012,
+    name: 'Dra. Ana Fernández',
+    specialty: 'CIRUJANO',
+    email: 'ana.fernandez@test.com',
+    phone: '099234567',
   },
   {
-    ci: 67890123,
-    firstName: 'Dr. Luis',
-    lastName: 'García',
-    specialty: 'Hepatología',
+    id: 67890123,
+    name: 'Dr. Luis García',
+    specialty: 'HEPATOLOGO',
+    email: 'luis.garcia@test.com',
+    phone: '099345678',
   },
 ];
 
@@ -63,33 +66,27 @@ const testClinicians = [
  */
 const testCases = [
   {
-    patientId: 12345678, // Juan Pérez
-    surgeryDate: new Date('2024-03-15'),
+    patientId: '12345678', // Juan Pérez
     startAt: new Date('2024-03-15T08:00:00Z'),
     endAt: new Date('2024-03-15T14:30:00Z'),
     duration: 390, // 6.5 horas
     isRetransplant: false,
     isHepatoRenal: false,
-    isOptimalDonor: true,
+    optimalDonor: true,
     coldIschemiaTime: 360,
     warmIschemiaTime: 45,
-    listingDate: new Date('2023-09-10'),
-    transplantDate: new Date('2024-03-15'),
     observations: 'Trasplante sin complicaciones intraoperatorias',
   },
   {
-    patientId: 23456789, // María González
-    surgeryDate: new Date('2024-06-20'),
+    patientId: '23456789', // María González
     startAt: new Date('2024-06-20T09:00:00Z'),
     endAt: new Date('2024-06-20T16:00:00Z'),
     duration: 420, // 7 horas
     isRetransplant: true,
     isHepatoRenal: true,
-    isOptimalDonor: false,
+    optimalDonor: false,
     coldIschemiaTime: 420,
     warmIschemiaTime: 60,
-    listingDate: new Date('2023-12-05'),
-    transplantDate: new Date('2024-06-20'),
     observations: 'Retrasplante por disfunción crónica',
   },
 ];
@@ -191,7 +188,7 @@ const testIntraopSnapshots = [
   // Fase ANHEPATICA_INICIAL (2 snapshots)
   {
     caseIndex: 0,
-    phase: 'ANHEPATICA_INICIAL',
+    phase: 'ANHEPATICA',
     timestamp: new Date('2024-03-15T10:30:00Z'),
     fc: 88,
     sys: 105,
@@ -205,7 +202,7 @@ const testIntraopSnapshots = [
   },
   {
     caseIndex: 0,
-    phase: 'ANHEPATICA_INICIAL',
+    phase: 'ANHEPATICA',
     timestamp: new Date('2024-03-15T11:00:00Z'),
     fc: 90,
     sys: 102,
@@ -237,7 +234,7 @@ const testIntraopSnapshots = [
   // Fase POST_REPERFUSION_INICIAL (2 snapshots)
   {
     caseIndex: 0,
-    phase: 'POST_REPERFUSION_INICIAL',
+    phase: 'POST_REPERFUSION',
     timestamp: new Date('2024-03-15T12:00:00Z'),
     fc: 95,
     sys: 95,
@@ -251,7 +248,7 @@ const testIntraopSnapshots = [
   },
   {
     caseIndex: 0,
-    phase: 'POST_REPERFUSION_INICIAL',
+    phase: 'POST_REPERFUSION',
     timestamp: new Date('2024-03-15T12:30:00Z'),
     fc: 88,
     sys: 105,
@@ -344,7 +341,7 @@ const testIntraopSnapshots = [
   // Fase ANHEPATICA_INICIAL (2 snapshots)
   {
     caseIndex: 1,
-    phase: 'ANHEPATICA_INICIAL',
+    phase: 'ANHEPATICA',
     timestamp: new Date('2024-06-20T12:00:00Z'),
     fc: 102,
     sys: 108,
@@ -358,7 +355,7 @@ const testIntraopSnapshots = [
   },
   {
     caseIndex: 1,
-    phase: 'ANHEPATICA_INICIAL',
+    phase: 'ANHEPATICA',
     timestamp: new Date('2024-06-20T12:45:00Z'),
     fc: 105,
     sys: 105,
@@ -390,7 +387,7 @@ const testIntraopSnapshots = [
   // Fase POST_REPERFUSION_INICIAL (2 snapshots)
   {
     caseIndex: 1,
-    phase: 'POST_REPERFUSION_INICIAL',
+    phase: 'POST_REPERFUSION',
     timestamp: new Date('2024-06-20T13:45:00Z'),
     fc: 112,
     sys: 92,
@@ -404,7 +401,7 @@ const testIntraopSnapshots = [
   },
   {
     caseIndex: 1,
-    phase: 'POST_REPERFUSION_INICIAL',
+    phase: 'POST_REPERFUSION',
     timestamp: new Date('2024-06-20T14:15:00Z'),
     fc: 98,
     sys: 102,
@@ -442,24 +439,24 @@ const testTeamMembers = [
   {
     caseIndex: 0,
     clinicianCi: 45678901, // Dr. Carlos Martínez
-    role: 'Anestesiólogo Principal',
+    role: 'ANEST1',
   },
   {
     caseIndex: 0,
     clinicianCi: 56789012, // Dra. Ana Fernández
-    role: 'Cirujano Principal',
+    role: 'CIRUJANO1',
   },
 
   // Caso 2 team
   {
     caseIndex: 1,
     clinicianCi: 45678901, // Dr. Carlos Martínez
-    role: 'Anestesiólogo Principal',
+    role: 'ANEST1',
   },
   {
     caseIndex: 1,
     clinicianCi: 67890123, // Dr. Luis García
-    role: 'Hepatólogo Consultor',
+    role: 'HEPATOLOGO',
   },
 ];
 
