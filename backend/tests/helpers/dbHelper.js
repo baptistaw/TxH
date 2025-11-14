@@ -72,6 +72,7 @@ async function seedTestData() {
       prisma.preopEvaluation.create({
         data: {
           ...p,
+          patientId: cases[index].patientId,
           caseId: cases[index].id,
         },
       })
