@@ -43,7 +43,7 @@ function formatDuration(minutes) {
  */
 async function getCaseDataForCSV(caseId) {
   // Fetch case with relations
-  const caseData = await prisma.case.findUnique({
+  const caseData = await prisma.transplantCase.findUnique({
     where: { id: caseId },
     include: {
       patient: true,

@@ -20,10 +20,10 @@ const prisma = new PrismaClient();
 async function cleanDatabase() {
   // Delete in reverse order of dependencies
   await prisma.postOpOutcome.deleteMany({});
-  await prisma.teamMember.deleteMany({});
+  await prisma.teamAssignment.deleteMany({});
   await prisma.intraopRecord.deleteMany({});
   await prisma.preopEvaluation.deleteMany({});
-  await prisma.case.deleteMany({});
+  await prisma.transplantCase.deleteMany({});
   await prisma.clinician.deleteMany({});
   await prisma.patient.deleteMany({});
 }
@@ -48,7 +48,7 @@ async function seedTestData() {
 
   // Create cases
   const cases = await Promise.all(
-    testCases.map((c) => prisma.case.create({ data: c }))
+    testCases.map((c) => prisma.transplantCase.create({ data: c }))
   );
 
   // Create preop evaluations
@@ -80,7 +80,7 @@ async function seedTestData() {
   const teamMembers = await Promise.all(
     testTeamMembers.map((tm) => {
       const { caseIndex, clinicianCi, ...data } = tm;
-      return prisma.teamMember.create({
+      return prisma.teamAssignment.create({
         data: {
           ...data,
           caseId: cases[caseIndex].id,
@@ -129,10 +129,10 @@ async function getTestDataSummary() {
   ] = await Promise.all([
     prisma.patient.count(),
     prisma.clinician.count(),
-    prisma.case.count(),
+    prisma.transplantCase.count(),
     prisma.preopEvaluation.count(),
     prisma.intraopRecord.count(),
-    prisma.teamMember.count(),
+    prisma.teamAssignment.count(),
     prisma.postOpOutcome.count(),
   ]);
 
