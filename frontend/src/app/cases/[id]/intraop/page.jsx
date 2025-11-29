@@ -4,29 +4,33 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { casesApi, intraopApi } from '@/lib/api';
+import { casesApi } from '@/lib/api';
 import { formatCI } from '@/lib/utils';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import Navbar from '@/components/layout/Navbar';
+import AppLayout from '@/components/layout/AppLayout';
 import Button from '@/components/ui/Button';
 import Card, { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
-import IntraopGrid from '@/components/intraop/IntraopGrid';
+import IntegratedIntraopRegistry from '@/components/intraop/IntegratedIntraopRegistry';
+import IntraopCharts from '@/components/cases/IntraopCharts';
 import Spinner, { PageSpinner } from '@/components/ui/Spinner';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Fases del intraoperatorio
 const PHASES = [
+  { key: 'ESTADO_BASAL', label: 'Estado Basal', color: 'bg-gray-900' },
   { key: 'INDUCCION', label: 'Inducción', color: 'bg-blue-900' },
   { key: 'DISECCION', label: 'Disección', color: 'bg-purple-900' },
-  { key: 'ANHEPATICA_INICIAL', label: 'Anhepática Inicial', color: 'bg-pink-900' },
+  { key: 'ANHEPATICA', label: 'Anhepática', color: 'bg-pink-900' },
   { key: 'PRE_REPERFUSION', label: 'Pre-Reperfusión', color: 'bg-red-900' },
-  { key: 'POST_REPERFUSION_INICIAL', label: 'Post-Reperfusión Inicial', color: 'bg-orange-900' },
-  { key: 'FIN_VIA_BILIAR', label: 'Fin Vía Biliar', color: 'bg-yellow-900' },
+  { key: 'POST_REPERFUSION', label: 'Post-Reperfusión', color: 'bg-orange-900' },
+  { key: 'VIA_BILIAR', label: 'Vía Biliar', color: 'bg-yellow-900' },
   { key: 'CIERRE', label: 'Cierre', color: 'bg-green-900' },
+  { key: 'SALIDA_BQ', label: 'Salida de BQ', color: 'bg-teal-900' },
 ];
 
 export default function IntraopPage() {
   return (
-    <ProtectedRoute requiredRoles={['admin', 'anestesiologo']}>
+    <ProtectedRoute>
       <IntraopPageContent />
     </ProtectedRoute>
   );
@@ -36,40 +40,38 @@ function IntraopPageContent() {
   const params = useParams();
   const router = useRouter();
   const caseId = params.id;
+  const { user } = useAuth();
 
   const [caseData, setCaseData] = useState(null);
-  const [recordsByPhase, setRecordsByPhase] = useState({});
-  const [expandedPhases, setExpandedPhases] = useState(['INDUCCION']);
+  const [team, setTeam] = useState([]);
+  const [expandedPhases, setExpandedPhases] = useState(['ESTADO_BASAL']);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Cargar datos del caso e intraop
+  // Verificar si el usuario puede editar
+  // Admin o cualquier anestesiólogo pueden editar
+  const canEdit = user && (
+    user.role === 'ADMIN' ||
+    user.role === 'ANESTESIOLOGO'
+  );
+
+  // Cargar datos del caso
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        // Cargar caso
         const caseResponse = await casesApi.getById(caseId);
         setCaseData(caseResponse);
 
-        // Cargar registros intraop
-        const intraopResponse = await intraopApi.list({ caseId });
-
-        // Agrupar por fase
-        const grouped = {};
-        PHASES.forEach((phase) => {
-          grouped[phase.key] = [];
-        });
-
-        (intraopResponse.data || []).forEach((record) => {
-          if (grouped[record.phase]) {
-            grouped[record.phase].push(record);
-          }
-        });
-
-        setRecordsByPhase(grouped);
+        // Cargar equipo
+        try {
+          const teamResponse = await casesApi.getTeam(caseId);
+          setTeam(teamResponse || []);
+        } catch (err) {
+          console.warn('No se pudo cargar equipo:', err);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -91,117 +93,20 @@ function IntraopPageContent() {
     );
   };
 
-  // Agregar registro
-  const handleAddRecord = async (phase, data) => {
-    try {
-      await intraopApi.create({
-        caseId,
-        phase,
-        timestamp: new Date(data.timestamp).toISOString(),
-        heartRate: data.heartRate ? parseInt(data.heartRate) : null,
-        sys: data.sys ? parseInt(data.sys) : null,
-        dia: data.dia ? parseInt(data.dia) : null,
-        map: data.map ? parseInt(data.map) : null,
-        cvp: data.cvp ? parseInt(data.cvp) : null,
-        peep: data.peep ? parseInt(data.peep) : null,
-        fio2: data.fio2 ? parseInt(data.fio2) : null,
-        vt: data.vt ? parseInt(data.vt) : null,
-      });
-
-      // Recargar datos
-      await refetchData();
-    } catch (error) {
-      alert('Error al crear registro: ' + error.message);
-      throw error;
-    }
-  };
-
-  // Actualizar registro
-  const handleUpdateRecord = async (phase, id, data) => {
-    try {
-      await intraopApi.update(id, {
-        timestamp: new Date(data.timestamp).toISOString(),
-        heartRate: data.heartRate ? parseInt(data.heartRate) : null,
-        sys: data.sys ? parseInt(data.sys) : null,
-        dia: data.dia ? parseInt(data.dia) : null,
-        map: data.map ? parseInt(data.map) : null,
-        cvp: data.cvp ? parseInt(data.cvp) : null,
-        peep: data.peep ? parseInt(data.peep) : null,
-        fio2: data.fio2 ? parseInt(data.fio2) : null,
-        vt: data.vt ? parseInt(data.vt) : null,
-      });
-
-      // Recargar datos
-      await refetchData();
-    } catch (error) {
-      alert('Error al actualizar registro: ' + error.message);
-      throw error;
-    }
-  };
-
-  // Eliminar registro
-  const handleDeleteRecord = async (phase, id) => {
-    try {
-      await intraopApi.delete(id);
-
-      // Recargar datos
-      await refetchData();
-    } catch (error) {
-      alert('Error al eliminar registro: ' + error.message);
-      throw error;
-    }
-  };
-
-  // Duplicar última fila
-  const handleDuplicateLastRecord = async (phase) => {
-    try {
-      await intraopApi.duplicate(caseId, phase);
-
-      // Recargar datos
-      await refetchData();
-    } catch (error) {
-      alert('Error al duplicar registro: ' + error.message);
-      throw error;
-    }
-  };
-
-  // Refetch data
-  const refetchData = async () => {
-    try {
-      const intraopResponse = await intraopApi.list({ caseId });
-
-      const grouped = {};
-      PHASES.forEach((phase) => {
-        grouped[phase.key] = [];
-      });
-
-      (intraopResponse.data || []).forEach((record) => {
-        if (grouped[record.phase]) {
-          grouped[record.phase].push(record);
-        }
-      });
-
-      setRecordsByPhase(grouped);
-    } catch (error) {
-      console.error('Error refetching data:', error);
-    }
-  };
-
   if (loading) {
     return <PageSpinner />;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-dark-500">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <AppLayout>
+        <div className="h-full px-8 py-6">
           <div className="alert alert-error">Error al cargar datos: {error}</div>
           <Button onClick={() => router.push(`/cases/${caseId}`)} className="mt-4">
             Volver al Caso
           </Button>
-        </main>
-      </div>
+        </div>
+      </AppLayout>
     );
   }
 
@@ -210,10 +115,8 @@ function IntraopPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-500">
-      <Navbar />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <AppLayout>
+      <div className="h-full px-8 py-6">
         {/* Header */}
         <div className="mb-6">
           <Link href={`/cases/${caseId}`}>
@@ -237,7 +140,6 @@ function IntraopPageContent() {
         <div className="space-y-4">
           {PHASES.map((phase) => {
             const isExpanded = expandedPhases.includes(phase.key);
-            const records = recordsByPhase[phase.key] || [];
 
             return (
               <Card key={phase.key} className="overflow-hidden">
@@ -249,9 +151,6 @@ function IntraopPageContent() {
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${phase.color} opacity-100`} />
                       <CardTitle className="text-lg">{phase.label}</CardTitle>
-                      <span className="text-sm text-gray-400">
-                        ({records.length} registro{records.length !== 1 ? 's' : ''})
-                      </span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -271,13 +170,16 @@ function IntraopPageContent() {
 
                 {isExpanded && (
                   <CardContent className="pt-6">
-                    <IntraopGrid
+                    {/* Registro integrado de parámetros vitales, fluidos y pérdidas */}
+                    <IntegratedIntraopRegistry
+                      caseId={caseId}
                       phase={phase.key}
-                      records={records}
-                      onAdd={(data) => handleAddRecord(phase.key, data)}
-                      onUpdate={(id, data) => handleUpdateRecord(phase.key, id, data)}
-                      onDelete={(id) => handleDeleteRecord(phase.key, id)}
-                      onDuplicate={() => handleDuplicateLastRecord(phase.key)}
+                      patientWeight={caseData.patient?.weight}
+                      canEdit={canEdit}
+                      onDataChange={(data) => {
+                        // Callback opcional para actualizar datos en el componente padre
+                        console.log('Datos actualizados:', data);
+                      }}
                     />
                   </CardContent>
                 )}
@@ -289,24 +191,48 @@ function IntraopPageContent() {
         {/* Ayuda */}
         <Card className="mt-6 bg-dark-700">
           <CardContent className="py-4">
-            <h4 className="text-sm font-medium text-gray-300 mb-2">Atajos de teclado:</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs text-gray-400">
-              <div>
-                <kbd className="px-2 py-1 bg-dark-600 rounded">Ctrl+N</kbd> Nueva fila
+            <h4 className="text-sm font-medium text-gray-300 mb-3">Guía de uso:</h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+              <div className="text-xs">
+                <span className="text-gray-500">Atajos:</span>
+                <div className="mt-1 space-y-1 text-gray-400">
+                  <div><kbd className="px-2 py-1 bg-dark-600 rounded text-xs">Ctrl+N</kbd> Nueva fila</div>
+                  <div><kbd className="px-2 py-1 bg-dark-600 rounded text-xs">Ctrl+D</kbd> Duplicar última</div>
+                  <div><kbd className="px-2 py-1 bg-dark-600 rounded text-xs">Esc</kbd> Cancelar</div>
+                </div>
               </div>
-              <div>
-                <kbd className="px-2 py-1 bg-dark-600 rounded">Ctrl+D</kbd> Duplicar última
+
+              <div className="text-xs">
+                <span className="text-gray-500">Navegación:</span>
+                <div className="mt-1 space-y-1 text-gray-400">
+                  <div>• Click en fila → Ver detalles completos</div>
+                  <div>• Scroll horizontal → Ver todos los campos</div>
+                  <div>• Tabs en edición → Organizar por sección</div>
+                </div>
               </div>
-              <div>
-                <kbd className="px-2 py-1 bg-dark-600 rounded">Esc</kbd> Cancelar edición
+
+              <div className="text-xs">
+                <span className="text-gray-500">Campos en tabla:</span>
+                <div className="mt-1 space-y-1 text-gray-400">
+                  <div>• 24 campos visibles por defecto</div>
+                  <div>• Agrupados por colores</div>
+                  <div>• Hora y Acciones fijas en scroll</div>
+                </div>
               </div>
             </div>
-            <p className="mt-3 text-xs text-surgical-400">
-              💡 PAm (Presión Arterial Media) se calcula automáticamente si dejas el campo vacío: PAm = (PAS + 2×PAD) / 3
-            </p>
+
+            <div className="border-t border-dark-600 pt-3">
+              <p className="text-xs text-surgical-400">
+                💡 <strong>Cálculos automáticos:</strong> PAm = (PAS + 2×PAD) / 3  |  PAPm = (PAPS + 2×PAPD) / 3
+              </p>
+            </div>
           </CardContent>
         </Card>
-      </main>
-    </div>
+
+        {/* Gráficos de tendencias */}
+        <IntraopCharts caseId={caseId} />
+      </div>
+    </AppLayout>
   );
 }

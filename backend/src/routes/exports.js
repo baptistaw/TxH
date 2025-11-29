@@ -25,7 +25,7 @@ router.use(authenticate);
  */
 router.get(
   '/case/:id/pdf',
-  authorize(['admin', 'anestesiologo', 'data-analyst']),
+  authorize('ADMIN', 'ANESTESIOLOGO', 'VIEWER'),
   exportsController.exportCasePDF
 );
 
@@ -47,7 +47,7 @@ router.get(
  */
 router.get(
   '/case/:id/csv',
-  authorize(['admin', 'anestesiologo', 'data-analyst']),
+  authorize('ADMIN', 'ANESTESIOLOGO', 'VIEWER'),
   exportsController.exportCaseCSV
 );
 
@@ -74,8 +74,115 @@ router.get(
  */
 router.post(
   '/cases/csv',
-  authorize(['admin', 'data-analyst']),
+  authorize('ADMIN', 'VIEWER'),
   exportsController.exportMultipleCasesCSV
+);
+
+/**
+ * Email case PDF to distribution list
+ * POST /api/exports/case/:id/email
+ *
+ * Body:
+ * {
+ *   "recipients": ["email1@example.com", "email2@example.com"] // Optional
+ * }
+ *
+ * Roles: admin, anestesiologo
+ *
+ * Example:
+ * POST /api/exports/case/123/email
+ * { "recipients": ["doctor@hospital.uy"] }
+ *
+ * Response: { success: true, message: "PDF sent successfully", recipients: 1 }
+ */
+router.post(
+  '/case/:id/email',
+  authorize('ADMIN', 'ANESTESIOLOGO'),
+  exportsController.emailCasePDF
+);
+
+// ============================================================================
+// PREOP EVALUATION EXPORTS
+// ============================================================================
+
+/**
+ * Export preop evaluation as PDF
+ * GET /api/exports/preop/:id/pdf
+ *
+ * Roles: admin, anestesiologo, viewer
+ *
+ * Example: GET /api/exports/preop/clxx123abc/pdf
+ * Response: PDF file download
+ */
+router.get(
+  '/preop/:id/pdf',
+  authorize('ADMIN', 'ANESTESIOLOGO', 'VIEWER'),
+  exportsController.exportPreopPDF
+);
+
+/**
+ * Email preop evaluation PDF to distribution list
+ * POST /api/exports/preop/:id/email
+ *
+ * Body:
+ * {
+ *   "recipients": ["email1@example.com", "email2@example.com"] // Optional
+ * }
+ *
+ * Roles: admin, anestesiologo
+ *
+ * Example:
+ * POST /api/exports/preop/clxx123abc/email
+ * { "recipients": ["doctor@hospital.uy"] }
+ *
+ * Response: { success: true, message: "PDF enviado exitosamente", recipients: 1 }
+ */
+router.post(
+  '/preop/:id/email',
+  authorize('ADMIN', 'ANESTESIOLOGO'),
+  exportsController.emailPreopPDF
+);
+
+// ============================================================================
+// PROCEDURE EXPORTS
+// ============================================================================
+
+/**
+ * Export procedure as PDF
+ * GET /api/exports/procedure/:id/pdf
+ *
+ * Roles: admin, anestesiologo, viewer
+ *
+ * Example: GET /api/exports/procedure/clxx123abc/pdf
+ * Response: PDF file download
+ */
+router.get(
+  '/procedure/:id/pdf',
+  authorize('ADMIN', 'ANESTESIOLOGO', 'VIEWER'),
+  exportsController.exportProcedurePDF
+);
+
+/**
+ * Email procedure PDF to distribution list
+ * POST /api/exports/procedure/:id/email
+ *
+ * Body:
+ * {
+ *   "recipients": ["email1@example.com", "email2@example.com"] // Optional
+ * }
+ *
+ * Roles: admin, anestesiologo
+ *
+ * Example:
+ * POST /api/exports/procedure/clxx123abc/email
+ * { "recipients": ["doctor@hospital.uy"] }
+ *
+ * Response: { success: true, message: "PDF enviado exitosamente", recipients: 1 }
+ */
+router.post(
+  '/procedure/:id/email',
+  authorize('ADMIN', 'ANESTESIOLOGO'),
+  exportsController.emailProcedurePDF
 );
 
 module.exports = router;

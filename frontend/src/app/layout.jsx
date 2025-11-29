@@ -1,5 +1,7 @@
 // src/app/layout.jsx
 
+import { ClerkProvider } from '@clerk/nextjs';
+import { esES } from '@clerk/localizations';
 import { AuthProvider } from '@/contexts/AuthContext';
 import './globals.css';
 
@@ -10,10 +12,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
-      <body>
-        <AuthProvider>{children}</AuthProvider>
-      </body>
-    </html>
+    <ClerkProvider localization={esES}>
+      <html lang="es">
+        <body>
+          <AuthProvider>{children}</AuthProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

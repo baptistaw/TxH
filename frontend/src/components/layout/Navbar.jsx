@@ -2,58 +2,62 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { UserButton } from '@clerk/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
-import { getInitials } from '@/lib/utils';
+import GlobalSearch from '@/components/search/GlobalSearch';
+
+// Logo de la organización (mismo que en sign-in)
+const ORG_LOGO_URL = 'https://img.clerk.com/eyJ0eXBlIjoicHJveHkiLCJzcmMiOiJodHRwczovL2ltYWdlcy5jbGVyay5kZXYvdXBsb2FkZWQvaW1nXzM2QTBvZGRtZ0pqM1BpVHFwRXZ0WXpsM0U0UCJ9';
+const ORG_NAME = 'PNTH Uruguay';
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
-  const router = useRouter();
+  const { user, isSignedIn } = useAuth();
   const pathname = usePathname();
-
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
 
   const navLinks = [
     { href: '/patients', label: 'Pacientes' },
     { href: '/cases', label: 'Casos' },
   ];
 
+  // Estilos para componentes de Clerk (tema oscuro)
+  const clerkAppearance = {
+    elements: {
+      userButtonBox: 'flex items-center',
+      userButtonTrigger: 'focus:shadow-none',
+      userButtonAvatarBox: 'w-10 h-10',
+      userButtonPopoverCard: 'bg-dark-600 border-dark-400',
+      userButtonPopoverActionButton: 'text-gray-300 hover:bg-dark-500',
+      userButtonPopoverActionButtonText: 'text-gray-300',
+      userButtonPopoverFooter: 'hidden',
+    },
+  };
+
   return (
     <nav className="bg-dark-600 border-b border-dark-400 shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo y nombre */}
+          {/* Logo/Organización y navegación */}
           <div className="flex items-center gap-4">
-            <Link href="/cases" className="flex items-center gap-3">
-              {/* Placeholder para logo */}
-              <div className="w-10 h-10 rounded-lg bg-surgical-500 flex items-center justify-center shadow-glow">
-                <svg
-                  className="w-6 h-6 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
+            {/* Logo de la organización */}
+            <Link href="/" className="flex items-center gap-3">
+              <img
+                src={ORG_LOGO_URL}
+                alt={ORG_NAME}
+                className="w-10 h-10 rounded-lg object-cover shadow-glow"
+              />
               <div>
-                <h1 className="text-xl font-bold text-surgical-400">
-                  TxH Registro
+                <h1 className="text-lg font-bold text-surgical-400">
+                  {ORG_NAME}
                 </h1>
-                <p className="text-xs text-gray-500">Sistema Anestesiológico</p>
+                <p className="text-xs text-gray-500">
+                  Sistema Anestesiológico
+                </p>
               </div>
             </Link>
 
             {/* Navigation links */}
-            <div className="hidden md:flex items-center gap-2 ml-8">
+            <div className="hidden md:flex items-center gap-2 ml-4">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -68,42 +72,29 @@ export default function Navbar() {
                 </Link>
               ))}
             </div>
+
+            {/* Global Search */}
+            {isSignedIn && <GlobalSearch />}
           </div>
 
-          {/* User menu */}
-          {user && (
+          {/* User menu con Clerk */}
+          {isSignedIn && (
             <div className="flex items-center gap-4">
+              {/* Info del rol */}
               <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium text-gray-300">{user.name || user.email}</p>
-                <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                <p className="text-sm font-medium text-gray-300">
+                  {user?.name || user?.email}
+                </p>
+                <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
               </div>
 
-              {/* Avatar */}
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-medical-500 flex items-center justify-center text-white font-semibold">
-                  {getInitials(user.name || user.email)}
-                </div>
-
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
-                  title="Cerrar sesión"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                    />
-                  </svg>
-                </button>
-              </div>
+              {/* UserButton de Clerk */}
+              <UserButton
+                appearance={clerkAppearance}
+                afterSignOutUrl="/sign-in"
+                userProfileMode="navigation"
+                userProfileUrl="/profile"
+              />
             </div>
           )}
         </div>

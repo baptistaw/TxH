@@ -92,6 +92,28 @@ export function formatBoolean(value) {
 }
 
 /**
+ * Calcular edad desde fecha de nacimiento
+ */
+export function calculateAge(birthDate) {
+  if (!birthDate) return null;
+
+  try {
+    const dateObj = typeof birthDate === 'string' ? parseISO(birthDate) : birthDate;
+    const today = new Date();
+    let age = today.getFullYear() - dateObj.getFullYear();
+    const monthDiff = today.getMonth() - dateObj.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateObj.getDate())) {
+      age--;
+    }
+
+    return age;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Capitalizar primera letra
  */
 export function capitalize(str) {

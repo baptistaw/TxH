@@ -106,10 +106,50 @@ backend/
 
 - **Helmet**: Headers de seguridad HTTP
 - **CORS**: Configurado para frontend específico
-- **Rate Limiting**: Protección contra fuerza bruta
-- **JWT**: Autenticación con tokens
-- **Bcrypt**: Hashing de contraseñas
-- **Validación**: Joi/Zod para inputs
+- **Rate Limiting**: Protección contra fuerza bruta (express-rate-limit)
+- **JWT**: Autenticación con tokens (jsonwebtoken)
+- **Bcrypt**: Hashing de contraseñas (bcryptjs)
+- **Validación**: Zod para inputs
+- **Logging**: Winston para registro de eventos
+
+## 📦 Tecnologías Clave Implementadas
+
+### Core
+- **Node.js 18+** - Runtime JavaScript
+- **Express 4** - Framework web
+- **Prisma 5** - ORM para PostgreSQL
+- **PostgreSQL 15+** - Base de datos relacional
+
+### Autenticación y Seguridad
+- **jsonwebtoken** - JWT para auth
+- **bcryptjs** - Hash de contraseñas
+- **helmet** - Headers de seguridad
+- **express-rate-limit** - Rate limiting
+- **cors** - CORS configurado
+
+### Exportación y Reportes
+- **Puppeteer** - Generación de PDF
+- **json2csv** - Exportación CSV
+- **nodemailer** - Envío de emails
+- **exceljs** - Lectura/escritura Excel
+
+### Integraciones
+- **googleapis** - Google Drive API
+- **node-cron** - ETL incremental programado
+- **multer** - Upload de archivos
+
+### Utilidades
+- **date-fns / date-fns-tz** - Manejo de fechas
+- **zod** - Validación de schemas
+- **winston** - Logging estructurado
+- **morgan** - HTTP request logging
+- **compression** - Compresión de responses
+
+### Testing
+- **jest** - Framework de testing
+- **supertest** - Tests de API HTTP
+- **eslint** - Linting
+- **prettier** - Formateo de código
 
 ## 📊 Prisma Studio
 
@@ -174,9 +214,127 @@ generator client {
 
 ## 📚 Documentación API
 
-(Pendiente: Swagger/OpenAPI)
+### Endpoints Implementados
 
-Ver rutas disponibles en `src/routes/`
+**Base URL:** `http://localhost:4000/api`
+
+#### Autenticación (`/api/auth`)
+- `POST /register` - Registrar nuevo usuario
+- `POST /login` - Iniciar sesión (devuelve access y refresh tokens)
+- `POST /refresh` - Refrescar access token
+- `POST /logout` - Cerrar sesión
+- `GET /me` - Obtener usuario actual (requiere auth)
+
+#### Pacientes (`/api/patients`)
+- `GET /` - Listar pacientes (con paginación, filtros y búsqueda)
+- `GET /:ci` - Obtener paciente por CI
+- `POST /` - Crear paciente
+- `PUT /:ci` - Actualizar paciente
+- `DELETE /:ci` - Eliminar paciente
+
+#### Casos de Trasplante (`/api/cases`)
+- `GET /` - Listar casos (con filtros y paginación)
+- `GET /:id` - Obtener caso completo con relaciones
+- `POST /` - Crear caso
+- `PUT /:id` - Actualizar caso
+- `DELETE /:id` - Eliminar caso
+- `GET /patient/:ci` - Casos por paciente
+
+#### Evaluación Preoperatoria (`/api/preop`)
+- `GET /case/:caseId` - Obtener evaluación preop de un caso
+- `POST /` - Crear evaluación preoperatoria
+- `PUT /:id` - Actualizar evaluación
+- `GET /:id/labs` - Obtener laboratorios preoperatorios
+- `POST /:id/labs` - Agregar laboratorios
+
+#### Registros Intraoperatorios (`/api/intraop`)
+- `GET /case/:caseId` - Obtener todos los registros intraop de un caso
+- `GET /case/:caseId/phase/:phase` - Registros por fase
+- `POST /` - Crear registro intraoperatorio
+- `PUT /:id` - Actualizar registro
+- `DELETE /:id` - Eliminar registro
+
+#### Fluidos y Hemoderivados (`/api/fluids`)
+- `GET /case/:caseId` - Fluidos de un caso
+- `POST /` - Registrar fluidos
+- `PUT /:id` - Actualizar registro de fluidos
+- `GET /case/:caseId/balance` - Calcular balance total
+
+#### Resultados Postoperatorios (`/api/postop`)
+- `GET /case/:caseId` - Obtener postoperatorio de un caso
+- `POST /` - Crear registro postoperatorio
+- `PUT /:id` - Actualizar postoperatorio
+
+#### Mortalidad y Seguimiento (`/api/mortality`)
+- `GET /patient/:patientId` - Datos de mortalidad de un paciente
+- `POST /` - Registrar seguimiento
+- `PUT /:id` - Actualizar seguimiento
+
+#### Equipo Quirúrgico (`/api/team`)
+- `GET /case/:caseId` - Equipo asignado a un caso
+- `POST /` - Asignar equipo
+- `PUT /:id` - Actualizar asignación
+- `DELETE /:id` - Eliminar asignación
+
+#### Procedimientos (`/api/procedures`)
+- `GET /` - Listar procedimientos
+- `GET /:id` - Obtener procedimiento
+- `POST /` - Crear procedimiento
+- `PUT /:id` - Actualizar procedimiento
+- `GET /patient/:patientId` - Procedimientos por paciente
+- `GET /clinician/:clinicianId` - Procedimientos por médico
+
+#### Catálogos (`/api/catalogs`)
+- `GET /providers` - Prestadores
+- `GET /specialties` - Especialidades
+- `GET /roles` - Roles de equipo
+- `GET /procedure-types` - Tipos de procedimiento
+- `GET /drugs` - Catálogo de fármacos
+
+#### Personal Médico (`/api/clinicians`)
+- `GET /` - Listar médicos
+- `GET /:id` - Obtener médico por ID
+- `POST /` - Crear médico
+- `PUT /:id` - Actualizar médico
+
+#### Archivos (`/api/files`)
+- `POST /upload` - Subir archivo (multipart/form-data)
+- `GET /:id` - Descargar archivo
+- `DELETE /:id` - Eliminar archivo
+- `GET /case/:caseId` - Archivos de un caso
+- `POST /sync-drive` - Sincronizar con Google Drive
+
+#### Exportación (`/api/exports`)
+- `GET /case/:id/pdf` - Exportar caso como PDF
+- `GET /case/:id/csv?format=complete|summary|intraop` - Exportar caso como CSV
+- `POST /cases/csv` - Exportar múltiples casos como CSV
+- `POST /case/:id/email` - Enviar reporte por email
+
+#### Administración (`/api/admin`)
+- `GET /users` - Listar usuarios (admin)
+- `PUT /users/:id/role` - Cambiar rol de usuario
+- `GET /audit-logs` - Ver logs de auditoría
+- `GET /stats` - Estadísticas del sistema
+
+### Autenticación
+
+La mayoría de endpoints requieren autenticación mediante JWT. Incluir el token en el header:
+
+```
+Authorization: Bearer <access_token>
+```
+
+### Códigos de Respuesta
+
+- `200` - OK
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `500` - Internal Server Error
+
+Ver rutas completas en `src/routes/`
 
 ## 🚢 Deploy
 

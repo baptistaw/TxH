@@ -2,6 +2,37 @@
 
 const intraopService = require('../services/intraopService');
 const { asyncHandler } = require('../middlewares/errorHandler');
+const prisma = require('../lib/prisma');
+const { ROLES } = require('../middlewares/auth');
+
+/**
+ * Helper: Verifica si el usuario tiene permiso para modificar un caso
+ * @param {string} caseId - ID del caso
+ * @param {number} userId - ID del usuario
+ * @param {string} userRole - Rol del usuario
+ * @returns {boolean} true si tiene permiso
+ */
+async function canModifyCase(caseId, userId, userRole) {
+  // Admin puede modificar cualquier caso
+  if (userRole === 'ADMIN') {
+    return true;
+  }
+
+  // Solo anestesiólogos pueden modificar (aunque estén en el equipo)
+  if (userRole !== 'ANESTESIOLOGO') {
+    return false;
+  }
+
+  // Verificar si el anestesiólogo está asignado al equipo del caso
+  const teamAssignment = await prisma.teamAssignment.findFirst({
+    where: {
+      caseId,
+      clinicianId: userId,
+    },
+  });
+
+  return !!teamAssignment;
+}
 
 /**
  * GET /api/intraop?caseId=xxx&phase=xxx
@@ -35,6 +66,18 @@ const getIntraopById = asyncHandler(async (req, res) => {
  * Crear nuevo registro
  */
 const createIntraop = asyncHandler(async (req, res) => {
+  const { caseId } = req.body;
+  const userId = req.user.id;
+  const userRole = req.user.role;
+
+  // Verificar permisos para modificar el caso
+  const hasPermission = await canModifyCase(caseId, userId, userRole);
+  if (!hasPermission) {
+    return res.status(403).json({
+      error: 'No tienes permiso para agregar registros a este caso. Solo los miembros del equipo pueden hacerlo.'
+    });
+  }
+
   const record = await intraopService.createIntraop(req.body);
 
   res.status(201).json(record);
@@ -46,6 +89,27 @@ const createIntraop = asyncHandler(async (req, res) => {
  */
 const updateIntraop = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id;
+  const userRole = req.user.role;
+
+  // Obtener el registro para saber a qué caso pertenece
+  const existingRecord = await prisma.intraopRecord.findUnique({
+    where: { id },
+    select: { caseId: true },
+  });
+
+  if (!existingRecord) {
+    return res.status(404).json({ error: 'Registro no encontrado' });
+  }
+
+  // Verificar permisos para modificar el caso
+  const hasPermission = await canModifyCase(existingRecord.caseId, userId, userRole);
+  if (!hasPermission) {
+    return res.status(403).json({
+      error: 'No tienes permiso para editar este registro. Solo los miembros del equipo pueden hacerlo.'
+    });
+  }
+
   const record = await intraopService.updateIntraop(id, req.body);
 
   res.json(record);
@@ -57,6 +121,27 @@ const updateIntraop = asyncHandler(async (req, res) => {
  */
 const deleteIntraop = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id;
+  const userRole = req.user.role;
+
+  // Obtener el registro para saber a qué caso pertenece
+  const existingRecord = await prisma.intraopRecord.findUnique({
+    where: { id },
+    select: { caseId: true },
+  });
+
+  if (!existingRecord) {
+    return res.status(404).json({ error: 'Registro no encontrado' });
+  }
+
+  // Verificar permisos para modificar el caso
+  const hasPermission = await canModifyCase(existingRecord.caseId, userId, userRole);
+  if (!hasPermission) {
+    return res.status(403).json({
+      error: 'No tienes permiso para eliminar este registro. Solo los miembros del equipo pueden hacerlo.'
+    });
+  }
+
   const result = await intraopService.deleteIntraop(id);
 
   res.json(result);

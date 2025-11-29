@@ -1,4 +1,4 @@
-// src/lib/api.js - Cliente API con fetch nativo y autenticación
+// src/lib/api.js - Cliente API con fetch nativo y autenticación Clerk
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -15,11 +15,36 @@ export class ApiError extends Error {
 }
 
 /**
- * Obtener token del localStorage (client-side only)
+ * Variable global para almacenar la función getToken de Clerk
+ * Se inicializa desde AuthContext
  */
-function getToken() {
+let clerkGetToken = null;
+
+/**
+ * Inicializar la función de obtención de token de Clerk
+ * Llamado desde AuthContext cuando se monta
+ */
+export function initializeAuth(getTokenFn) {
+  clerkGetToken = getTokenFn;
+}
+
+/**
+ * Obtener token de Clerk (async)
+ */
+async function getToken() {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('token');
+
+  // Intentar obtener token de Clerk
+  if (clerkGetToken) {
+    try {
+      return await clerkGetToken();
+    } catch (error) {
+      console.error('Error getting Clerk token:', error);
+      return null;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -27,7 +52,7 @@ function getToken() {
  */
 async function fetcher(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`;
-  const token = getToken();
+  const token = await getToken();
 
   const config = {
     headers: {
@@ -41,12 +66,10 @@ async function fetcher(endpoint, options = {}) {
   try {
     const response = await fetch(url, config);
 
-    // Si es 401, limpiar token y redirigir a login
+    // Si es 401, redirigir a sign-in de Clerk
     if (response.status === 401) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        window.location.href = '/sign-in';
       }
       throw new ApiError('No autorizado', 401, null);
     }
@@ -127,35 +150,23 @@ export const api = {
 };
 
 /**
- * API de Autenticación
+ * API de Autenticación (Clerk)
+ * Login/Logout manejados por Clerk directamente
  */
 export const authApi = {
-  // Login
-  login: async (email, password) => {
-    const data = await api.post('/auth/login', { email, password });
-
-    if (typeof window !== 'undefined' && data.token) {
-      localStorage.setItem('token', data.token);
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-    }
-
-    return data;
-  },
-
-  // Logout
-  logout: () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-  },
-
-  // Obtener usuario actual
+  // Obtener usuario actual (datos de BD local)
   me: () => {
     return api.get('/auth/me');
+  },
+
+  // Sincronizar usuario de Clerk con BD local
+  sync: () => {
+    return api.post('/auth/sync');
+  },
+
+  // Actualizar perfil en BD local
+  updateProfile: (data) => {
+    return api.put('/auth/profile', data);
   },
 };
 
@@ -233,9 +244,44 @@ export const casesApi = {
     return api.get(`/cases/${caseId}/intraop`);
   },
 
+  // Obtener registros de fluidos y hemoderivados
+  getFluids: (caseId) => {
+    return api.get(`/cases/${caseId}/fluids`);
+  },
+
   // Obtener resultados postoperatorios
   getPostop: (caseId) => {
     return api.get(`/cases/${caseId}/postop`);
+  },
+
+  // Agregar miembro al equipo
+  addTeamMember: (caseId, data) => {
+    return api.post(`/cases/${caseId}/team`, data);
+  },
+
+  // Eliminar miembro del equipo
+  removeTeamMember: (caseId, teamAssignmentId) => {
+    return api.delete(`/cases/${caseId}/team/${teamAssignmentId}`);
+  },
+
+  // Obtener líneas y monitoreo
+  getLinesMonitoring: (caseId) => {
+    return api.get(`/cases/${caseId}/lines-monitoring`);
+  },
+
+  // Crear líneas y monitoreo
+  createLinesMonitoring: (caseId, data) => {
+    return api.post(`/cases/${caseId}/lines-monitoring`, data);
+  },
+
+  // Actualizar líneas y monitoreo
+  updateLinesMonitoring: (caseId, data) => {
+    return api.put(`/cases/${caseId}/lines-monitoring`, data);
+  },
+
+  // Eliminar líneas y monitoreo
+  deleteLinesMonitoring: (caseId) => {
+    return api.delete(`/cases/${caseId}/lines-monitoring`);
   },
 };
 
@@ -301,6 +347,76 @@ export const intraopApi = {
 };
 
 /**
+ * API de Fluidos y Hemoderivados
+ */
+export const fluidsApi = {
+  // Listar registros (filtrado por caso y fase)
+  list: (params = {}) => {
+    return api.get('/fluids', params);
+  },
+
+  // Obtener registro por ID
+  getById: (id) => {
+    return api.get(`/fluids/${id}`);
+  },
+
+  // Crear registro
+  create: (data) => {
+    return api.post('/fluids', data);
+  },
+
+  // Actualizar registro
+  update: (id, data) => {
+    return api.put(`/fluids/${id}`, data);
+  },
+
+  // Eliminar registro
+  delete: (id) => {
+    return api.delete(`/fluids/${id}`);
+  },
+
+  // Obtener totales por fase
+  getTotals: (caseId, phase) => {
+    return api.get(`/fluids/totals/${caseId}/${phase}`);
+  },
+};
+
+/**
+ * API de Fármacos
+ */
+export const drugsApi = {
+  // Listar registros (filtrado por caso y fase)
+  list: (params = {}) => {
+    return api.get('/drugs', params);
+  },
+
+  // Obtener registro por ID
+  getById: (id) => {
+    return api.get(`/drugs/${id}`);
+  },
+
+  // Crear registro
+  create: (data) => {
+    return api.post('/drugs', data);
+  },
+
+  // Actualizar registro
+  update: (id, data) => {
+    return api.put(`/drugs/${id}`, data);
+  },
+
+  // Eliminar registro
+  delete: (id) => {
+    return api.delete(`/drugs/${id}`);
+  },
+
+  // Duplicar último registro
+  duplicate: (caseId, phase) => {
+    return api.post('/drugs/duplicate', { caseId, phase });
+  },
+};
+
+/**
  * API de Equipo Clínico
  */
 export const teamApi = {
@@ -349,6 +465,16 @@ export const exportsApi = {
   },
 
   /**
+   * Enviar caso como PDF por email
+   * @param {string|number} caseId - ID del caso
+   * @param {string[]} recipients - Destinatarios (opcional, usa lista por defecto si no se especifica)
+   */
+  emailPDF: async (caseId, recipients = null) => {
+    const url = `${API_URL}/exports/case/${caseId}/email`;
+    return api.post(url, { recipients });
+  },
+
+  /**
    * Descargar caso como CSV
    * @param {string|number} caseId - ID del caso
    * @param {string} format - Formato: 'complete', 'summary', 'intraop'
@@ -378,6 +504,522 @@ export const exportsApi = {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  // ============================================================================
+  // PREOP EXPORTS
+  // ============================================================================
+
+  /**
+   * Descargar evaluación preoperatoria como PDF
+   * @param {string} preopId - ID de la evaluación
+   * @param {string} patientName - Nombre del paciente para el nombre del archivo
+   */
+  downloadPreopPDF: async (preopId, patientName = 'paciente') => {
+    const url = `${API_URL}/exports/preop/${preopId}/pdf`;
+    const token = getToken();
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al descargar PDF de evaluación');
+    }
+
+    // Descargar archivo
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    const safeName = patientName.replace(/\s+/g, '_');
+    link.download = `evaluacion-pretrasplante-${safeName}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  /**
+   * Enviar evaluación preoperatoria como PDF por email
+   * @param {string} preopId - ID de la evaluación
+   * @param {string[]} recipients - Destinatarios (opcional)
+   */
+  emailPreopPDF: async (preopId, recipients = null) => {
+    const url = `${API_URL}/exports/preop/${preopId}/email`;
+    return api.post(url, { recipients });
+  },
+
+  // ============================================================================
+  // PROCEDURE EXPORTS
+  // ============================================================================
+
+  /**
+   * Descargar procedimiento como PDF
+   * @param {string} procedureId - ID del procedimiento
+   * @param {string} patientName - Nombre del paciente para el nombre del archivo
+   */
+  downloadProcedurePDF: async (procedureId, patientName = 'paciente') => {
+    const url = `${API_URL}/exports/procedure/${procedureId}/pdf`;
+    const token = getToken();
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al descargar PDF del procedimiento');
+    }
+
+    // Descargar archivo
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    const safeName = patientName.replace(/\s+/g, '_');
+    link.download = `procedimiento-${safeName}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  /**
+   * Enviar procedimiento como PDF por email
+   * @param {string} procedureId - ID del procedimiento
+   * @param {string[]} recipients - Destinatarios (opcional)
+   */
+  emailProcedurePDF: async (procedureId, recipients = null) => {
+    const url = `${API_URL}/exports/procedure/${procedureId}/email`;
+    return api.post(url, { recipients });
+  },
+};
+
+/**
+ * API de Procedimientos Quirúrgicos
+ */
+export const proceduresApi = {
+  // Listar procedimientos
+  list: (params = {}) => {
+    return api.get('/procedures', params);
+  },
+
+  // Obtener procedimiento por ID
+  getById: (id) => {
+    return api.get(`/procedures/${id}`);
+  },
+
+  // Crear procedimiento
+  create: (data) => {
+    return api.post('/procedures', data);
+  },
+
+  // Actualizar procedimiento
+  update: (id, data) => {
+    return api.put(`/procedures/${id}`, data);
+  },
+
+  // Eliminar procedimiento
+  delete: (id) => {
+    return api.delete(`/procedures/${id}`);
+  },
+
+  // Crear registro intraoperatorio
+  createIntraopRecord: (procedureId, data) => {
+    return api.post(`/procedures/${procedureId}/intraop`, data);
+  },
+
+  // Actualizar registro intraoperatorio
+  updateIntraopRecord: (procedureId, recordId, data) => {
+    return api.put(`/procedures/${procedureId}/intraop/${recordId}`, data);
+  },
+
+  // Eliminar registro intraoperatorio
+  deleteIntraopRecord: (procedureId, recordId) => {
+    return api.delete(`/procedures/${procedureId}/intraop/${recordId}`);
+  },
+};
+
+/**
+ * API de Administración
+ */
+export const adminApi = {
+  // ============= USUARIOS =============
+  // Listar usuarios
+  listUsers: (params = {}) => {
+    return api.get('/admin/users', params);
+  },
+
+  // Obtener usuario por ID
+  getUserById: (id) => {
+    return api.get(`/admin/users/${id}`);
+  },
+
+  // Crear usuario
+  createUser: (data) => {
+    return api.post('/admin/users', data);
+  },
+
+  // Actualizar usuario
+  updateUser: (id, data) => {
+    return api.put(`/admin/users/${id}`, data);
+  },
+
+  // Eliminar usuario
+  deleteUser: (id) => {
+    return api.delete(`/admin/users/${id}`);
+  },
+
+  // ============= PACIENTES =============
+  // Listar pacientes con filtros
+  listPatients: (params = {}) => {
+    return api.get('/admin/patients', params);
+  },
+
+  // Obtener paciente completo
+  getPatientById: (id) => {
+    return api.get(`/admin/patients/${id}`);
+  },
+
+  // ============= CATÁLOGOS =============
+  // Etiologías
+  listEtiologies: (params = {}) => {
+    return api.get('/admin/catalogs/etiologies', params);
+  },
+
+  createEtiology: (data) => {
+    return api.post('/admin/catalogs/etiologies', data);
+  },
+
+  updateEtiology: (id, data) => {
+    return api.put(`/admin/catalogs/etiologies/${id}`, data);
+  },
+
+  deleteEtiology: (id) => {
+    return api.delete(`/admin/catalogs/etiologies/${id}`);
+  },
+
+  // Antibióticos
+  listAntibiotics: () => {
+    return api.get('/admin/catalogs/antibiotics');
+  },
+
+  createAntibiotic: (data) => {
+    return api.post('/admin/catalogs/antibiotics', data);
+  },
+
+  updateAntibiotic: (id, data) => {
+    return api.put(`/admin/catalogs/antibiotics/${id}`, data);
+  },
+
+  deleteAntibiotic: (id) => {
+    return api.delete(`/admin/catalogs/antibiotics/${id}`);
+  },
+
+  // Posiciones
+  listPositions: () => {
+    return api.get('/admin/catalogs/positions');
+  },
+
+  createPosition: (data) => {
+    return api.post('/admin/catalogs/positions', data);
+  },
+
+  updatePosition: (id, data) => {
+    return api.put(`/admin/catalogs/positions/${id}`, data);
+  },
+
+  deletePosition: (id) => {
+    return api.delete(`/admin/catalogs/positions/${id}`);
+  },
+
+  // Locaciones
+  listLocations: (params = {}) => {
+    return api.get('/admin/catalogs/locations', params);
+  },
+
+  createLocation: (data) => {
+    return api.post('/admin/catalogs/locations', data);
+  },
+
+  updateLocation: (id, data) => {
+    return api.put(`/admin/catalogs/locations/${id}`, data);
+  },
+
+  deleteLocation: (id) => {
+    return api.delete(`/admin/catalogs/locations/${id}`);
+  },
+
+  // ============= PROTOCOLOS =============
+  // Listar protocolos
+  listProtocols: (params = {}) => {
+    return api.get('/admin/protocols', params);
+  },
+
+  // Obtener protocolo por ID
+  getProtocolById: (id) => {
+    return api.get(`/admin/protocols/${id}`);
+  },
+
+  // Crear protocolo
+  createProtocol: (data) => {
+    return api.post('/admin/protocols', data);
+  },
+
+  // Actualizar protocolo
+  updateProtocol: (id, data) => {
+    return api.put(`/admin/protocols/${id}`, data);
+  },
+
+  // Desactivar protocolo
+  deleteProtocol: (id) => {
+    return api.delete(`/admin/protocols/${id}`);
+  },
+
+  // Fases de protocolo
+  createPhase: (protocolId, data) => {
+    return api.post(`/admin/protocols/${protocolId}/phases`, data);
+  },
+
+  updatePhase: (protocolId, phaseId, data) => {
+    return api.put(`/admin/protocols/${protocolId}/phases/${phaseId}`, data);
+  },
+
+  deletePhase: (protocolId, phaseId) => {
+    return api.delete(`/admin/protocols/${protocolId}/phases/${phaseId}`);
+  },
+
+  // Antibióticos de fase
+  createPhaseAntibiotic: (protocolId, phaseId, data) => {
+    return api.post(`/admin/protocols/${protocolId}/phases/${phaseId}/antibiotics`, data);
+  },
+
+  updatePhaseAntibiotic: (protocolId, phaseId, antibioticId, data) => {
+    return api.put(`/admin/protocols/${protocolId}/phases/${phaseId}/antibiotics/${antibioticId}`, data);
+  },
+
+  deletePhaseAntibiotic: (protocolId, phaseId, antibioticId) => {
+    return api.delete(`/admin/protocols/${protocolId}/phases/${phaseId}/antibiotics/${antibioticId}`);
+  },
+
+  // ============= ESTADÍSTICAS =============
+  getStats: () => {
+    return api.get('/admin/stats');
+  },
+};
+
+/**
+ * API de Catálogos (público)
+ */
+export const catalogsApi = {
+  // Listar todos los catálogos
+  list: () => {
+    return api.get('/catalogs');
+  },
+
+  // Obtener catálogo por nombre
+  getByName: (name, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const url = query ? `/catalogs/${name}?${query}` : `/catalogs/${name}`;
+    return api.get(url);
+  },
+
+  // ============= ADMIN =============
+
+  // Actualizar catálogo
+  updateCatalog: (catalogId, data) => {
+    return api.put(`/catalogs/admin/${catalogId}`, data);
+  },
+
+  // Crear item en catálogo
+  createItem: (catalogId, data) => {
+    return api.post(`/catalogs/admin/${catalogId}/items`, data);
+  },
+
+  // Actualizar item
+  updateItem: (itemId, data) => {
+    return api.put(`/catalogs/admin/items/${itemId}`, data);
+  },
+
+  // Eliminar item (soft delete)
+  deleteItem: (itemId) => {
+    return api.delete(`/catalogs/admin/items/${itemId}`);
+  },
+};
+
+// ============================================================================
+// CLINICIANS API
+// ============================================================================
+
+export const cliniciansApi = {
+  // Listar todos los clínicos
+  list: async () => {
+    const response = await api.get('/clinicians');
+    return response.data || [];
+  },
+};
+
+// ============================================================================
+// POSTOP API
+// ============================================================================
+
+export const postopApi = {
+  // Obtener resultado postoperatorio de un caso
+  get: (caseId) => {
+    return api.get(`/postop/${caseId}`);
+  },
+
+  // Crear resultado postoperatorio
+  create: (data) => {
+    return api.post('/postop', data);
+  },
+
+  // Actualizar resultado postoperatorio
+  update: (caseId, data) => {
+    return api.put(`/postop/${caseId}`, data);
+  },
+};
+
+// ============================================================================
+// MORTALITY API
+// ============================================================================
+
+export const mortalityApi = {
+  // Obtener registro de mortalidad de un paciente
+  get: (patientId) => {
+    return api.get(`/mortality/patient/${patientId}`);
+  },
+
+  // Crear registro de mortalidad
+  create: (data) => {
+    return api.post('/mortality', data);
+  },
+
+  // Actualizar registro de mortalidad
+  update: (patientId, data) => {
+    return api.put(`/mortality/patient/${patientId}`, data);
+  },
+};
+
+// ============================================================================
+// ANALYTICS API - KPIs de Calidad
+// ============================================================================
+
+export const analyticsApi = {
+  // Obtener KPIs de calidad
+  getKPIs: (params = {}) => {
+    return api.get('/analytics/kpis', params);
+  },
+
+  // Obtener años disponibles para filtro
+  getAvailableYears: () => {
+    return api.get('/analytics/kpis/years');
+  },
+
+  // Obtener KPIs clínicos (demografía, tiempos, severidad, etc.)
+  getClinicalKPIs: (params = {}) => {
+    return api.get('/analytics/clinical', params);
+  },
+};
+
+// ============================================================================
+// SEARCH API - Búsqueda Avanzada y Timeline
+// ============================================================================
+
+export const searchApi = {
+  /**
+   * Búsqueda global unificada en pacientes, procedimientos y preops
+   * @param {string} query - Término de búsqueda (mínimo 2 caracteres)
+   * @param {string} type - Tipo de búsqueda: 'all', 'patients', 'procedures', 'preops'
+   * @param {number} limit - Límite de resultados por categoría
+   */
+  global: (query, type = 'all', limit = 10) => {
+    return api.get('/search/global', { q: query, type, limit });
+  },
+
+  /**
+   * Búsqueda avanzada de pacientes con múltiples filtros
+   * @param {Object} params - Parámetros de búsqueda
+   */
+  advancedPatients: (params = {}) => {
+    return api.get('/search/patients/advanced', params);
+  },
+
+  /**
+   * Búsqueda avanzada de procedimientos con múltiples filtros
+   * @param {Object} params - Parámetros de búsqueda
+   */
+  advancedProcedures: (params = {}) => {
+    return api.get('/search/procedures/advanced', params);
+  },
+
+  /**
+   * Obtener timeline completo de un paciente
+   * @param {string} patientId - CI del paciente
+   */
+  getPatientTimeline: (patientId) => {
+    return api.get(`/search/patients/${patientId}/timeline`);
+  },
+};
+
+/**
+ * API del Sistema de Asistencia ROTEM
+ * Proporciona recomendaciones algorítmicas para reposición de hemoderivados
+ * basadas en el protocolo PRO/T 3 y Algoritmo Hepático A5 de Werfen
+ */
+export const rotemApi = {
+  /**
+   * Obtener recomendaciones del algoritmo ROTEM
+   * @param {Object} rotemData - Datos de ROTEM (ctExtem, a5Extem, a5Fibtem, etc.)
+   * @param {string} phase - Fase quirúrgica actual
+   * @param {Object} clinicalContext - Contexto clínico (peso, sangrado, labs, contraindicaciones)
+   */
+  getRecommendations: (rotemData, phase, clinicalContext) => {
+    return api.post('/rotem/recommendations', {
+      ...rotemData,
+      phase,
+      clinicalContext,
+    });
+  },
+
+  /**
+   * Obtener umbrales y constantes del algoritmo
+   */
+  getThresholds: () => {
+    return api.get('/rotem/thresholds');
+  },
+
+  /**
+   * Obtener historial de registros ROTEM de un caso
+   * @param {string} caseId - ID del caso
+   * @param {string} phase - Fase quirúrgica (opcional)
+   */
+  getHistory: (caseId, phase = null) => {
+    const params = phase ? { phase } : {};
+    return api.get(`/rotem/history/${caseId}`, params);
+  },
+
+  /**
+   * Obtener último registro ROTEM con datos de laboratorio
+   * @param {string} caseId - ID del caso
+   */
+  getLatestWithLabs: (caseId) => {
+    return api.get(`/rotem/latest/${caseId}`);
+  },
+
+  /**
+   * Obtener tendencia de un parámetro ROTEM
+   * @param {string} caseId - ID del caso
+   * @param {string} parameter - Parámetro a analizar (a5Extem, a5Fibtem, cli30, etc.)
+   */
+  getTrend: (caseId, parameter) => {
+    return api.get(`/rotem/trend/${caseId}`, { parameter });
   },
 };
 

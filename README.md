@@ -63,62 +63,120 @@ anestesia-trasplante/
 └── package.json                # Scripts de monorepo (raíz)
 ```
 
-## ✅ Estado Actual (Entregables Completados)
+## ✅ Estado Actual (Funcionalidades Implementadas)
 
-### 1. Diccionario de Datos
-- ✅ `docs/data-dictionary.yaml` - Diccionario maestro completo
+### 1. Base de Datos y Schema
+- ✅ **Diccionario de Datos** (`docs/data-dictionary.yaml`)
   - Todas las hojas del Excel documentadas
   - Tipos inferidos y mapeados a Prisma
-  - Dominios, unidades y ejemplos
-  - Transformaciones necesarias (SI/NO → boolean, fechas → UTC)
-  - Claves primarias y foráneas identificadas
   - Conteos verificados: coinciden con XLSX
 
-### 2. Reporte de Conflictos
-- ✅ `docs/conflicts-report.md` - Análisis de problemas en datos
-  - 8 duplicados de CI (verificar retrasplantes)
-  - 45 formatos de fecha únicos detectados
-  - 95 columnas vacías identificadas
-  - 20 campos calculados documentados
-  - Plan de resolución para cada conflicto
-  - Checklist de validación post-ETL
+- ✅ **Schema Prisma** (`backend/prisma/schema.prisma`)
+  - 16 modelos principales implementados
+  - 10 enums configurados
+  - Índices optimizados para queries comunes
+  - Migraciones versionadas y aplicadas
 
-### 3. Schema Prisma
-- ✅ `backend/prisma/schema.prisma` - Esquema completo de BD
-  - 16 modelos principales (Patient, TransplantCase, PreopEvaluation, etc.)
-  - 10 enums (Role, IntraopPhase, VentilationMode, etc.)
-  - Índices optimizados:
-    - `@@index([patientId, startAt])` en TransplantCase
-    - `@@index([caseId, phase, timestamp])` en IntraopRecord
-    - `@@index([name])`, `@@index([provider])` en Patient
-  - Comentarios /// explicando decisiones clínicas
-  - Relaciones 1:N y N:M correctamente definidas
-  - Validación: ✅ `prisma validate` pasa sin errores
-
-### 4. Configuración Backend
-- ✅ `backend/.env.example` - Plantilla de variables de entorno
-  - DATABASE_URL con múltiples opciones (local, Railway, Neon, Azure)
-  - JWT, CORS, S3, SMTP configurables
-  - Comentarios detallados en español
-  - Instrucciones de copiado para Windows
-
-- ✅ `backend/package.json` - Scripts npm completos
-  - Scripts de desarrollo: `dev`, `build`, `start`
-  - Scripts Prisma: `migrate:dev`, `studio`, `seed`, `reset`
-  - Scripts ETL: `etl:full`, `etl:incremental`, `etl:validate`
-  - Scripts testing: `test`, `test:watch`, `test:int`
-  - Dependencias: Prisma 5, Express, Zod, JWT, xlsx, date-fns-tz
-
-- ✅ `backend/src/app.ts` - Servidor Express funcional
-  - Middleware configurado (helmet, cors, compression)
-  - Health check con verificación de BD
+### 2. Backend API REST (JavaScript/Node.js)
+- ✅ **Servidor Express** funcionando en puerto 4000
+  - Middlewares: Helmet, CORS, Compression
+  - Logging con Winston
   - Error handling global
-  - Graceful shutdown
-  - Logging con Morgan (dev)
+  - Health check endpoint
 
-- ✅ `backend/tsconfig.json` - Config TypeScript estricta
-- ✅ `backend/.gitignore` - Archivos ignorados (node_modules, .env, dist)
-- ✅ `backend/README.md` - Documentación completa del backend
+- ✅ **Endpoints Implementados:**
+  - `/api/auth` - Autenticación JWT (login, registro, refresh token)
+  - `/api/patients` - CRUD de pacientes
+  - `/api/cases` - CRUD de casos de trasplante
+  - `/api/preop` - Evaluación preoperatoria y laboratorios
+  - `/api/intraop` - Registros intraoperatorios por fase
+  - `/api/fluids` - Fluidos y hemoderivados
+  - `/api/postop` - Resultados postoperatorios
+  - `/api/mortality` - Seguimiento y mortalidad
+  - `/api/team` - Equipo quirúrgico
+  - `/api/procedures` - Gestión de procedimientos
+  - `/api/catalogs` - Catálogos del sistema
+  - `/api/clinicians` - Personal médico
+  - `/api/admin` - Administración del sistema
+  - `/api/files` - Gestión de archivos (uploads con Multer)
+  - `/api/exports` - Exportación PDF/CSV
+
+- ✅ **Funcionalidades de Exportación:**
+  - Generación de PDF con Puppeteer
+  - Exportación CSV (completo, resumen, intraop)
+  - Exportación batch de múltiples casos
+  - Envío de reportes por email (Nodemailer)
+  - Compatibilidad UTF-8/Excel
+
+### 3. ETL y Migración de Datos
+- ✅ **Scripts de Importación** (140+ scripts)
+  - Migración completa desde Excel a PostgreSQL
+  - Importación de pacientes (428 registros)
+  - Importación de casos de trasplante (282 registros)
+  - Importación de datos preoperatorios con laboratorios
+  - Importación de registros intraoperatorios por fase
+  - Importación de procedimientos y equipo
+  - Importación de mortalidad y seguimiento
+
+- ✅ **Validación e Integridad:**
+  - Scripts de validación de datos
+  - Limpieza de duplicados
+  - Normalización de CIs
+  - Verificación de relaciones FK
+  - Scripts de análisis y diagnóstico
+
+- ✅ **Sincronización:**
+  - Integración con Google Drive API
+  - Sincronización de archivos adjuntos
+  - ETL incremental con node-cron
+  - Validación post-migración automatizada
+
+### 4. Frontend Next.js 14
+- ✅ **Arquitectura:**
+  - App Router (Next.js 14)
+  - React 18 con hooks personalizados
+  - Context API para estado global
+  - Tailwind CSS para estilos
+
+- ✅ **Módulos Implementados:**
+  - Autenticación y autorización
+  - Dashboard principal
+  - Gestión de pacientes
+  - Gestión de casos de trasplante
+  - Evaluación preoperatoria
+  - Registros intraoperatorios
+  - Procedimientos
+  - Panel de administración
+  - Perfil de usuario
+
+- ✅ **Componentes:**
+  - UI components reutilizables
+  - Formularios con React Hook Form + Zod
+  - Tablas con TanStack Table
+  - Layout responsive
+  - Componentes específicos por módulo
+
+### 5. Testing y Calidad
+- ✅ **Backend:**
+  - Jest configurado para tests unitarios
+  - Supertest para tests de integración
+  - ESLint con reglas de Node.js
+  - Prettier para formateo
+
+- ✅ **Frontend:**
+  - Playwright para tests E2E
+  - ESLint con Next.js config
+  - Tests de componentes configurados
+
+### 6. Seguridad y Compliance
+- ✅ **Implementado:**
+  - Autenticación JWT con refresh tokens
+  - Hashing de contraseñas con Bcrypt
+  - Validación de datos con Zod
+  - Rate limiting configurado
+  - Headers de seguridad (Helmet)
+  - CORS configurado
+  - Logging y auditoría
 
 ## 📊 Modelo de Datos (Resumen)
 
@@ -259,34 +317,37 @@ npm run test:coverage
 npm run test:int
 ```
 
-## 📝 Roadmap
+## 📝 Roadmap y Estado del Proyecto
 
-### Fase 1: MVP (En progreso)
+### Fase 1: MVP ✅ COMPLETADA
 - ✅ Diccionario de datos
-- ✅ Schema Prisma
-- ✅ Setup backend básico
-- ⏳ ETL Excel → PostgreSQL
-- ⏳ APIs REST (CRUD básico)
-- ⏳ Frontend Next.js (scaffold)
-- ⏳ Autenticación JWT
-- ⏳ Tests unitarios y de integración
+- ✅ Schema Prisma con migraciones
+- ✅ Setup backend completo
+- ✅ ETL Excel → PostgreSQL (completo con 140+ scripts)
+- ✅ APIs REST (todos los módulos implementados)
+- ✅ Frontend Next.js (arquitectura y módulos principales)
+- ✅ Autenticación JWT con refresh tokens
+- ✅ Tests unitarios y de integración configurados
 
-### Fase 2: Paridad Funcional
-- ⏳ UI completa (listados, formularios)
-- ⏳ Búsqueda por CI, nombre, fechas
-- ⏳ Exportación PDF (Ficha de Trasplante)
-- ⏳ Exportación CSV/Excel
-- ⏳ Auditoría de cambios
-- ⏳ Roles y permisos (RBAC)
+### Fase 2: Paridad Funcional ✅ EN PRODUCCIÓN
+- ✅ UI completa (listados, formularios, dashboard)
+- ✅ Búsqueda por CI, nombre, fechas
+- ✅ Exportación PDF (Ficha de Trasplante con Puppeteer)
+- ✅ Exportación CSV/Excel (múltiples formatos)
+- ✅ Envío de reportes por email
+- ✅ Roles y permisos (RBAC implementado)
+- ✅ Gestión de archivos y sincronización con Drive
+- ⏳ Auditoría de cambios (parcial - logging implementado)
 
-### Fase 3: Valor Agregado
+### Fase 3: Valor Agregado (En planificación)
 - ⏳ Firmas digitales
 - ⏳ Plantillas y presets
-- ⏳ Alertas por umbrales
-- ⏳ Reportes avanzados
-- ⏳ Dashboard de métricas
+- ⏳ Alertas por umbrales clínicos
+- ⏳ Reportes avanzados y analytics
+- ⏳ Dashboard de métricas y KPIs
 - ⏳ Modo offline (PWA)
 - ⏳ Interoperabilidad FHIR
+- ⏳ API pública documentada con Swagger
 
 ## 🔐 Seguridad
 
@@ -325,6 +386,8 @@ UNLICENSED - Uso interno exclusivo del programa de trasplante.
 
 ---
 
-**Estado del proyecto:** 🟡 En desarrollo activo (Fase 1 - MVP)
+**Estado del proyecto:** 🟢 En producción (Fase 2 completada - Valor agregado en planificación)
 
-**Última actualización:** 2025-01-13
+**Servidor backend:** http://localhost:4000 (desarrollo)
+
+**Última actualización:** 2025-11-24

@@ -4,10 +4,8 @@
  * Exports case data to CSV format for analysis and reporting
  */
 
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { Parser } = require('json2csv');
-
-const prisma = new PrismaClient();
 
 /**
  * Helper: Format CI with dots and dash
@@ -72,9 +70,14 @@ async function getCaseDataForCSV(caseId) {
   });
 
   // Fetch postop
-  const postop = await prisma.postopOutcome.findFirst({
+  const postop = await prisma.postOpOutcome.findFirst({
     where: { caseId },
     orderBy: { createdAt: 'desc' },
+  });
+
+  // Fetch mortality data from patient
+  const mortality = await prisma.mortality.findUnique({
+    where: { patientId: caseData.patientId },
   });
 
   return {
@@ -83,6 +86,7 @@ async function getCaseDataForCSV(caseId) {
     preop,
     intraop: intraopRecords,
     postop,
+    mortality,
     team: caseData.team,
   };
 }
@@ -92,7 +96,7 @@ async function getCaseDataForCSV(caseId) {
  */
 async function generateCaseSummaryCSV(caseId) {
   const data = await getCaseDataForCSV(caseId);
-  const { case: c, patient, preop, postop, team } = data;
+  const { case: c, patient, preop, postop, mortality, team } = data;
 
   // Create summary row
   const row = {
@@ -101,9 +105,13 @@ async function generateCaseSummaryCSV(caseId) {
     'CI Raw': patient.ciRaw || '',
     'Nombre Completo': patient.name || '',
     'Fecha Nacimiento': formatDate(patient.birthDate),
+    'Edad': patient.birthDate ? Math.floor((new Date() - new Date(patient.birthDate)) / 31557600000) : '',
     'Sexo': patient.sex || '',
     'Prestador': patient.provider || '',
+    'Procedencia': patient.origin || '',
     'Grupo Sanguíneo': patient.bloodGroup || '',
+    'Peso (kg)': patient.weight || '',
+    'Talla (cm)': patient.height || '',
 
     // Case
     'Fecha Inicio': formatDate(c.startAt),
@@ -115,21 +123,81 @@ async function generateCaseSummaryCSV(caseId) {
     'Duración Cirugía': formatDuration(c.duration),
     'Tiempo Isquemia Fría (min)': c.coldIschemiaTime || '',
     'Tiempo Isquemia Caliente (min)': c.warmIschemiaTime || '',
+    'ASA': c.asa || '',
 
-    // Preop
+    // Preop - Basic
     'MELD': preop?.meld || '',
     'MELD-Na': preop?.meldNa || '',
     'Child-Pugh': preop?.child || '',
     'Etiología 1': preop?.etiology1 || '',
     'Etiología 2': preop?.etiology2 || '',
     'Fecha Evaluación Preop': formatDate(preop?.evaluationDate),
+    'Falla Hepática Fulminante': preop?.acuteLiverFailure ? 'Sí' : 'No',
 
-    // Postop
-    'Días UCI': postop?.icuDays || '',
-    'Días Hospitalización': postop?.wardDays || '',
+    // Preop - Complications
+    'Síndrome Hepatorenal': preop?.hepatorenalSyndrome ? 'Sí' : 'No',
+    'Síndrome Hepatopulmonar': preop?.hepatopulmonarySyndrome ? 'Sí' : 'No',
+    'HT Pulmonar': preop?.pulmonaryHypertension ? 'Sí' : 'No',
+    'HT Portal': preop?.portalHypertension || '',
+    'Ascitis': preop?.ascites || '',
+    'Várices Esofágicas': preop?.esophagealVarices ? 'Sí' : 'No',
+    'Encefalopatía': preop?.encephalopathy ? 'Sí' : 'No',
+    'Sangrado': preop?.bleeding ? 'Sí' : 'No',
+    'Hiponatremia': preop?.hyponatremia ? 'Sí' : 'No',
+
+    // Preop - Comorbidities
+    'Diabetes': preop?.diabetes ? 'Sí' : 'No',
+    'HTA': preop?.hypertension ? 'Sí' : 'No',
+    'Cardiopatía': preop?.heartDisease ? 'Sí' : 'No',
+    'Neumopatía': preop?.lungDisease ? 'Sí' : 'No',
+    'Nefropatía': preop?.kidneyDisease ? 'Sí' : 'No',
+    'Problemas Potenciales': preop?.potentialProblems || '',
+    'Incidentes Previos': preop?.priorIncidents || '',
+
+    // Postop - Extubación y Ventilación
+    'Extubado en BQ': postop?.extubatedInOR ? 'Sí' : 'No',
+    'Horas ARM': postop?.mechVentHours || '',
+    'Días ARM': postop?.mechVentDays || '',
+    'Falla Extubación 24h': postop?.reintubation24h ? 'Sí' : 'No',
+
+    // Postop - Reoperación
+    'Reoperación': postop?.reoperation ? 'Sí' : 'No',
+    'Causa Reoperación': postop?.reoperationCause || '',
+
+    // Postop - Complicaciones
+    'Falla Primaria Injerto': postop?.primaryGraftFailure ? 'Sí' : 'No',
     'Insuf. Renal Aguda': postop?.acuteRenalFailure ? 'Sí' : 'No',
+    'Edema Pulmonar': postop?.pulmonaryEdema ? 'Sí' : 'No',
+    'Neurotoxicidad': postop?.neurotoxicity ? 'Sí' : 'No',
+    'Rechazo': postop?.rejection ? 'Sí' : 'No',
+    'Complicaciones Biliares': postop?.biliaryComplications ? 'Sí' : 'No',
+    'Complicaciones Vasculares': postop?.vascularComplications ? 'Sí' : 'No',
+    'Sangrado Quirúrgico': postop?.surgicalBleeding ? 'Sí' : 'No',
+    'APACHE II Inicial': postop?.apacheInitial || '',
     'Otras Complicaciones': postop?.otherComplications || '',
-    'Fecha Alta': formatDate(postop?.dischargeDate),
+
+    // Postop - Estancia
+    'Días UCI': postop?.icuDays || '',
+    'Días Internación Sala': postop?.wardDays || '',
+    'Fecha Alta Trasplante': formatDate(postop?.dischargeDate),
+
+    // Mortality - Precoz
+    'Muerte Precoz (<30d)': mortality?.earlyDeath ? 'Sí' : 'No',
+    'Fecha Muerte': formatDate(mortality?.deathDate),
+    'Causa Muerte Precoz': mortality?.deathCause || '',
+
+    // Mortality - Seguimiento
+    'Vivo al Alta': mortality?.aliveAtDischarge !== null ? (mortality.aliveAtDischarge ? 'Sí' : 'No') : '',
+    'Vivo al Año': mortality?.aliveAt1Year !== null ? (mortality.aliveAt1Year ? 'Sí' : 'No') : '',
+    'Vivo a los 3 Años': mortality?.aliveAt3Years !== null ? (mortality.aliveAt3Years ? 'Sí' : 'No') : '',
+    'Vivo a los 5 Años': mortality?.aliveAt5Years !== null ? (mortality.aliveAt5Years ? 'Sí' : 'No') : '',
+    'Causa Muerte Tardía': mortality?.lateDeathCause || '',
+
+    // Mortality - Reingresos
+    'Reingreso en 6m': mortality?.readmissionWithin6m ? 'Sí' : 'No',
+    'Días a 1er Reingreso': mortality?.daysToFirstReadm || '',
+    'Días a 2do Reingreso': mortality?.daysToSecondReadm || '',
+    'Causa Reingreso': mortality?.readmissionCause || '',
 
     // Team
     'Equipo (nombres)': team.map(t => t.clinician.name).join('; '),
@@ -155,50 +223,55 @@ async function generateCaseSummaryCSV(caseId) {
  */
 async function generateIntraopRecordsCSV(caseId) {
   const data = await getCaseDataForCSV(caseId);
-  const { case: c, patient, intraop } = data;
+  const { intraop } = data;
 
-  // Create rows for each intraop record
+  // Create rows for each intraop record (solo datos variables, sin repetir info del caso)
   const rows = intraop.map(record => ({
-    // Case info
-    'ID Caso': c.id,
-    'CI Paciente': formatCI(patient.id),
-    'Nombre Completo': patient.name || '',
-    'Fecha Inicio Caso': formatDate(c.startAt),
-
-    // Intraop record
-    'ID Registro': record.id,
     'Fase': record.phase,
-    'Timestamp': record.timestamp ? new Date(record.timestamp).toISOString() : '',
-    'FC (bpm)': record.heartRate || '',
-    'PAS (mmHg)': record.pas || '',
-    'PAD (mmHg)': record.pad || '',
-    'PAm (mmHg)': record.pam || '',
-    'PVC (cmH₂O)': record.cvp || '',
-    'PEEP (cmH₂O)': record.peep || '',
+    'Hora': record.timestamp ? new Date(record.timestamp).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' }) : '',
+    'FC': record.heartRate || '',
+    'PAS': record.pas || '',
+    'PAD': record.pad || '',
+    'PAm': record.pam || '',
+    'PVC': record.cvp || '',
+    'PEEP': record.peep || '',
     'FiO₂': record.fio2 || '',
-    'Vt (ml)': record.tidalVolume || '',
-    'Creado': record.createdAt ? new Date(record.createdAt).toISOString() : '',
+    'Vt': record.tidalVolume || '',
+    'SpO₂': record.spo2 || '',
+    'Temp': record.temperature || '',
+    'Diuresis': record.urineOutput || '',
+    'Sangrado': record.bloodLoss || '',
+    'GR': record.redBloodCells || '',
+    'PFC': record.freshFrozenPlasma || '',
+    'Plaquetas': record.platelets || '',
+    'Noradrenalina': record.norepinephrine || '',
+    'Vasopresina': record.vasopressin || '',
+    'Dobutamina': record.dobutamine || '',
   }));
 
   if (rows.length === 0) {
     // Return empty CSV with headers
     rows.push({
-      'ID Caso': '',
-      'CI Paciente': '',
-      'Nombre Completo': '',
-      'Fecha Inicio Caso': '',
-      'ID Registro': '',
       'Fase': '',
-      'Timestamp': '',
-      'FC (bpm)': '',
-      'PAS (mmHg)': '',
-      'PAD (mmHg)': '',
-      'PAm (mmHg)': '',
-      'PVC (cmH₂O)': '',
-      'PEEP (cmH₂O)': '',
+      'Hora': '',
+      'FC': '',
+      'PAS': '',
+      'PAD': '',
+      'PAm': '',
+      'PVC': '',
+      'PEEP': '',
       'FiO₂': '',
-      'Vt (ml)': '',
-      'Creado': '',
+      'Vt': '',
+      'SpO₂': '',
+      'Temp': '',
+      'Diuresis': '',
+      'Sangrado': '',
+      'GR': '',
+      'PFC': '',
+      'Plaquetas': '',
+      'Noradrenalina': '',
+      'Vasopresina': '',
+      'Dobutamina': '',
     });
   }
 

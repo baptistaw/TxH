@@ -9,6 +9,7 @@ Frontend del Sistema de Registro Anestesiológico de Trasplante Hepático constr
 - **Estilos:** Tailwind CSS (tema oscuro quirófano-friendly)
 - **Tablas:** TanStack Table v8
 - **Formularios:** React Hook Form + Zod
+- **Gráficos:** Chart.js + react-chartjs-2
 - **HTTP Client:** Fetch API nativo
 - **Gestión de Estado:** React Context API
 - **Enrutamiento:** Next.js App Router
@@ -133,6 +134,37 @@ npm start
 - Observaciones del caso
 - Layout responsivo (2 columnas en desktop)
 
+#### `/analytics`
+- **Indicadores de Calidad** (datos históricos 2023-2024):
+  - Protocolo de Reposición de Hemoderivados
+  - Protocolo de Profilaxis Antibiótica
+  - Registro y Envío de Ficha Anestésica
+  - Protocolo de Extubación Temprana (Fast Track)
+- **KPIs Clínicos**:
+  - Métricas de trasplante (retrasplantes, hepato-renales)
+  - Tiempos quirúrgicos (duración, isquemia fría, isquemia caliente)
+  - Demografía (edad, sexo, grupo sanguíneo)
+  - Severidad (MELD, MELD-Na, Child-Pugh)
+  - Etiologías principales (top 10)
+  - Tendencia anual con gráficos
+- Filtros por período (año, trimestre, rango personalizado)
+- Gráficos interactivos con Chart.js
+
+#### `/patients/[id]`
+- Vista detallada del paciente
+- **Timeline interactivo** con historial completo:
+  - Admisión a lista de espera
+  - Evaluaciones preoperatorias
+  - Procedimientos no-trasplante
+  - Trasplantes realizados
+- Acceso directo a cada registro desde el timeline
+
+### Búsqueda Global
+- **Ctrl+K** para abrir búsqueda rápida
+- Buscar pacientes, procedimientos y evaluaciones
+- Navegación con teclado (↑↓ + Enter)
+- Resultados instantáneos con debounce
+
 ## 🎨 Diseño Oscuro "Quirófano-Friendly"
 
 ### Paleta de Colores
@@ -251,6 +283,15 @@ const caso = await casesApi.getById('cuid123');
 
 // Login
 const result = await authApi.login('email@example.com', 'password');
+
+// Analytics
+import { analyticsApi } from '@/lib/api';
+const kpis = await analyticsApi.getKPIs({ year: 2024 });
+const clinical = await analyticsApi.getClinicalKPIs({});
+
+// Búsqueda global
+import { searchApi } from '@/lib/api';
+const results = await searchApi.global('término', 'all', 10);
 ```
 
 ### Manejo de Errores

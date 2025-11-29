@@ -9,16 +9,19 @@ import {
   getSortedRowModel,
   createColumnHelper,
 } from '@tanstack/react-table';
-import { casesApi } from '@/lib/api';
-import { formatDate, formatDateTime, formatCI, formatDuration, formatBoolean, debounce } from '@/lib/utils';
+import { casesApi, cliniciansApi } from '@/lib/api';
+import { formatDate, formatDateTime, formatCI, formatDuration, formatBoolean, calculateAge, debounce } from '@/lib/utils';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import Navbar from '@/components/layout/Navbar';
+import AppLayout from '@/components/layout/AppLayout';
 import DataTable, { TablePagination } from '@/components/ui/Table';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Spinner from '@/components/ui/Spinner';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import FilterSelect from '@/components/ui/FilterSelect';
+import DateRangeFilter from '@/components/ui/DateRangeFilter';
+import { useCatalog, catalogToOptions, useEtiologies, etiologiesToOptions } from '@/hooks/useCatalog';
 
 const columnHelper = createColumnHelper();
 
@@ -36,12 +39,35 @@ function CasesPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Cargar etiologías y catálogo de sexo
+  const { items: etiologyItems, loading: etiologyLoading } = useEtiologies();
+  const { items: sexItems, loading: sexLoading } = useCatalog('Sex');
+
+  // Cargar clínicos
+  const [clinicians, setClinicians] = useState([]);
+  const [cliniciansLoading, setCliniciansLoading] = useState(true);
+
   // Filtros
   const [filters, setFilters] = useState({
-    search: '',
+    q: '',
     page: 1,
     limit: 20,
+    myPatients: false,
+    isRetransplant: null,
+    isHepatoRenal: null,
+    optimalDonor: null,
+    clinicianId: null,
+    startDate: null,
+    endDate: null,
+    transplantDateFrom: null,
+    transplantDateTo: null,
+    etiology: null,
+    sex: null,
+    dataSource: null,
   });
+
+  // Estado para mostrar/ocultar filtros avanzados
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Definir columnas
   const columns = useMemo(
@@ -61,6 +87,21 @@ function CasesPageContent() {
         cell: (info) => (
           <span className="font-medium">{info.getValue() || '-'}</span>
         ),
+      }),
+      columnHelper.accessor((row) => row.patient?.sex, {
+        id: 'patientSex',
+        header: 'Sexo',
+        cell: (info) => info.getValue() || '-',
+        size: 70,
+      }),
+      columnHelper.accessor((row) => row.patient?.birthDate, {
+        id: 'patientAge',
+        header: 'Edad',
+        cell: (info) => {
+          const age = calculateAge(info.getValue());
+          return age !== null ? `${age}` : '-';
+        },
+        size: 70,
       }),
       columnHelper.accessor('startAt', {
         header: 'Fecha Inicio',
@@ -96,6 +137,47 @@ function CasesPageContent() {
         ),
         size: 80,
       }),
+      columnHelper.accessor((row) => row.team, {
+        id: 'teamMembers',
+        header: 'Equipo',
+        cell: (info) => {
+          const team = info.getValue();
+          if (!team || team.length === 0) return '-';
+          const names = team.map(t => t.clinician?.name).filter(Boolean).join(', ');
+          return (
+            <span className="text-sm text-gray-300 truncate" title={names}>
+              {names || '-'}
+            </span>
+          );
+        },
+        size: 200,
+      }),
+      columnHelper.accessor('dataSource', {
+        header: 'Origen',
+        cell: (info) => {
+          const dataSourceMap = {
+            'EXCEL_PRE_2019': { label: 'Excel', variant: 'default' },
+            'APPSHEET': { label: 'Appsheet', variant: 'info' },
+            'PLATFORM': { label: 'Producción', variant: 'success' },
+          };
+          const source = dataSourceMap[info.getValue()] || { label: '-', variant: 'default' };
+          return (
+            <Badge variant={source.variant} size="sm">
+              {source.label}
+            </Badge>
+          );
+        },
+        size: 110,
+      }),
+      columnHelper.accessor('createdAt', {
+        header: 'Fecha Creación',
+        cell: (info) => (
+          <span className="text-xs text-gray-400">
+            {formatDateTime(info.getValue())}
+          </span>
+        ),
+        size: 150,
+      }),
       columnHelper.accessor('id', {
         header: 'Acciones',
         cell: (info) => (
@@ -111,13 +193,37 @@ function CasesPageContent() {
     []
   );
 
+  // Cargar clínicos
+  useEffect(() => {
+    const fetchClinicians = async () => {
+      try {
+        const data = await cliniciansApi.list();
+        setClinicians(data.data || []);
+      } catch (err) {
+        console.error('Error loading clinicians:', err);
+      } finally {
+        setCliniciansLoading(false);
+      }
+    };
+
+    fetchClinicians();
+  }, []);
+
   // Cargar datos
   const fetchCases = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await casesApi.list(filters);
+      // Limpiar filtros: eliminar valores null, undefined o vacíos
+      const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
+
+      const data = await casesApi.list(cleanFilters);
       setCases(data.data || []);
       setTotalRecords(data.pagination?.total || 0);
     } catch (err) {
@@ -162,16 +268,14 @@ function CasesPageContent() {
   const handleSearch = useMemo(
     () =>
       debounce((value) => {
-        setFilters((prev) => ({ ...prev, search: value, page: 1 }));
+        setFilters((prev) => ({ ...prev, q: value, page: 1 }));
       }, 500),
     []
   );
 
   return (
-    <div className="min-h-screen bg-dark-500">
-      <Navbar />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <AppLayout>
+      <div className="h-full px-8 py-6">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-100 mb-2">
@@ -194,13 +298,181 @@ function CasesPageContent() {
 
           <CardContent>
             {/* Filtros */}
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                placeholder="Buscar por CI o nombre..."
-                onChange={(e) => handleSearch(e.target.value)}
-              />
+            <div className="mb-6 space-y-4">
+              {/* Búsqueda de texto */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <Input
+                    placeholder="Buscar caso de trasplante..."
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="max-w-2xl"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2 items-center text-xs text-gray-400">
+                  <span>Busca en:</span>
+                  <span className="px-2 py-1 bg-dark-600 border border-dark-500 rounded">CI del Paciente</span>
+                  <span className="px-2 py-1 bg-dark-600 border border-dark-500 rounded">Nombre del Paciente</span>
+                  <span className="px-2 py-1 bg-dark-600 border border-dark-500 rounded">ID del Caso</span>
+                </div>
+              </div>
 
-              {/* Espacio para más filtros si se necesitan */}
+              {/* Filtro "Mis Casos" destacado */}
+              <div className="bg-surgical-900/20 border border-surgical-500/30 rounded-lg p-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.myPatients}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, myPatients: e.target.checked, page: 1 }))}
+                    className="w-4 h-4 text-surgical-500 bg-dark-600 border-dark-400 rounded focus:ring-surgical-500 focus:ring-2"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-surgical-300">Mostrar solo mis casos</span>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Filtra los casos donde estás asignado como parte del equipo quirúrgico
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Botón para mostrar/ocultar filtros avanzados */}
+              <div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className="text-surgical-400"
+                >
+                  <svg
+                    className={`w-4 h-4 mr-2 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  {showAdvancedFilters ? 'Ocultar' : 'Mostrar'} filtros avanzados
+                </Button>
+              </div>
+
+              {/* Filtros Avanzados */}
+              {showAdvancedFilters && (
+                <div className="border-t border-dark-500 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <FilterSelect
+                      label="Retrasplante"
+                      value={filters.isRetransplant}
+                      onChange={(value) => setFilters((prev) => ({ ...prev, isRetransplant: value, page: 1 }))}
+                      options={[
+                        { value: 'true', label: 'Sí' },
+                        { value: 'false', label: 'No' },
+                      ]}
+                    />
+
+                    <FilterSelect
+                      label="Hepato-Renal"
+                      value={filters.isHepatoRenal}
+                      onChange={(value) => setFilters((prev) => ({ ...prev, isHepatoRenal: value, page: 1 }))}
+                      options={[
+                        { value: 'true', label: 'Sí' },
+                        { value: 'false', label: 'No' },
+                      ]}
+                    />
+
+                    <FilterSelect
+                      label="Donante Óptimo"
+                      value={filters.optimalDonor}
+                      onChange={(value) => setFilters((prev) => ({ ...prev, optimalDonor: value, page: 1 }))}
+                      options={[
+                        { value: 'true', label: 'Sí' },
+                        { value: 'false', label: 'No' },
+                      ]}
+                    />
+
+                    <FilterSelect
+                      label="Etiología"
+                      value={filters.etiology}
+                      onChange={(value) => setFilters((prev) => ({ ...prev, etiology: value, page: 1 }))}
+                      options={etiologiesToOptions(etiologyItems)}
+                      disabled={etiologyLoading}
+                    />
+
+                    <FilterSelect
+                      label="Sexo"
+                      value={filters.sex}
+                      onChange={(value) => setFilters((prev) => ({ ...prev, sex: value, page: 1 }))}
+                      options={catalogToOptions(sexItems)}
+                      disabled={sexLoading}
+                    />
+
+                    <FilterSelect
+                      label="Origen de Datos"
+                      value={filters.dataSource}
+                      onChange={(value) => setFilters((prev) => ({ ...prev, dataSource: value, page: 1 }))}
+                      options={[
+                        { value: 'EXCEL_PRE_2019', label: 'Excel (hasta 2019)' },
+                        { value: 'APPSHEET', label: 'Appsheet (2019-actual)' },
+                        { value: 'PLATFORM', label: 'Esta Plataforma (producción)' },
+                      ]}
+                    />
+
+                    <FilterSelect
+                      label="Clínico del Equipo"
+                      value={filters.clinicianId}
+                      onChange={(value) => setFilters((prev) => ({ ...prev, clinicianId: value, page: 1 }))}
+                      options={clinicians.map(c => ({ value: String(c.id), label: c.name }))}
+                      disabled={cliniciansLoading}
+                    />
+
+                    <DateRangeFilter
+                      label="Fecha de Inicio Cirugía"
+                      startDate={filters.startDate}
+                      endDate={filters.endDate}
+                      onStartDateChange={(value) => setFilters((prev) => ({ ...prev, startDate: value, page: 1 }))}
+                      onEndDateChange={(value) => setFilters((prev) => ({ ...prev, endDate: value, page: 1 }))}
+                    />
+
+                    <DateRangeFilter
+                      label="Fecha del Trasplante"
+                      startDate={filters.transplantDateFrom}
+                      endDate={filters.transplantDateTo}
+                      onStartDateChange={(value) => setFilters((prev) => ({ ...prev, transplantDateFrom: value, page: 1 }))}
+                      onEndDateChange={(value) => setFilters((prev) => ({ ...prev, transplantDateTo: value, page: 1 }))}
+                    />
+                  </div>
+
+                  {/* Botón para limpiar filtros */}
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFilters({
+                        q: filters.q,
+                        myPatients: filters.myPatients,
+                        page: 1,
+                        limit: 20,
+                        isRetransplant: null,
+                        isHepatoRenal: null,
+                        optimalDonor: null,
+                        clinicianId: null,
+                        startDate: null,
+                        endDate: null,
+                        transplantDateFrom: null,
+                        transplantDateTo: null,
+                        etiology: null,
+                        sex: null,
+                        dataSource: null,
+                      })}
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Limpiar filtros avanzados
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Leyenda */}
@@ -243,12 +515,16 @@ function CasesPageContent() {
             ) : (
               <>
                 <DataTable table={table} />
-                <TablePagination table={table} totalRecords={totalRecords} />
+                <TablePagination
+                  table={table}
+                  totalRecords={totalRecords}
+                  onPageSizeChange={(newSize) => setFilters((prev) => ({ ...prev, limit: newSize, page: 1 }))}
+                />
               </>
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

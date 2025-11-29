@@ -14,11 +14,15 @@
     "test:headed": "playwright test --headed"
   },
   "dependencies": {
+    "@clerk/localizations": "^3.28.5",
+    "@clerk/nextjs": "^6.35.5",
     "@hookform/resolvers": "^3.3.4",
     "@tanstack/react-table": "^8.11.2",
+    "chart.js": "^4.5.1",
     "date-fns": "^3.0.6",
     "next": "^14.1.0",
     "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.49.3",
     "zod": "^3.22.4"

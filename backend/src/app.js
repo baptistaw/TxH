@@ -10,14 +10,25 @@ const prisma = require('./lib/prisma');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
 // Importar rutas
+const authRouter = require('./routes/auth');
 const patientsRouter = require('./routes/patients');
 const casesRouter = require('./routes/cases');
 const preopRouter = require('./routes/preop');
 const intraopRouter = require('./routes/intraop');
+const fluidsRouter = require('./routes/fluids');
 const postopRouter = require('./routes/postop');
+const mortalityRouter = require('./routes/mortality');
 const teamRouter = require('./routes/team');
 const filesRouter = require('./routes/files');
 const exportsRouter = require('./routes/exports');
+const proceduresRouter = require('./routes/procedures');
+const adminRouter = require('./routes/admin');
+const catalogsRouter = require('./routes/catalogs');
+const cliniciansRouter = require('./routes/clinicians');
+const analyticsRouter = require('./routes/analytics');
+const searchRouter = require('./routes/search');
+const rotemRouter = require('./routes/rotem');
+const ocrRouter = require('./routes/ocr');
 
 // Crear app
 const app = express();
@@ -36,8 +47,9 @@ app.use(cors(config.cors));
 app.use(compression());
 
 // Body parser - JSON y URL-encoded
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Limite aumentado a 50MB para soportar batch OCR con múltiples imágenes base64
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Morgan - Logging de HTTP requests (solo en desarrollo)
 if (config.isDevelopment) {
@@ -46,9 +58,17 @@ if (config.isDevelopment) {
   app.use(morgan('combined', { stream: logger.stream }));
 }
 
+// Servir archivos estáticos (uploads)
+app.use('/uploads', express.static('uploads'));
+
 // ==============================================================================
 // RUTAS
 // ==============================================================================
+
+// Ruta raíz - Redirigir a /api
+app.get('/', (req, res) => {
+  res.redirect('/api');
+});
 
 // Health check
 app.get('/api/health', async (req, res) => {
@@ -83,27 +103,48 @@ app.get('/api', (req, res) => {
     docs: '/api/docs',
     endpoints: {
       health: '/api/health',
+      auth: '/api/auth',
       patients: '/api/patients',
       cases: '/api/cases',
       preop: '/api/preop',
       intraop: '/api/intraop',
+      fluids: '/api/fluids',
       postop: '/api/postop',
       team: '/api/team',
       files: '/api/files',
       exports: '/api/exports',
+      procedures: '/api/procedures',
+      admin: '/api/admin',
+      catalogs: '/api/catalogs',
+      clinicians: '/api/clinicians',
+      analytics: '/api/analytics',
+      search: '/api/search',
+      rotem: '/api/rotem',
+      ocr: '/api/ocr',
     },
   });
 });
 
 // Montar routers
+app.use('/api/auth', authRouter);
 app.use('/api/patients', patientsRouter);
 app.use('/api/cases', casesRouter);
 app.use('/api/preop', preopRouter);
 app.use('/api/intraop', intraopRouter);
+app.use('/api/fluids', fluidsRouter);
 app.use('/api/postop', postopRouter);
+app.use('/api/mortality', mortalityRouter);
 app.use('/api/team', teamRouter);
 app.use('/api/files', filesRouter);
 app.use('/api/exports', exportsRouter);
+app.use('/api/procedures', proceduresRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/catalogs', catalogsRouter);
+app.use('/api/clinicians', cliniciansRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/search', searchRouter);
+app.use('/api/rotem', rotemRouter);
+app.use('/api/ocr', ocrRouter);
 
 // ==============================================================================
 // MANEJO DE ERRORES

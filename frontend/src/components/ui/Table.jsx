@@ -83,15 +83,38 @@ export function DataTable({ table, className }) {
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-6 py-3 font-medium"
+                    className={cn(
+                      'px-6 py-3 font-medium',
+                      header.column.getCanSort() && 'cursor-pointer select-none hover:bg-dark-600'
+                    )}
                     style={{ width: header.getSize() }}
+                    onClick={header.column.getToggleSortingHandler()}
                   >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
+                    {header.isPlaceholder ? null : (
+                      <div className="flex items-center gap-2">
+                        {flexRender(
                           header.column.columnDef.header,
                           header.getContext()
                         )}
+                        {header.column.getCanSort() && (
+                          <span className="text-gray-500">
+                            {header.column.getIsSorted() === 'asc' ? (
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            ) : header.column.getIsSorted() === 'desc' ? (
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 opacity-30" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
+                              </svg>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </th>
                 ))}
               </tr>
@@ -134,18 +157,45 @@ export function DataTable({ table, className }) {
 /**
  * Componente de paginación para TanStack Table
  */
-export function TablePagination({ table, totalRecords }) {
+export function TablePagination({ table, totalRecords, onPageSizeChange }) {
+  const pageSize = table.getState().pagination.pageSize;
+
+  const handlePageSizeChange = (newSize) => {
+    if (onPageSizeChange) {
+      onPageSizeChange(parseInt(newSize));
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-dark-400 bg-dark-700 rounded-b-lg">
-      <div className="flex items-center gap-2 text-sm text-gray-400">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-dark-400 bg-dark-700 rounded-b-lg">
+      <div className="flex items-center gap-4 text-sm text-gray-400">
         <span>
-          Mostrando {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} a{' '}
+          Mostrando {table.getState().pagination.pageIndex * pageSize + 1} a{' '}
           {Math.min(
-            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+            (table.getState().pagination.pageIndex + 1) * pageSize,
             totalRecords
           )}{' '}
           de {totalRecords} resultados
         </span>
+
+        {onPageSizeChange && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="pageSize" className="text-gray-400 whitespace-nowrap">
+              Mostrar:
+            </label>
+            <select
+              id="pageSize"
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(e.target.value)}
+              className="px-2 py-1 text-sm bg-dark-600 border border-dark-400 rounded text-gray-300 focus:ring-2 focus:ring-surgical-500 focus:border-transparent"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

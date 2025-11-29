@@ -35,10 +35,10 @@ export default function LoginPage() {
     },
   });
 
-  // Si ya está autenticado, redirigir
+  // Si ya está autenticado, redirigir al dashboard
   useEffect(() => {
     if (isAuthenticated()) {
-      router.push('/cases');
+      router.push('/');
     }
   }, [isAuthenticated, router]);
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
       const result = await login(data.email, data.password);
 
       if (result.success) {
-        router.push('/cases');
+        router.push('/'); // Redirigir al dashboard
       } else {
         setError(result.error || 'Error al iniciar sesión');
       }

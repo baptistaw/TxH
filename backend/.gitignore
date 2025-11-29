@@ -15,6 +15,21 @@ build/
 .env.local
 .env.*.local
 
+# Google Sheets API Credentials
+google-credentials.json
+*-credentials.json
+
+# User credentials exports (sensitive)
+user-credentials*.json
+user-credentials*.csv
+
+# Backup files
+backups/
+*.dump
+backup-*.json
+data-integrity-*.json
+migration-report-*.json
+
 # Prisma
 prisma/migrations/**/migration.sql.bak
 

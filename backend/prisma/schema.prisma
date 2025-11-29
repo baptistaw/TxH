@@ -34,10 +34,8 @@ enum ASA {
 
 /// Rol del clínico en el equipo quirúrgico
 enum Role {
-  ANEST1 // Anestesiólogo principal
-  ANEST2 // Anestesiólogo ayudante
-  CIRUJANO1 // Cirujano principal
-  CIRUJANO2 // Cirujano ayudante
+  ANESTESIOLOGO // Anestesiólogo
+  CIRUJANO // Cirujano
   INTENSIVISTA // Médico intensivista
   HEPATOLOGO // Hepatólogo
   NURSE_COORD // Enfermera coordinadora
@@ -53,28 +51,89 @@ enum Specialty {
   OTRO
 }
 
+/// Rol de usuario en el sistema (permisos)
+enum UserRole {
+  ADMIN         // Administrador - permisos absolutos
+  ANESTESIOLOGO // Puede crear y editar pacientes, trasplantes y procedimientos
+  VIEWER        // Solo visualización
+}
+
+/// Origen/período de los datos para estudios retrospectivos
+/// Permite identificar la calidad y completitud de los datos históricos
+enum DataSource {
+  EXCEL_PRE_2019 // Datos del registro en Excel (hasta 2019) - datos precarios, campos incompletos
+  APPSHEET       // Datos de la plataforma Appsheet (2019-2024) - datos más completos
+  PLATFORM       // Datos de esta plataforma (2024+) - datos completos con todos los campos
+}
+
 /// Prestador de salud (mutualista/público)
+/// Prestadores de salud de Uruguay (IAMC y ASSE)
 enum Provider {
+  // ASSE (Administración de los Servicios de Salud del Estado)
   ASSE
-  FEMI
-  CASMU
-  MP
-  OTRA
+
+  // Instituciones de Asistencia Médica Colectiva (IAMC) - Montevideo
+  AMECOM        // Asociación Médica de Colón
+  AMEDRIN       // Asistencia Médica Integral
+  AMSJ          // Asistencia Médica San José
+  ASOC_ESPANOLA // Asociación Española
+  CAAMEPA       // Cooperativa Asistencial Médica de Pando
+  CAMCEL        // Centro de Asistencia Médica de Cerro Largo
+  CAMDEL        // Centro de Asistencia del Litoral
+  CAMEC         // Centro de Asistencia Médica de Canelones
+  CAMEDUR       // Centro de Asistencia Médica de Durazno
+  CAMOC         // Centro de Asistencia Médica de Colonia
+  CAMS          // Centro de Asistencia Médica de Salto
+  CAMY          // Centro de Asistencia Médica de Young
+  CASA_GALICIA  // Casa de Galicia
+  CASMER        // Casa de Salud Mercedes
+  CASMU         // Centro de Asistencia del Sindicato Médico del Uruguay
+  CCOU          // Crédito Cooperativo Obreros Unidos
+  COMECA        // Corporación Médica de Canelones
+  COMEF         // Cooperativa Médica de Florida
+  COMEFLO       // Cooperativa Médica de Flores
+  COMEPA        // Cooperativa Médica de Paysandú
+  COMERI        // Cooperativa Médica de Rivera
+  COMERO        // Cooperativa Médica de Rocha
+  COMETT        // Cooperativa Médica de Tacuarembó
+  COMTA         // Cooperativa Médica de Treinta y Tres
+  COSEM         // Cooperativa de Servicios Médicos
+  CRAME         // Círculo Médico de Melo
+  CRAMI         // Círculo Médico de Minas
+  CUDAM         // Corporación Uruguaya de Asistencia Médica
+  EVANGELICO    // Hospital Evangélico
+  GREMCA        // Gremial Médica de Canelones
+  GREMEDA       // Gremial Médica de Artigas
+  IAC           // Instituto de Asistencia de Canelones
+  MUCAM         // Mutualista Camino
+  SMI           // Sociedad Médica Italiana
+  SMQS          // Sociedad Médica Quintín Saubidet
+  UNIVERSAL     // Médica Uruguaya
+
+  // Seguros Privados
+  FEMI          // Federación Médica del Interior
+  MP            // Medicina Privada
+
+  // Otros
+  OTRA          // Otra institución
 }
 
 /// Fase del procedimiento intraoperatorio
 enum IntraopPhase {
+  ESTADO_BASAL // Estado basal pre-quirúrgico
   INDUCCION // Inducción anestésica
   DISECCION // Disección hepática
   ANHEPATICA // Fase anhepática (sin hígado)
   PRE_REPERFUSION // Pre-reperfusión del injerto
   POST_REPERFUSION // Post-reperfusión inmediata
-  FIN_VIA_BILIAR // Finalización vía biliar
+  VIA_BILIAR // Anastomosis vía biliar
   CIERRE // Cierre de pared
+  SALIDA_BQ // Salida de bloque quirúrgico
 }
 
 /// Modo de ventilación mecánica
 enum VentilationMode {
+  ESPONTANEA // Ventilación espontánea
   VC // Volumen controlado
   PC // Presión controlada
   SIMV // Ventilación intermitente sincronizada
@@ -97,6 +156,121 @@ enum FunctionalClass {
   II
   III
   IV
+  NOT_EVALUABLE  // "No se puede evaluar"
+  PENDING        // "Pendiente"
+}
+
+/// Tipo de procedimiento no-trasplante
+/// Tipo de procedimiento (diagnóstico o terapéutico)
+enum ProcedureType {
+  // Biopsias hepáticas
+  BIOPSIA_HEPATICA_PERCUTANEA     // Biopsia hepática percutánea
+  BIOPSIA_HEPATICA_TRANSYUGULAR   // Biopsia hepática transyugular
+  BIOPSIA_HEPATICA_PROTOCOLO      // Biopsia de protocolo post-trasplante
+
+  // Endoscopías digestivas
+  FGC_DIAGNOSTICA                 // Fibrogastroscopía diagnóstica
+  FGC_TERAPEUTICA                 // Fibrogastroscopía terapéutica
+  FGC_LIGADURA_VARICES           // Ligadura de várices esofágicas
+  FGC_ESCLEROTERAPIA             // Escleroterapia de várices
+  FBC_DIAGNOSTICA                // Fibrocolonoscopía diagnóstica
+  FBC_BIOPSIA                    // Fibrocolonoscopía con biopsia
+
+  // CPRE y vía biliar
+  CPRE_DIAGNOSTICA               // CPRE diagnóstica
+  CPRE_ESFINTEROTOMIA           // CPRE con esfinterotomía
+  CPRE_PROTESIS_BILIAR          // CPRE con colocación de prótesis biliar
+  CPRE_DILATACION_ESTENOSIS     // CPRE con dilatación de estenosis
+  COLANGIOGRAFIA_TRANSPARIETOHEPATICA // Colangiografía transparietohepática
+
+  // Procedimientos intervencionistas
+  TIPS                           // TIPS (Shunt portosistémico intrahepático transyugular)
+  PARACENTESIS_DIAGNOSTICA      // Paracentesis diagnóstica
+  PARACENTESIS_EVACUADORA       // Paracentesis evacuadora
+  TORACENTESIS                  // Toracentesis
+  ARTERIOGRAFIA_HEPATICA        // Arteriografía hepática
+  EMBOLIZACION_ARTERIAL         // Embolización arterial
+  QUIMIOEMBOLIZACION_TACE       // Quimioembolización transarterial (TACE)
+  RADIOFRECUENCIA_HEPATICA      // Ablación por radiofrecuencia hepática
+
+  // Accesos vasculares y diálisis
+  COLOCACION_CVC                // Colocación de catéter venoso central
+  COLOCACION_CATETER_DIALISIS   // Colocación de catéter de diálisis
+  HEMODIALISIS                  // Sesión de hemodiálisis
+  DIALISIS_PERITONEAL           // Diálisis peritoneal
+
+  // Cirugías abdominales
+  LAPAROTOMIA_EXPLORADORA       // Laparotomía exploradora
+  DRENAJE_ABSCESO               // Drenaje de absceso
+  HERNIOPLASTIA                 // Reparación de hernia
+  COLECISTECTOMIA               // Colecistectomía
+  ESPLENECTOMIA                 // Esplenectomía
+  NEFRECTOMIA                   // Nefrectomía
+
+  // Cirugías torácicas
+  TORACOTOMIA                   // Toracotomía
+  VIDEOTORACOSCOPIA             // Videotoracoscopía (VATS)
+  DRENAJE_PLEURAL               // Drenaje pleural
+
+  // Procedimientos cardíacos
+  CORONARIOGRAFIA               // Coronariografía
+  ANGIOPLASTIA                  // Angioplastia coronaria
+  ECOCARDIOGRAMA_TE             // Ecocardiograma transesofágico
+
+  // Procedimientos urológicos
+  CISTOSCOPIA                   // Cistoscopía
+  NEFROSTOMIA_PERCUTANEA       // Nefrostomía percutánea
+
+  // Otros procedimientos quirúrgicos
+  TRAQUEOSTOMIA                 // Traqueostomía
+  GASTROSTOMIA_PERCUTANEA      // Gastrostomía percutánea (PEG)
+  CIRUGIA_ORTOPEDICA           // Cirugía ortopédica
+  CIRUGIA_VASCULAR             // Cirugía vascular
+  CIRUGIA_NEUROLOGICA          // Cirugía neurológica
+  PROCEDIMIENTO_DENTAL         // Procedimiento odontológico
+
+  // Trasplante
+  TRASPLANTE_HEPATICO          // Trasplante hepático
+  RETRASPLANTE_HEPATICO        // Retrasplante hepático
+  TRASPLANTE_RENAL             // Trasplante renal
+
+  // Otros
+  CER                          // CER (mantener por compatibilidad)
+  OTRO                         // Otro procedimiento
+}
+
+/// Estado hemodinámico
+enum HemodynamicStatus {
+  ESTABLE
+  INESTABLE
+  CRITICO
+}
+
+/// Vía aérea utilizada
+enum AirwayManagement {
+  VAN  // Vía aérea natural
+  IOT  // Intubación orotraqueal
+  TQT  // Traqueostomía
+  MF   // Máscara facial
+  ML   // Máscara laríngea
+}
+
+/// Patrón ventilatorio
+enum VentilationPattern {
+  VAN           // No ventilación
+  VESP          // Ventilación espontánea
+  ARM           // Asistencia respiratoria mecánica
+  MF_ESPONTANEA // Máscara facial espontánea
+}
+
+/// Técnica anestésica
+enum AnesthesiaTechnique {
+  AGB                 // Anestesia general balanceada
+  AL_POTENCIADA       // Anestesia local potenciada
+  SEDACION_LEVE       // Sedación leve-moderada
+  SEDACION_PROFUNDA   // Sedación profunda
+  REGIONAL            // Anestesia regional
+  COMBINADA           // Anestesia combinada
 }
 
 // ============================================================================
@@ -106,8 +280,12 @@ enum FunctionalClass {
 /// Paciente - datos demográficos y clínicos básicos
 model Patient {
   // Clave primaria clínica
-  id    String  @id @db.VarChar(20) // CI normalizado (sin puntos)
+  id    String  @id @db.VarChar(20) // CI normalizado con DV (8 dígitos sin guión)
   ciRaw String? @db.VarChar(30) // CI original del Excel (auditoría)
+
+  // Validación de CI
+  ciSuspicious Boolean @default(false) // Marca si el DV no coincide
+  ciValidationNote String? @db.Text // Razón de sospecha o corrección aplicada
 
   // Datos demográficos
   name       String
@@ -117,20 +295,27 @@ model Patient {
   provider   Provider?
   height     Float? // Talla en cm
   weight     Float? // Peso en kg
-  bloodGroup String?   @db.VarChar(5) // A+, B-, O+, etc.
+  bloodGroup String?   @db.VarChar(50) // A+, B-, O+, AB+, NO clasificada, etc.
+
+  // Clasificación ASA
+  asa ASA?
 
   // Datos administrativos
   admissionDate DateTime? // Fecha de ingreso a lista de espera
+  placeOfOrigin String?    @db.VarChar(100) // Lugar de procedencia
   transplanted  Boolean   @default(false)
 
   // Metadatos
-  observations String?  @db.Text
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  dataSource   DataSource @default(APPSHEET) // Origen de los datos para estudios retrospectivos
+  observations String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   // Relaciones
-  cases  TransplantCase[]
-  preops PreopEvaluation[]
+  cases      TransplantCase[]
+  procedures Procedure[]
+  preops     PreopEvaluation[]
+  mortality  Mortality? // Datos de seguimiento y mortalidad
 
   @@index([name])
   @@index([provider])
@@ -145,14 +330,29 @@ model Clinician {
   email     String     @unique
   phone     String?
 
+  // Autenticación Clerk
+  clerkId   String?    @unique // ID de usuario en Clerk
+
+  // Autenticación legacy (deprecado - migrar a Clerk)
+  password  String?    // Hash de contraseña (bcrypt) - DEPRECADO
+
+  // Permisos
+  userRole  UserRole   @default(VIEWER) // Rol en el sistema
+  isActive  Boolean    @default(true) // Usuario activo o inactivo
+
   // Metadatos
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relaciones
-  teamAssignments TeamAssignment[]
+  teamAssignments  TeamAssignment[]
+  procedures       Procedure[]
+  preopEvaluations PreopEvaluation[]
 
   @@index([specialty])
+  @@index([userRole])
+  @@index([isActive])
+  @@index([clerkId])
   @@map("clinicians")
 }
 
@@ -184,9 +384,10 @@ model TransplantCase {
   icuTransferDate DateTime?
 
   // Metadatos
-  observations String?  @db.Text
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  dataSource   DataSource @default(APPSHEET) // Origen de los datos para estudios retrospectivos
+  observations String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   // Relaciones
   team             TeamAssignment[]
@@ -196,7 +397,6 @@ model TransplantCase {
   drugs            DrugsGiven[]
   linesMonitoring  LinesAndMonitoring?
   postOp           PostOpOutcome?
-  mortality        Mortality?
   observations_rel Observation[]
   attachments      Attachment[]
 
@@ -204,6 +404,177 @@ model TransplantCase {
   @@index([startAt])
   @@index([isRetransplant])
   @@map("transplant_cases")
+}
+
+/// Procedimiento no-trasplante (biopsias, endoscopías, etc.)
+model Procedure {
+  id String @id @default(cuid())
+
+  // Relación con paciente
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  // Fechas del procedimiento
+  startAt  DateTime? // Inicio
+  endAt    DateTime? // Finalización
+  duration Int? // Duración en minutos
+
+  // Tipo de procedimiento
+  procedureType       ProcedureType?
+  procedureTypeDetail String? // Detalle adicional del tipo
+
+  // Lugar
+  location String? // BQ, CTI, Sala, etc.
+
+  // Clasificación
+  asa ASA?
+
+  // Estado preoperatorio
+  airwayPreop       AirwayManagement?
+  ventilationPreop  VentilationPattern?
+  hemodynamicsPreop HemodynamicStatus?
+  gcs               Int? // Glasgow Coma Scale
+  provenance        String? // Procedencia: domicilio, CTI, sala
+
+  // Manejo anestésico
+  premedication     Boolean           @default(false)
+  prophylacticATB   String? // Antibióticos profilácticos
+  airwayIntraop     AirwayManagement?
+  fullStomach       Boolean           @default(false) // Estómago ocupado
+  rapidSequence     Boolean           @default(false) // Secuencia rápida
+  difficultAirway   Boolean           @default(false) // IOT difícil
+  position          String? // Posición: DD (decúbito dorsal), DL, etc.
+  anesthesiaTech    AnesthesiaTechnique?
+  ventilationIntraop VentilationPattern?
+  ventModeDetail    String? // Detalle del modo ventilatorio (VCV, PCV, etc.)
+  regionalAnesthesia String? // Técnica regional si aplica
+
+  // Estado postoperatorio
+  destination       String? // Destino: Sala, CTI, etc.
+  airwayPostop      AirwayManagement?
+  ventilationPostop VentilationPattern?
+  hemodynamicsPostop HemodynamicStatus?
+
+  // Complicaciones
+  complications String? @db.Text
+
+  // Observaciones
+  observations String? @db.Text
+
+  // ============================================================================
+  // INDICADORES DE CALIDAD (KPIs) - Solo aplican a trasplantes
+  // ============================================================================
+
+  // Objetivo 1: Protocolo de Reposición de Hemoderivados basado en objetivos
+  bloodReplacementProtocol       Boolean?  // Se aplicó el protocolo de reposición?
+  bloodReplacementProtocolReason String?   @db.Text // Razón si no se aplicó
+
+  // Objetivo 2: Protocolo de Profilaxis Antibiótica
+  antibioticProphylaxisProtocol       Boolean?  // Se aplicó el protocolo de profilaxis ATB?
+  antibioticProphylaxisProtocolReason String?   @db.Text // Razón si no se aplicó
+
+  // Objetivo 3: Registro y envío de ficha anestésica
+  pdfSentByEmail Boolean   @default(false) // Se envió el PDF por email?
+  pdfSentAt      DateTime? // Fecha/hora del envío
+
+  // Objetivo 5: Protocolo Fast Track (Extubación Temprana)
+  fastTrackProtocol       Boolean?  // Ingresa a protocolo Fast Track?
+  fastTrackProtocolReason String?   @db.Text // Razón si no ingresa
+
+  // Anestesiólogo responsable
+  clinicianId Int?
+  clinician   Clinician? @relation(fields: [clinicianId], references: [id])
+
+  // Metadatos
+  dataSource DataSource @default(APPSHEET) // Origen de los datos para estudios retrospectivos
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  // Relaciones
+  intraopRecordsProcedure ProcedureIntraopRecord[]
+
+  @@index([patientId, startAt])
+  @@index([startAt])
+  @@index([procedureType])
+  @@index([clinicianId])
+  @@map("procedures")
+}
+
+/// Registro intraoperatorio para procedimientos NO trasplante
+/// Simplificado comparado con IntraopRecord de trasplantes
+model ProcedureIntraopRecord {
+  id String @id @default(cuid())
+
+  procedureId String
+  procedure   Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+
+  timestamp DateTime
+
+  // Hemodinamia básica
+  heartRate Int?
+  pas       Int?
+  pad       Int?
+  pam       Int?
+  satO2     Int?
+  temp      Float?
+  fio2      Float?
+
+  // Ventilación básica (si aplica)
+  tidalVolume  Int?
+  respRate     Int?
+  peep         Int?
+  peakPressure Int?
+
+  // Fármacos utilizados (registro simplificado)
+  inhalAgent     String?
+  opioids        Boolean @default(false)
+  hypnotics      Boolean @default(false)
+  relaxants      Boolean @default(false)
+  vasopressors   Boolean @default(false)
+  antibiotics    Boolean @default(false)
+  otherDrugs     String? @db.Text
+
+  // Fluidos (simplificado)
+  plasmalyte Int @default(0)
+  ringer     Int @default(0)
+  saline     Int @default(0)
+
+  // Hemoderivados (si se usaron)
+  redBloodCells Int @default(0)
+  plasma        Int @default(0)
+
+  // Laboratorios intraoperatorios
+  // Hematología
+  hb        Float? // Hemoglobina g/dL
+  hto       Float? // Hematocrito %
+  platelets Float? // Plaquetas 10^3/µL
+
+  // Coagulación
+  pt         Float? // Tiempo de protrombina seg
+  inr        Float? // International Normalized Ratio
+  fibrinogen Float? // Fibrinógeno mg/dL
+
+  // Electrolitos
+  sodium       Float? // Na+ mEq/L
+  potassium    Float? // K+ mEq/L
+  ionicCalcium Float? // Ca++ mmol/L
+
+  // Gases arteriales
+  pH         Float? // pH arterial
+  paO2       Float? // PaO2 mmHg
+  paCO2      Float? // PaCO2 mmHg
+  hco3       Float? // Bicarbonato mEq/L
+  baseExcess Float? // Exceso de base mEq/L
+  lactate    Float? // Lactato mmol/L
+
+  // Función renal
+  creatinine Float? // Creatinina mg/dL
+  glucose    Float? // Glicemia mg/dL
+
+  createdAt DateTime @default(now())
+
+  @@index([procedureId, timestamp])
+  @@map("procedure_intraop_records")
 }
 
 /// Asignación de equipo quirúrgico por caso
@@ -220,7 +591,7 @@ model TeamAssignment {
 
   createdAt DateTime @default(now())
 
-  @@unique([caseId, clinicianId, role])
+  @@unique([caseId, clinicianId])
   @@index([caseId])
   @@index([clinicianId])
   @@map("team_assignments")
@@ -236,6 +607,10 @@ model PreopEvaluation {
 
   caseId String?
   case   TransplantCase? @relation(fields: [caseId], references: [id])
+
+  // Anestesiólogo evaluador
+  clinicianId Int?
+  clinician   Clinician? @relation(fields: [clinicianId], references: [id])
 
   evaluationDate DateTime
 
@@ -260,6 +635,7 @@ model PreopEvaluation {
   valvulopathy    String? // Tipo de valvulopatía
   arrhythmia      Boolean @default(false)
   dilatedCardio   Boolean @default(false)
+  hypertensiveCardio Boolean @default(false) // Cardiopatía hipertensiva
 
   // Comorbilidades respiratorias
   smokerCOPD Boolean @default(false)
@@ -274,6 +650,8 @@ model PreopEvaluation {
   abdSurgeryDetail   String? @db.Text
   refluxUlcer        Boolean @default(false)
   allergies          String? @db.Text
+  pregnancy          Boolean @default(false) // Puerperio/Embarazo
+  comorbiditiesObs   String? @db.Text // Observaciones sobre comorbilidades
 
   // Complicaciones de la cirrosis
   hepatoRenalSyndrome   Boolean @default(false)
@@ -308,9 +686,16 @@ model PreopEvaluation {
   // Relación con laboratorios
   labs PreopLabs[]
 
+  // Relación con etiologías (normalizada)
+  etiologies PreopEtiology[]
+
+  // Archivos adjuntos (estudios de imagen, informes)
+  attachments PreopAttachment[]
+
   @@index([patientId])
   @@index([caseId])
   @@index([evaluationDate])
+  @@index([clinicianId])
   @@map("preop_evaluations")
 }
 
@@ -359,6 +744,40 @@ model PreopLabs {
   @@map("preop_labs")
 }
 
+/// Archivos adjuntos de la evaluación preoperatoria (estudios de imagen, informes)
+model PreopAttachment {
+  id String @id @default(cuid())
+
+  preopId String
+  preop   PreopEvaluation @relation(fields: [preopId], references: [id], onDelete: Cascade)
+
+  type String // Tipo de estudio: ECG, Tomografia, PEG, Ecocardiograma, RxTx, InformeLab, etc.
+
+  // Almacenamiento del archivo
+  url       String // URL del archivo (local o cloud storage)
+  fileName  String // Nombre original del archivo
+  mimeType  String? // Tipo MIME (image/jpeg, application/pdf, etc.)
+  sizeBytes Int? // Tamaño del archivo en bytes
+  fileHash  String? // SHA256 para integridad
+
+  // Metadatos del estudio
+  studyDate   DateTime? // Fecha del estudio (puede ser diferente a la evaluación)
+  description String?   @db.Text // Descripción o hallazgos del estudio
+
+  // Datos históricos de AppSheet (para migración)
+  appsheetUrl String? // URL original de AppSheet/Google Drive
+
+  uploadedAt DateTime @default(now())
+  uploadedBy Int? // FK a Clinician que subió el archivo
+
+  createdAt DateTime @default(now())
+
+  @@index([preopId])
+  @@index([type])
+  @@index([studyDate])
+  @@map("preop_attachments")
+}
+
 /// Registro intraoperatorio por fase (snapshot de constantes vitales y ventilación)
 /// Cada fila representa un punto temporal en una fase específica
 model IntraopRecord {
@@ -371,12 +790,21 @@ model IntraopRecord {
   timestamp DateTime // Momento del registro
 
   // Ventilación
-  ventMode     VentilationMode?
-  fio2         Float? // Fracción inspirada O2 (0-1, ej: 0.5 = 50%)
-  tidalVolume  Int? // mL
-  respRate     Int? // rpm
-  peep         Int? // cmH2O
-  peakPressure Int? // PVA cmH2O
+  ventMode        VentilationMode?
+  fio2            Float? // Fracción inspirada O2 (0-1, ej: 0.5 = 50%)
+  tidalVolume     Int? // mL
+  respRate        Int? // rpm
+  peep            Int? // cmH2O
+  peakPressure    Int? // PVA cmH2O
+  plateauPressure Int? // Presión plateau cmH2O
+  ieRatio         String? // Relación I:E (ej: "1:2")
+  compliance      Float? // Compliance estática (mL/cmH2O)
+  minuteVolume    Float? // Volumen minuto (L/min)
+
+  // Agente inhalatorio - parámetros detallados
+  inhalAgentFi    Float? // Fracción inspirada del agente (%)
+  inhalAgentEt    Float? // Fracción espirada del agente (%)
+  inhalAgentMAC   Float? // MAC del agente inhalatorio
 
   // Hemodinamia
   heartRate Int? // lpm
@@ -386,7 +814,8 @@ model IntraopRecord {
   pam       Int? // mmHg (calculado: (PAS + 2*PAD)/3)
   cvp       Int? // PVC cmH2O
   etCO2     Int? // mmHg
-  temp      Float? // °C
+  temp      Float? // °C (periférica/superficial)
+  tempCentral Float? // °C (central/esofágica/nasofaríngea)
 
   // Presión arterial pulmonar (Swan-Ganz)
   paps          Int? // mmHg
@@ -397,13 +826,141 @@ model IntraopRecord {
 
   // Monitoreo avanzado
   bis  Int? // Índice biespectral (0-100)
+  emg  Int? // EMG del monitor BIS (dB)
   icp  Int? // Presión intracraneal mmHg
   svO2 Int? // Saturación venosa mixta %
+  stSegment  Float? // Segmento ST del ECG (mm)
+  rhythmType String? // Tipo de ritmo: "Sinusal", "FA", "Flutter", etc.
+
+  // Laboratorios intraoperatorios
+  // Hematología
+  hb        Float? // Hemoglobina g/dL
+  hto       Float? // Hematocrito %
+  platelets Float? // Plaquetas 10^3/µL
+
+  // Coagulación
+  pt         Float? // Tiempo de protrombina seg
+  inr        Float? // International Normalized Ratio
+  fibrinogen Float? // Fibrinógeno mg/dL
+  aptt       Float? // Tiempo de tromboplastina parcial activada seg
+
+  // Electrolitos
+  sodium       Float? // Na+ mEq/L
+  potassium    Float? // K+ mEq/L
+  ionicCalcium Float? // Ca++ mmol/L
+  magnesium    Float? // Mg mEq/L
+  chloride     Float? // Cl- mEq/L
+  phosphorus   Float? // P mg/dL
+
+  // Gases arteriales
+  pH         Float? // pH arterial
+  paO2       Float? // PaO2 mmHg
+  paCO2      Float? // PaCO2 mmHg
+  sO2Gas     Float? // Saturación O2 de gasometría (%)
+  hco3       Float? // Bicarbonato mEq/L
+  baseExcess Float? // Exceso de base mEq/L
+  anionGap   Float? // Anion gap (mEq/L)
+  osmolarity Float? // Osmolaridad calculada (mOsm/kg)
+  bilirubinGas Float? // Bilirrubina de gasometría (mg/dL)
+
+  // Gases venosos
+  pvpH  Float? // pH venoso
+  pvO2  Float? // PvO2 mmHg
+  pvCO2 Float? // PvCO2 mmHg
+
+  // Función renal
+  azotemia   Float? // BUN/Urea mg/dL
+  creatinine Float? // Creatinina mg/dL
+
+  // Función hepática
+  sgot       Float? // TGO/AST U/L
+  sgpt       Float? // TGP/ALT U/L
+  totalBili  Float? // Bilirrubina total mg/dL
+  directBili Float? // Bilirrubina directa mg/dL
+  albumin    Float? // Albúmina g/dL
+
+  // Metabólicos
+  glucose  Float? // Glicemia mg/dL
+  lactate  Float? // Lactato mmol/L
+  proteins Float? // Proteínas totales g/dL
+
+  // ETE (Ecocardiograma Transesofágico)
+  eteRightVentricle  String? // Función VD: "normal", "hipocinética", "severamente disfuncionante"
+  eteTapse           String? // TAPSE: "<16mm", "16-20mm", ">20mm"
+  eteLeftVentricle   String? // Función VI / FEVI: "conservada", "moderadamente reducida", "severamente reducida"
+  eteChamberDilation String? // Dilatación: "AI", "VI", "VD", "AI+VI", "AI+VD", "VI+VD", "AI+VI+VD", "normales"
+  etePsap            String? // PSAP: "<40mmHg", "40-60mmHg", ">60mmHg"
+  eteThrombus        String? // "No", "Sí"
+  etePericardial     String? // "Sin derrame", "Leve", "Moderado", "Severo"
+  eteVolumeStatus    String? // Evaluación cualitativa de cavidades: "Hipovolemia grave", "Hipovolemia leve-moderada", "Hipervolemia"
+  eteObservations    String? // Observaciones adicionales
+
+  // ROTEM - Parámetros completos para algoritmo de decisión
+  rotemCtExtem   Int? // CTEXTEM - Clotting Time del EXTEM (seg)
+  rotemCftExtem  Int? // CFTEXTEM - Clot Formation Time del EXTEM (seg)
+  rotemA5Extem   Int? // A5EXTEM - Amplitud a los 5 min del EXTEM (mm)
+  rotemA10Extem  Int? // A10EXTEM - Amplitud a los 10 min del EXTEM (mm)
+  rotemMcfExtem  Int? // MCF EXTEM - Maximum Clot Firmness del EXTEM (mm)
+  rotemCli30     Int? // CLI30 - Índice de lisis a los 30 min (%)
+  rotemCli60     Int? // CLI60 - Índice de lisis a los 60 min (%)
+  rotemMl        Int? // ML - Lisis máxima (%)
+
+  rotemCtFibtem  Int? // CTFIBTEM - Clotting Time del FIBTEM (seg)
+  rotemA5Fibtem  Int? // A5FIBTEM - Amplitud a los 5 min del FIBTEM (mm)
+  rotemA10Fibtem Int? // A10FIBTEM - Amplitud a los 10 min del FIBTEM (mm)
+  rotemMcfFibtem Int? // MCF FIBTEM - Maximum Clot Firmness del FIBTEM (mm)
+
+  rotemCtIntem   Int? // CTINTEM - Clotting Time del INTEM (seg)
+  rotemCtHeptem  Int? // CTHEPTEM - Clotting Time del HEPTEM (seg)
+
+  rotemA5Aptem   Int? // A5APTEM - Amplitud a los 5 min del APTEM (mm) - usado en hiperfibrinólisis
+
+  // Fármacos (registro binario - sí/no)
+  inhalAgent String? // Agente inhalatorio: "Isoflurano", "Sevoflurano", "Desflurano"
+
+  // Opiáceos
+  opioidBolus    Boolean @default(false)
+  opioidInfusion Boolean @default(false)
+
+  // Hipnóticos
+  hypnoticBolus    Boolean @default(false)
+  hypnoticInfusion Boolean @default(false)
+
+  // Relajantes musculares
+  relaxantBolus    Boolean @default(false)
+  relaxantInfusion Boolean @default(false)
+
+  // Anestésicos locales
+  lidocaineBolus    Boolean @default(false)
+  lidocaineInfusion Boolean @default(false)
+
+  // Vasopresores e inotrópicos
+  adrenalineBolus    Boolean @default(false)
+  adrenalineInfusion Boolean @default(false)
+  dobutamine         Boolean @default(false)
+  dopamine           Boolean @default(false)
+  noradrenaline      Boolean @default(false)
+  phenylephrine      Boolean @default(false)
+
+  // Otros fármacos
+  insulinBolus          Boolean @default(false)
+  insulinInfusion       Boolean @default(false)
+  furosemide            Boolean @default(false)
+  tranexamicBolus       Boolean @default(false)
+  tranexamicInfusion    Boolean @default(false)
+  calciumGluconBolus    Boolean @default(false)
+  calciumGluconInfusion Boolean @default(false)
+  sodiumBicarb          Boolean @default(false)
+  antibiotics           Boolean @default(false)
+
+  // Marcado de calidad de datos
+  suspicious Boolean @default(false) // Marca registros con asignación incierta al caso
 
   createdAt DateTime @default(now())
 
   @@index([caseId, phase, timestamp])
   @@index([timestamp])
+  @@index([suspicious])
   @@map("intraop_records")
 }
 
@@ -433,6 +990,9 @@ model FluidsAndBlood {
   platelets     Int @default(0) // Concentrados de plaquetas
   cryoprecip    Int @default(0) // ml
   cellSaver     Int @default(0) // ml
+  fibrinogen    Int @default(0) // gramos (viales de 1g)
+  pcc           Int @default(0) // Concentrado Complejo Protrombínico (unidades)
+  factorVII     Int @default(0) // Factor VII (miligramos)
 
   otherFluids String? @db.Text
 
@@ -549,6 +1109,9 @@ model LinesAndMonitoring {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relación con líneas vasculares (normalizada)
+  vascularLines VascularLine[]
+
   @@map("lines_and_monitoring")
 }
 
@@ -603,8 +1166,8 @@ model PostOpOutcome {
 model Mortality {
   id String @id @default(cuid())
 
-  caseId String         @unique
-  case   TransplantCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  patientId String  @unique
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   // Mortalidad precoz (<30 días post-Tx)
   earlyDeath Boolean   @default(false)
@@ -628,7 +1191,7 @@ model Mortality {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([caseId])
+  @@index([patientId])
   @@map("mortality")
 }
 
@@ -691,4 +1254,263 @@ model AuditLog {
   @@index([tableName, recordId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ============================================================================
+// CATÁLOGOS Y TABLAS NORMALIZADAS
+// ============================================================================
+
+/// Catálogo de etiologías de hepatopatía
+model Etiology {
+  id          String  @id @default(cuid())
+  code        String  @unique // Código normalizado (ej: "HVC", "NASH", "HAI")
+  name        String // Nombre completo
+  category    String? // Categoría: viral, autoinmune, metabólica, tóxica, etc.
+  description String? @db.Text
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  preopEtiologies PreopEtiology[]
+
+  @@index([category])
+  @@index([active])
+  @@map("etiologies")
+}
+
+/// Relación muchos-a-muchos entre evaluaciones preop y etiologías
+model PreopEtiology {
+  id String @id @default(cuid())
+
+  preopId String
+  preop   PreopEvaluation @relation(fields: [preopId], references: [id], onDelete: Cascade)
+
+  etiologyId String
+  etiology   Etiology @relation(fields: [etiologyId], references: [id])
+
+  isPrimary Boolean @default(true) // true para etiología primaria, false para secundarias
+  order     Int     @default(0) // orden de prioridad (0 = principal)
+
+  createdAt DateTime @default(now())
+
+  @@unique([preopId, etiologyId])
+  @@index([preopId])
+  @@index([etiologyId])
+  @@map("preop_etiologies")
+}
+
+/// Tipo de línea vascular
+enum LineType {
+  CVC        // Catéter venoso central
+  ARTERIAL   // Línea arterial
+  PERIPHERAL // Vía periférica
+}
+
+/// Líneas vasculares instaladas
+model VascularLine {
+  id String @id @default(cuid())
+
+  linesMonId String
+  linesMonitoring LinesAndMonitoring @relation(fields: [linesMonId], references: [id], onDelete: Cascade)
+
+  lineType LineType
+  location String // Ej: "yugular derecha", "radial izquierda"
+  lumens   Int? // Número de lúmenes (para CVC)
+  size     String? // Calibre (ej: "18G", "20G")
+
+  createdAt DateTime @default(now())
+
+  @@index([linesMonId])
+  @@index([lineType])
+  @@map("vascular_lines")
+}
+
+/// Catálogo de procedencias/destinos
+model Location {
+  id   String @id @default(cuid())
+  code String @unique
+  name String
+
+  type String // "provenance" o "destination"
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([active])
+  @@map("locations")
+}
+
+/// Catálogo de posiciones quirúrgicas
+model Position {
+  id   String @id @default(cuid())
+  code String @unique
+  name String
+
+  description String? @db.Text
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+  @@map("positions")
+}
+
+/// Catálogo de antibióticos
+model Antibiotic {
+  id   String @id @default(cuid())
+  code String @unique
+  name String
+
+  category    String? // Categoría: Betalactámico, Aminoglucósido, Fluoroquinolona, etc.
+  dosage      String? @db.Text // Dosis y sus indicaciones
+  description String? @db.Text
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+  @@index([category])
+  @@map("antibiotics")
+}
+
+/// Catálogo de grupos sanguíneos
+model BloodGroup {
+  id   String @id @default(cuid())
+  code String @unique // A+, A-, B+, B-, AB+, AB-, O+, O-
+
+  createdAt DateTime @default(now())
+
+  @@map("blood_groups")
+}
+
+/// Protocolo de antibióticos profilácticos
+model AntibioticProtocol {
+  id   String @id @default(cuid())
+  name String // Ej: "Profilaxis estándar trasplante hepático"
+  code String @unique
+
+  type String // "hepatico", "hepatorrenal", "especial"
+
+  // Condiciones
+  isStandard     Boolean @default(false) // Protocolo estándar
+  forAllergy     Boolean @default(false) // Para paciente alérgico a betalactámicos
+  forColonization String? // "SAMR", "XDR", null
+
+  description String? @db.Text
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Fases del protocolo
+  phases ProtocolPhase[]
+
+  @@index([type])
+  @@index([active])
+  @@index([isStandard])
+  @@map("antibiotic_protocols")
+}
+
+/// Fase del protocolo antibiótico (pre-incisión, intraop, postop)
+model ProtocolPhase {
+  id String @id @default(cuid())
+
+  protocolId String
+  protocol   AntibioticProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+
+  phase String // "pre_incision", "intraoperatorio", "postoperatorio"
+  order Int    @default(0)
+
+  // Descripción de la fase
+  timing      String? // Ej: "30-60min antes de incisión", "durante cirugía"
+  duration    String? // Ej: "24 horas", "hasta extubación"
+  description String? @db.Text
+
+  // Condiciones especiales
+  condition String? // Ej: "Si cirugía >10h", "Si sangrado >1500ml"
+
+  createdAt DateTime @default(now())
+
+  // Antibióticos de esta fase
+  antibiotics ProtocolAntibiotic[]
+
+  @@index([protocolId])
+  @@map("protocol_phases")
+}
+
+/// Antibiótico específico en una fase del protocolo
+model ProtocolAntibiotic {
+  id String @id @default(cuid())
+
+  phaseId String
+  phase   ProtocolPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  antibioticCode String // Código del antibiótico (PTZ, GENTAMICINA, etc.)
+  dose           String // Ej: "4.5 g IV", "5 mg/kg IV"
+  frequency      String? // Ej: "c/8h", "dosis única", "BIC"
+  route          String  @default("IV") // IV, IM, VO, etc.
+
+  notes String? @db.Text
+
+  order     Int     @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([phaseId])
+  @@map("protocol_antibiotics")
+}
+
+// ============================================================================
+// CATÁLOGOS DINÁMICOS GENÉRICOS
+// ============================================================================
+
+/// Catálogo genérico (ej: "Sex", "ASA", "Provider", "ProcedureType")
+model Catalog {
+  id   String @id @default(cuid())
+  name String @unique // Nombre del catálogo (ej: "Sex", "Provider")
+
+  label       String // Etiqueta para mostrar (ej: "Sexo", "Prestador")
+  description String? @db.Text
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CatalogItem[]
+
+  @@index([active])
+  @@map("catalogs")
+}
+
+/// Valor de un catálogo (ej: "M" para Sex, "ASSE" para Provider)
+model CatalogItem {
+  id String @id @default(cuid())
+
+  catalogId String
+  catalog   Catalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  code  String // Código único dentro del catálogo (ej: "M", "ASSE")
+  label String // Etiqueta para mostrar (ej: "Masculino", "ASSE")
+
+  description String? @db.Text
+  order       Int     @default(0) // Orden de visualización
+  active      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([catalogId, code])
+  @@index([catalogId])
+  @@index([active])
+  @@map("catalog_items")
 }

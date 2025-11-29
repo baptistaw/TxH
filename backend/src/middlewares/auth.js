@@ -1,22 +1,27 @@
-// src/middlewares/auth.js - Autenticación JWT y RBAC
-const jwt = require('jsonwebtoken');
-const config = require('../../config');
+// src/middlewares/auth.js - Autenticación Clerk y RBAC
+const { verifyToken } = require('@clerk/backend');
+const prisma = require('../lib/prisma');
 const logger = require('../lib/logger');
 
 /**
- * Roles del sistema
+ * Roles del sistema (permisos)
+ * - ADMIN: Permisos absolutos
+ * - ANESTESIOLOGO: Crear y editar pacientes, trasplantes y procedimientos
+ * - VIEWER: Solo visualización
+ *
+ * IMPORTANTE: Los valores deben coincidir EXACTAMENTE con los valores en la BD (MAYÚSCULAS)
  */
 const ROLES = {
-  ADMIN: 'admin',
-  ANESTESIOLOGO: 'anestesiologo',
-  DATA_ANALYST: 'data-analyst',
+  ADMIN: 'ADMIN',
+  ANESTESIOLOGO: 'ANESTESIOLOGO',
+  VIEWER: 'VIEWER',
 };
 
 /**
- * Middleware de autenticación JWT
- * Verifica el token y agrega user a req
+ * Middleware de autenticación Clerk
+ * Verifica el token de Clerk y agrega user a req
  */
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
   try {
     // Obtener token del header
     const authHeader = req.headers.authorization;
@@ -30,34 +35,70 @@ const authenticate = (req, res, next) => {
 
     const token = authHeader.substring(7); // Remover 'Bearer '
 
-    // Verificar token
-    const decoded = jwt.verify(token, config.jwt.secret);
+    // Verificar token con Clerk
+    const secretKey = process.env.CLERK_SECRET_KEY;
+    if (!secretKey) {
+      logger.error('CLERK_SECRET_KEY not configured');
+      return res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'Error de configuración del servidor',
+      });
+    }
 
-    // Agregar usuario a request
-    req.user = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-    };
+    let verifiedToken;
+    try {
+      verifiedToken = await verifyToken(token, {
+        secretKey,
+      });
+    } catch (clerkError) {
+      logger.warn('Clerk token verification failed', { error: clerkError.message });
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Token inválido o expirado',
+      });
+    }
+
+    // Obtener el clerkId del token verificado
+    const clerkId = verifiedToken.sub;
+
+    // Buscar el usuario en nuestra BD por clerkId
+    const clinician = await prisma.clinician.findFirst({
+      where: { clerkId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        specialty: true,
+        userRole: true,
+      },
+    });
+
+    if (!clinician) {
+      // Usuario autenticado en Clerk pero no existe en nuestra BD
+      // Esto puede pasar con usuarios nuevos - permitir acceso básico
+      logger.info('Clerk user not found in database', { clerkId, email: verifiedToken.email });
+
+      req.user = {
+        clerkId,
+        email: verifiedToken.email,
+        role: 'VIEWER', // Rol por defecto para usuarios no registrados
+        isNewUser: true,
+      };
+    } else {
+      // Usuario encontrado en BD
+      req.user = {
+        id: clinician.id,
+        clerkId,
+        email: clinician.email,
+        name: clinician.name,
+        specialty: clinician.specialty,
+        role: clinician.userRole,
+      };
+    }
 
     next();
   } catch (error) {
-    logger.warn('Authentication failed', { error: error.message });
-
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Token inválido',
-      });
-    }
-
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Token expirado',
-      });
-    }
-
+    logger.error('Authentication error', { error: error.message });
     return res.status(500).json({
       error: 'Internal Server Error',
       message: 'Error al verificar autenticación',
@@ -99,7 +140,7 @@ const authorize = (...allowedRoles) => {
  * Middleware opcional de autenticación
  * No falla si no hay token, pero lo verifica si existe
  */
-const optionalAuth = (req, res, next) => {
+const optionalAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -107,14 +148,44 @@ const optionalAuth = (req, res, next) => {
   }
 
   const token = authHeader.substring(7);
+  const secretKey = process.env.CLERK_SECRET_KEY;
+
+  if (!secretKey) {
+    return next();
+  }
 
   try {
-    const decoded = jwt.verify(token, config.jwt.secret);
-    req.user = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-    };
+    const verifiedToken = await verifyToken(token, { secretKey });
+    const clerkId = verifiedToken.sub;
+
+    const clinician = await prisma.clinician.findFirst({
+      where: { clerkId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        specialty: true,
+        userRole: true,
+      },
+    });
+
+    if (clinician) {
+      req.user = {
+        id: clinician.id,
+        clerkId,
+        email: clinician.email,
+        name: clinician.name,
+        specialty: clinician.specialty,
+        role: clinician.userRole,
+      };
+    } else {
+      req.user = {
+        clerkId,
+        email: verifiedToken.email,
+        role: 'VIEWER',
+        isNewUser: true,
+      };
+    }
   } catch (error) {
     // Token inválido pero no falla, solo no agrega user
     logger.debug('Optional auth failed', { error: error.message });
@@ -123,31 +194,9 @@ const optionalAuth = (req, res, next) => {
   next();
 };
 
-/**
- * Generar token JWT (placeholder)
- * @param {object} payload - Datos del usuario
- */
-const generateToken = (payload) => {
-  return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
-  });
-};
-
-/**
- * Generar refresh token (placeholder)
- * @param {object} payload - Datos del usuario
- */
-const generateRefreshToken = (payload) => {
-  return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.refreshExpiresIn,
-  });
-};
-
 module.exports = {
   ROLES,
   authenticate,
   authorize,
   optionalAuth,
-  generateToken,
-  generateRefreshToken,
 };

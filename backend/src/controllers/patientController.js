@@ -7,12 +7,22 @@ const { asyncHandler } = require('../middlewares/errorHandler');
  * Listar todos los pacientes
  */
 const getAllPatients = asyncHandler(async (req, res) => {
-  const { page, limit, q: search } = req.query;
+  const { page, limit, q: search, transplanted, provider, sex, admissionDateFrom, admissionDateTo, myPatients } = req.query;
+  const userId = req.user.id;
+
+  // Si myPatients=true, solo muestra pacientes donde el clínico está asignado
+  const filterByClinicianId = myPatients === 'true' ? userId : undefined;
 
   const result = await patientService.getAllPatients({
     page: parseInt(page) || 1,
     limit: parseInt(limit) || 20,
     search,
+    transplanted: transplanted ? transplanted === 'true' : undefined,
+    provider,
+    sex,
+    admissionDateFrom,
+    admissionDateTo,
+    clinicianId: filterByClinicianId,
   });
 
   res.json(result);

@@ -55,6 +55,19 @@ const config = {
   encryption: {
     key: process.env.ENCRYPTION_KEY,
   },
+
+  // Email (SMTP)
+  email: {
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT, 10) || 587,
+    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for 587
+    user: process.env.SMTP_USER,
+    password: process.env.SMTP_PASSWORD,
+    from: process.env.SMTP_FROM || 'noreply@txh-registro.uy',
+    distributionList: process.env.EMAIL_DISTRIBUTION_LIST
+      ? process.env.EMAIL_DISTRIBUTION_LIST.split(',').map(e => e.trim())
+      : [],
+  },
 };
 
 // Validar configuración crítica

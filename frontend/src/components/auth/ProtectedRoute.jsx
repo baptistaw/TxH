@@ -1,4 +1,4 @@
-// src/components/auth/ProtectedRoute.jsx
+// src/components/auth/ProtectedRoute.jsx - Integración con Clerk
 'use client';
 
 import { useEffect } from 'react';
@@ -7,14 +7,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PageSpinner } from '@/components/ui/Spinner';
 
 export default function ProtectedRoute({ children, requiredRoles = [] }) {
-  const { user, loading, isAuthenticated, hasAnyRole } = useAuth();
+  const { user, loading, isAuthenticated, hasAnyRole, isSignedIn } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
-      // Si no está autenticado, redirigir a login
-      if (!isAuthenticated()) {
-        router.push('/login');
+      // Si no está autenticado en Clerk, redirigir a sign-in
+      if (!isSignedIn) {
+        router.push('/sign-in');
         return;
       }
 
@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children, requiredRoles = [] }) {
         return;
       }
     }
-  }, [user, loading, isAuthenticated, hasAnyRole, requiredRoles, router]);
+  }, [user, loading, isSignedIn, hasAnyRole, requiredRoles, router]);
 
   // Mostrar spinner mientras carga
   if (loading) {
@@ -32,7 +32,7 @@ export default function ProtectedRoute({ children, requiredRoles = [] }) {
   }
 
   // Si no está autenticado, no renderizar nada (se redirige)
-  if (!isAuthenticated()) {
+  if (!isSignedIn) {
     return null;
   }
 

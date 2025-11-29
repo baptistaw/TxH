@@ -5,18 +5,58 @@ const { NotFoundError } = require('../middlewares/errorHandler');
 /**
  * Obtener todos los pacientes con paginación
  */
-const getAllPatients = async ({ page = 1, limit = 20, search }) => {
+const getAllPatients = async ({
+  page = 1,
+  limit = 20,
+  search,
+  transplanted,
+  provider,
+  sex,
+  admissionDateFrom,
+  admissionDateTo,
+  clinicianId
+}) => {
   const skip = (page - 1) * limit;
 
-  const where = search
-    ? {
-        OR: [
-          { id: { contains: search } },
-          { name: { contains: search, mode: 'insensitive' } },
-          { fnr: { contains: search } },
-        ],
-      }
-    : {};
+  // Construir objeto where con filtros
+  const where = {
+    ...(search && {
+      OR: [
+        { id: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { fnr: { contains: search } },
+      ],
+    }),
+    ...(transplanted !== undefined && { transplanted }),
+    ...(provider && { provider }),
+    ...(sex && { sex }),
+    ...((admissionDateFrom || admissionDateTo) && {
+      admissionDate: {
+        ...(admissionDateFrom && { gte: new Date(admissionDateFrom) }),
+        ...(admissionDateTo && { lte: new Date(admissionDateTo) }),
+      },
+    }),
+    // Filtrar por clínico: pacientes con casos donde el clínico está en el equipo
+    // o con evaluaciones preop realizadas por el clínico
+    ...(clinicianId && {
+      OR: [
+        {
+          cases: {
+            some: {
+              team: {
+                some: { clinicianId },
+              },
+            },
+          },
+        },
+        {
+          preops: {
+            some: { clinicianId },
+          },
+        },
+      ],
+    }),
+  };
 
   const [patients, total] = await Promise.all([
     prisma.patient.findMany({
@@ -27,6 +67,13 @@ const getAllPatients = async ({ page = 1, limit = 20, search }) => {
       include: {
         _count: {
           select: { cases: true },
+        },
+        cases: {
+          orderBy: { startAt: 'desc' },
+          take: 1,
+          select: {
+            startAt: true,
+          },
         },
       },
     }),

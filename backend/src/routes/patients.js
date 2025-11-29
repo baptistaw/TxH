@@ -31,6 +31,13 @@ const querySchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   q: z.string().optional(),
+  // Filtros avanzados
+  transplanted: z.enum(['true', 'false']).optional(),
+  provider: z.enum(['ASSE', 'FEMI', 'CASMU', 'MP', 'OTRA']).optional(),
+  sex: z.enum(['M', 'F', 'O']).optional(),
+  admissionDateFrom: z.string().optional(),
+  admissionDateTo: z.string().optional(),
+  myPatients: z.enum(['true', 'false']).optional(),
 });
 
 /**
