@@ -78,7 +78,7 @@ async function sendPDFReport({ recipients, subject, pdfBuffer, filename, caseInf
     `;
 
     const mailOptions = {
-      from: config.email?.from || 'noreply@txh-registro.uy',
+      from: config.email?.from || 'contacto@anestrasplante.org',
       to: recipients.join(', '),
       subject: subject,
       html: htmlBody,

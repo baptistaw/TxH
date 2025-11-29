@@ -63,7 +63,7 @@ const config = {
     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for 587
     user: process.env.SMTP_USER,
     password: process.env.SMTP_PASSWORD,
-    from: process.env.SMTP_FROM || 'noreply@txh-registro.uy',
+    from: process.env.SMTP_FROM || 'contacto@anestrasplante.org',
     distributionList: process.env.EMAIL_DISTRIBUTION_LIST
       ? process.env.EMAIL_DISTRIBUTION_LIST.split(',').map(e => e.trim())
       : [],
