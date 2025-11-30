@@ -4,19 +4,17 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOrganization } from '@/hooks/useOrganization';
 import { PageSpinner } from '@/components/ui/Spinner';
 
 export default function ProtectedRoute({ children, requiredRoles = [] }) {
-  const { user, loading, hasAnyRole, isSignedIn } = useAuth();
-  const { hasOrganization, isLoaded: orgLoaded } = useOrganization();
+  const { user, loading, hasAnyRole, isSignedIn, hasOrganization, tokenReady } = useAuth();
   const router = useRouter();
 
-  // Estado de carga combinado
-  const isLoading = loading || !orgLoaded;
+  // Estado de carga combinado - incluye esperar a que el token esté listo
+  const isLoading = loading || (isSignedIn && !tokenReady);
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!loading) {
       // Si no está autenticado en Clerk, redirigir a sign-in
       if (!isSignedIn) {
         router.push('/sign-in');
@@ -29,9 +27,9 @@ export default function ProtectedRoute({ children, requiredRoles = [] }) {
         return;
       }
     }
-  }, [user, isLoading, isSignedIn, hasAnyRole, requiredRoles, router]);
+  }, [user, loading, isSignedIn, hasAnyRole, requiredRoles, router]);
 
-  // Mostrar spinner mientras carga auth o org
+  // Mostrar spinner mientras carga auth o espera token
   if (isLoading) {
     return <PageSpinner />;
   }

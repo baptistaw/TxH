@@ -34,14 +34,44 @@ export function AuthProvider({ children }) {
     }
   }, [getToken]);
 
+  // Estado para indicar que el token está listo con la organización
+  const [tokenReady, setTokenReady] = useState(false);
+
   // Activar automáticamente la primera organización si el usuario tiene una pero no está activa
   useEffect(() => {
     async function activateFirstOrganization() {
       // Solo ejecutar si todo está cargado y el usuario está autenticado
       if (!orgListLoaded || !isClerkLoaded || !isSignedIn || activatingOrg) return;
 
-      // Si ya tiene organización activa, no hacer nada
-      if (activeOrg) return;
+      // Si ya tiene organización activa, verificar token y marcar como listo
+      if (activeOrg) {
+        // Forzar obtención de nuevo token con org_id
+        try {
+          const token = await getToken({ skipCache: true });
+          if (token) {
+            // Verificar que el token tiene org_id
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.org_id) {
+              setTokenReady(true);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Error verifying token:', err);
+        }
+        // Si no tiene org_id, intentar refrescar después de un delay
+        setTimeout(async () => {
+          try {
+            const token = await getToken({ skipCache: true });
+            if (token) {
+              setTokenReady(true);
+            }
+          } catch (err) {
+            console.error('Error refreshing token:', err);
+          }
+        }, 500);
+        return;
+      }
 
       // Verificar si tiene membresías
       const memberships = userMemberships?.data || [];
@@ -49,20 +79,29 @@ export function AuthProvider({ children }) {
         const firstOrg = memberships[0].organization;
         console.log('Auto-activating organization:', firstOrg.name);
         setActivatingOrg(true);
+        setTokenReady(false);
 
         try {
           await setActive({ organization: firstOrg.id });
-          // El token se actualizará automáticamente con el org_id
+          // Esperar a que el token se actualice con el nuevo org_id
+          setTimeout(async () => {
+            try {
+              await getToken({ skipCache: true });
+              setTokenReady(true);
+            } catch (err) {
+              console.error('Error getting new token:', err);
+            }
+            setActivatingOrg(false);
+          }, 500);
         } catch (err) {
           console.error('Error activating organization:', err);
-        } finally {
           setActivatingOrg(false);
         }
       }
     }
 
     activateFirstOrganization();
-  }, [orgListLoaded, isClerkLoaded, isSignedIn, activeOrg, userMemberships, setActive, activatingOrg]);
+  }, [orgListLoaded, isClerkLoaded, isSignedIn, activeOrg, userMemberships, setActive, activatingOrg, getToken]);
 
   // Sincronizar usuario de Clerk con BD local
   const syncUserWithDB = useCallback(async () => {
@@ -206,6 +245,8 @@ export function AuthProvider({ children }) {
     hasOrganization,
     organizationId,
     organizationName,
+    // Token con organización listo
+    tokenReady,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

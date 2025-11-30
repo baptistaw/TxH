@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,14 +24,19 @@ export default function HomePage() {
 }
 
 function HomePageContent() {
-  const { user } = useAuth();
+  const { user, tokenReady } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState(null);
   const [recentCases, setRecentCases] = useState([]);
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
+    // Solo hacer fetch cuando el token esté listo con la organización
+    if (!tokenReady || hasFetched.current) return;
+
     const fetchData = async () => {
+      hasFetched.current = true;
       try {
         // Cargar casos recientes
         const casesResponse = await casesApi.list({ page: 1, limit: 5 });
@@ -47,13 +52,14 @@ function HomePageContent() {
         });
       } catch (err) {
         console.error('Error al cargar datos del dashboard:', err);
+        hasFetched.current = false; // Permitir reintento si falla
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [tokenReady]);
 
   // Mapeo de especialidades a texto legible
   const specialtyLabels = {
