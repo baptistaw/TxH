@@ -1,26 +1,25 @@
 // src/app/sign-in/[[...sign-in]]/page.jsx
 import { SignIn } from '@clerk/nextjs';
-
-// Logo de la organización desde Clerk
-const ORG_LOGO_URL = '/logo.jpg';
-const ORG_NAME = 'Programa Nacional Trasplante Hepático Uruguay';
+import Link from 'next/link';
 
 export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-dark-500 px-4">
       <div className="w-full max-w-md">
-        {/* Logo y título de la organización */}
+        {/* Logo y título genérico */}
         <div className="text-center mb-8">
-          <img
-            src={ORG_LOGO_URL}
-            alt={ORG_NAME}
-            className="w-24 h-24 mx-auto rounded-2xl object-cover shadow-glow mb-4"
-          />
-          <h1 className="text-2xl font-bold text-surgical-400 mb-2">
-            {ORG_NAME}
+          <Link href="/">
+            <img
+              src="/logo.jpg"
+              alt="anestrasplante.org"
+              className="w-20 h-20 mx-auto rounded-2xl object-cover shadow-glow mb-4 hover:opacity-90 transition-opacity"
+            />
+          </Link>
+          <h1 className="text-2xl font-bold text-white mb-1">
+            anestras<span className="text-surgical-400">plante</span>.org
           </h1>
           <p className="text-gray-400">
-            Sistema de Registro Anestesiológico
+            Sistema de Registro Anestesiologico
           </p>
         </div>
 
@@ -52,9 +51,13 @@ export default function SignInPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>Hospital de Clínicas - Universidad de la República</p>
-          <p className="mt-1">Montevideo, Uruguay</p>
+        <div className="mt-8 text-center">
+          <Link
+            href="/"
+            className="text-sm text-gray-500 hover:text-gray-400 transition-colors"
+          >
+            Volver al inicio
+          </Link>
         </div>
       </div>
     </div>

@@ -29,6 +29,7 @@ const analyticsRouter = require('./routes/analytics');
 const searchRouter = require('./routes/search');
 const rotemRouter = require('./routes/rotem');
 const ocrRouter = require('./routes/ocr');
+const contactRouter = require('./routes/contact.routes');
 
 // Crear app
 const app = express();
@@ -145,6 +146,7 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/rotem', rotemRouter);
 app.use('/api/ocr', ocrRouter);
+app.use('/api/contact', contactRouter);
 
 // ==============================================================================
 // MANEJO DE ERRORES
