@@ -2,7 +2,7 @@
 import { SignIn } from '@clerk/nextjs';
 
 // Logo de la organización desde Clerk
-const ORG_LOGO_URL = 'https://img.clerk.com/eyJ0eXBlIjoicHJveHkiLCJzcmMiOiJodHRwczovL2ltYWdlcy5jbGVyay5kZXYvdXBsb2FkZWQvaW1nXzM2QTBvZGRtZ0pqM1BpVHFwRXZ0WXpsM0U0UCJ9';
+const ORG_LOGO_URL = '/logo.jpg';
 const ORG_NAME = 'Programa Nacional Trasplante Hepático Uruguay';
 
 export default function SignInPage() {

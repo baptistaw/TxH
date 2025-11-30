@@ -10,7 +10,7 @@ import { useState } from 'react';
 import GlobalSearch from '@/components/search/GlobalSearch';
 
 // Logo de la organización
-const ORG_LOGO_URL = 'https://img.clerk.com/eyJ0eXBlIjoicHJveHkiLCJzcmMiOiJodHRwczovL2ltYWdlcy5jbGVyay5kZXYvdXBsb2FkZWQvaW1nXzM2QTBvZGRtZ0pqM1BpVHFwRXZ0WXpsM0U0UCJ9';
+const ORG_LOGO_URL = '/logo.jpg';
 const ORG_NAME = 'PNTH Uruguay';
 
 export default function Sidebar() {
