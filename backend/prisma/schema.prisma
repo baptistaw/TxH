@@ -321,9 +321,9 @@ model Patient {
   id    String  @id @db.VarChar(20) // CI normalizado con DV (8 dígitos sin guión)
   ciRaw String? @db.VarChar(30) // CI original del Excel (auditoría)
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   // Validación de CI
   ciSuspicious Boolean @default(false) // Marca si el DV no coincide
@@ -375,9 +375,9 @@ model Clinician {
   email     String     @unique
   phone     String?
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   // Autenticación Clerk
   clerkId   String?    @unique // ID de usuario en Clerk
@@ -413,9 +413,9 @@ model Clinician {
 model TransplantCase {
   id String @id @default(cuid())
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   // Relación con paciente
   patientId String
@@ -469,9 +469,9 @@ model TransplantCase {
 model Procedure {
   id String @id @default(cuid())
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   // Relación con paciente
   patientId String
@@ -667,9 +667,9 @@ model TeamAssignment {
 model PreopEvaluation {
   id String @id @default(cuid())
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   // Relaciones
   patientId String
@@ -1322,7 +1322,7 @@ model AuditLog {
   id String @id @default(cuid())
 
   // Multi-tenancy
-  organizationId String
+  organizationId String? @default("org_default")
 
   // Información del registro afectado
   tableName String   // Nombre de la tabla (patients, transplant_cases, etc.)
@@ -1370,7 +1370,7 @@ model DigitalSignature {
   id String @id @default(cuid())
 
   // Multi-tenancy
-  organizationId String
+  organizationId String? @default("org_default")
 
   // Documento firmado
   documentType SignableDocumentType
@@ -1413,9 +1413,9 @@ model DigitalSignature {
 model Etiology {
   id          String  @id @default(cuid())
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   code        String // Código normalizado (ej: "HVC", "NASH", "HAI")
   name        String // Nombre completo
@@ -1487,9 +1487,9 @@ model VascularLine {
 model Location {
   id   String @id @default(cuid())
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   code String
   name String
@@ -1512,9 +1512,9 @@ model Location {
 model Position {
   id   String @id @default(cuid())
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   code String
   name String
@@ -1536,9 +1536,9 @@ model Position {
 model Antibiotic {
   id   String @id @default(cuid())
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   code String
   name String
@@ -1573,9 +1573,9 @@ model BloodGroup {
 model AntibioticProtocol {
   id   String @id @default(cuid())
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   name String // Ej: "Profilaxis estándar trasplante hepático"
   code String
@@ -1661,9 +1661,9 @@ model ProtocolAntibiotic {
 model Catalog {
   id   String @id @default(cuid())
 
-  // Multi-tenancy
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  // Multi-tenancy (opcional para datos históricos pre-migración)
+  organizationId String?  @default("org_default")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   name String // Nombre del catálogo (ej: "Sex", "Provider")
 
