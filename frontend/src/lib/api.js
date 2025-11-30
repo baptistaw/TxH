@@ -97,6 +97,8 @@ async function fetcher(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`;
   const token = await getToken();
 
+  console.log(`API Request: ${endpoint}`, { hasToken: !!token });
+
   const config = {
     headers: {
       'Content-Type': 'application/json',
