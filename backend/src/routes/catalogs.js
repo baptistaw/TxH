@@ -35,9 +35,50 @@ router.get(
   })
 );
 
+// Enums de Prisma como catálogos estáticos
+const STATIC_ENUMS = {
+  Sex: [
+    { code: 'M', label: 'Masculino' },
+    { code: 'F', label: 'Femenino' },
+    { code: 'O', label: 'Otro' },
+  ],
+  Provider: [
+    { code: 'ASSE', label: 'ASSE' },
+    { code: 'ASOC_ESPANOLA', label: 'Asociación Española' },
+    { code: 'CASMU', label: 'CASMU' },
+    { code: 'COSEM', label: 'COSEM' },
+    { code: 'MUCAM', label: 'MUCAM' },
+    { code: 'SMI', label: 'SMI' },
+    { code: 'MEDICA_URUGUAYA', label: 'Médica Uruguaya' },
+    { code: 'OTRO', label: 'Otro' },
+  ],
+  ASA: [
+    { code: 'I', label: 'ASA I' },
+    { code: 'II', label: 'ASA II' },
+    { code: 'III', label: 'ASA III' },
+    { code: 'IV', label: 'ASA IV' },
+    { code: 'V', label: 'ASA V' },
+    { code: 'VI', label: 'ASA VI' },
+  ],
+  Specialty: [
+    { code: 'ANESTESIOLOGO', label: 'Anestesiólogo' },
+    { code: 'CIRUJANO', label: 'Cirujano' },
+    { code: 'INTENSIVISTA', label: 'Intensivista' },
+    { code: 'HEPATOLOGO', label: 'Hepatólogo' },
+    { code: 'COORDINADORA', label: 'Coordinadora' },
+    { code: 'OTRO', label: 'Otro' },
+  ],
+  UserRole: [
+    { code: 'ADMIN', label: 'Administrador' },
+    { code: 'ANESTESIOLOGO', label: 'Anestesiólogo' },
+    { code: 'VIEWER', label: 'Visor' },
+  ],
+};
+
 /**
  * GET /api/catalogs/:name
  * Obtener items de un catálogo específico por nombre (público)
+ * Soporta tanto catálogos de BD como enums estáticos
  * Query params:
  *   - includeInactive: 'true' para incluir items inactivos (solo admin)
  */
@@ -47,7 +88,22 @@ router.get(
     const { name } = req.params;
     const { includeInactive } = req.query;
 
-    // Determinar si incluir items inactivos
+    // Verificar si es un enum estático
+    if (STATIC_ENUMS[name]) {
+      return res.json({
+        name,
+        label: name,
+        items: STATIC_ENUMS[name].map((item, index) => ({
+          id: item.code,
+          code: item.code,
+          label: item.label,
+          order: index,
+          active: true,
+        })),
+      });
+    }
+
+    // Buscar en catálogos de BD
     const showInactive = includeInactive === 'true';
 
     const catalog = await prisma.catalog.findUnique({
