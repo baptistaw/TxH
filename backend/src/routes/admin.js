@@ -469,7 +469,7 @@ router.get('/stats', authenticate, authorize(ROLES.ADMIN),
       totalProcedures,
       totalPreops,
       usersByRole,
-      casesByMonth,
+      casesByMonthRaw,
     ] = await Promise.all([
       prisma.clinician.count(),
       prisma.patient.count(),
@@ -491,6 +491,12 @@ router.get('/stats', authenticate, authorize(ROLES.ADMIN),
         LIMIT 12
       `,
     ]);
+
+    // Convertir BigInt a Number para serialización JSON
+    const casesByMonth = casesByMonthRaw.map(row => ({
+      month: row.month,
+      count: Number(row.count),
+    }));
 
     res.json({
       users: {
