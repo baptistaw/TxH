@@ -1,8 +1,47 @@
 // src/app/sign-in/[[...sign-in]]/page.jsx
-import { SignIn } from '@clerk/nextjs';
+'use client';
+
+import { SignIn, useAuth, useOrganization } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import Link from 'next/link';
 
 export default function SignInPage() {
+  const { isSignedIn, isLoaded } = useAuth();
+  const { organization, isLoaded: orgLoaded } = useOrganization();
+  const router = useRouter();
+
+  // Debug logs
+  useEffect(() => {
+    console.log('SignIn Page State:', { isLoaded, isSignedIn, orgLoaded, hasOrg: !!organization });
+  }, [isLoaded, isSignedIn, orgLoaded, organization]);
+
+  // Si ya está autenticado y tiene org, ir al dashboard
+  useEffect(() => {
+    if (isLoaded && orgLoaded && isSignedIn && organization) {
+      console.log('Already authenticated with org, redirecting to dashboard');
+      router.replace('/dashboard');
+    }
+  }, [isLoaded, orgLoaded, isSignedIn, organization, router]);
+
+  // Mostrar loading mientras Clerk carga
+  if (!isLoaded || !orgLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-dark-500">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-surgical-500"></div>
+      </div>
+    );
+  }
+
+  // Si ya está autenticado con org, mostrar loading (se está redirigiendo)
+  if (isSignedIn && organization) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-dark-500">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-surgical-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-dark-500 px-4">
       <div className="w-full max-w-md">

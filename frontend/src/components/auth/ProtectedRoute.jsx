@@ -11,12 +11,18 @@ export default function ProtectedRoute({ children, requiredRoles = [] }) {
   const { loading, hasAnyRole, isSignedIn, hasOrganization } = useAuth();
   const router = useRouter();
 
+  // Debug logs
+  useEffect(() => {
+    console.log('ProtectedRoute State:', { loading, isSignedIn, hasOrganization });
+  }, [loading, isSignedIn, hasOrganization]);
+
   useEffect(() => {
     // Solo redirigir cuando auth está cargado
     if (loading) return;
 
     // Si no está autenticado o no tiene org, ir a sign-in
     if (!isSignedIn || !hasOrganization) {
+      console.log('ProtectedRoute: Redirecting to sign-in', { isSignedIn, hasOrganization });
       router.push('/sign-in');
       return;
     }
