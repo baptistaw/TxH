@@ -53,15 +53,27 @@ export function resetAuth() {
 async function getToken() {
   if (typeof window === 'undefined') return null;
 
-  // Esperar a que la auth esté lista (máximo 10 segundos)
+  // Si ya tenemos el token function, usarlo directamente
+  if (clerkGetToken) {
+    try {
+      return await clerkGetToken();
+    } catch (error) {
+      console.error('Error getting Clerk token:', error);
+      return null;
+    }
+  }
+
+  // Si no, esperar a que la auth esté lista (máximo 5 segundos)
+  console.log('API: Waiting for auth to be ready...');
   const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Auth timeout')), 10000)
+    setTimeout(() => reject(new Error('Auth timeout')), 5000)
   );
 
   try {
     await Promise.race([authReadyPromise, timeout]);
+    console.log('API: Auth is ready');
   } catch (error) {
-    console.warn('Auth not ready, proceeding without token');
+    console.warn('API: Auth not ready, proceeding without token');
     return null;
   }
 
