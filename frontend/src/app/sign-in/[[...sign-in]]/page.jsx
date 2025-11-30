@@ -1,25 +1,24 @@
 // src/app/sign-in/[[...sign-in]]/page.jsx
+// Página de login - usa Clerk directamente
 'use client';
 
-import { SignIn, useAuth, useOrganization } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { SignIn, useUser, useOrganization } from '@clerk/nextjs';
 import Link from 'next/link';
 
 export default function SignInPage() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isLoaded: userLoaded, isSignedIn } = useUser();
   const { organization, isLoaded: orgLoaded } = useOrganization();
-  const router = useRouter();
 
-  // Si ya está autenticado y tiene org, ir al dashboard
-  useEffect(() => {
-    if (isLoaded && orgLoaded && isSignedIn && organization) {
-      router.replace('/dashboard');
-    }
-  }, [isLoaded, orgLoaded, isSignedIn, organization, router]);
+  // Debug
+  console.log('SignInPage:', {
+    userLoaded,
+    orgLoaded,
+    isSignedIn,
+    hasOrg: !!organization
+  });
 
   // Mostrar loading mientras Clerk carga
-  if (!isLoaded || !orgLoaded) {
+  if (!userLoaded || !orgLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-500">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-surgical-500"></div>
@@ -27,8 +26,12 @@ export default function SignInPage() {
     );
   }
 
-  // Si ya está autenticado con org, mostrar loading (se está redirigiendo)
+  // Si ya está autenticado con org, redirigir a dashboard
   if (isSignedIn && organization) {
+    console.log('SignInPage: Already authenticated, redirecting to dashboard...');
+    if (typeof window !== 'undefined' && window.location.pathname === '/sign-in') {
+      window.location.replace('/dashboard');
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-500">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-surgical-500"></div>
@@ -39,7 +42,7 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-dark-500 px-4">
       <div className="w-full max-w-md">
-        {/* Logo y título genérico */}
+        {/* Logo y título */}
         <div className="text-center mb-8">
           <Link href="/">
             <img
@@ -56,7 +59,7 @@ export default function SignInPage() {
           </p>
         </div>
 
-        {/* Clerk SignIn Component */}
+        {/* Clerk SignIn */}
         <div className="flex justify-center">
           <SignIn
             appearance={{

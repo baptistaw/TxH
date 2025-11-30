@@ -66,11 +66,8 @@ async function fetcher(endpoint, options = {}) {
   try {
     const response = await fetch(url, config);
 
-    // Si es 401, redirigir a sign-in de Clerk
+    // Si es 401, NO redirigir automáticamente - dejar que AuthContext maneje el estado
     if (response.status === 401) {
-      if (typeof window !== 'undefined') {
-        window.location.href = '/sign-in';
-      }
       throw new ApiError('No autorizado', 401, null);
     }
 
