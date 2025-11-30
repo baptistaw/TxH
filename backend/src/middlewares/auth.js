@@ -66,6 +66,16 @@ const authenticate = async (req, res, next) => {
     const orgRole = verifiedToken.org_role || null;
     const orgSlug = verifiedToken.org_slug || null;
 
+    // Debug: log token claims para diagnosticar problemas de org_id
+    logger.info('Token claims received', {
+      clerkId,
+      orgId,
+      orgRole,
+      orgSlug,
+      email: verifiedToken.email,
+      hasOrgId: !!orgId,
+    });
+
     // Buscar el usuario en nuestra BD por clerkId
     const clinician = await prisma.clinician.findFirst({
       where: { clerkId },
