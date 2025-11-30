@@ -10,27 +10,31 @@ export default function ProtectedRoute({ children, requiredRoles = [] }) {
   const { user, loading, hasAnyRole, isSignedIn, hasOrganization, tokenReady } = useAuth();
   const router = useRouter();
 
-  // Estado de carga combinado - incluye esperar a que el token esté listo
-  const isLoading = loading || (isSignedIn && !tokenReady);
+  // Estado de carga completo:
+  // - loading: auth context aún cargando
+  // - isSignedIn && !tokenReady: usuario autenticado pero token sin org_id
+  // - isSignedIn && !hasOrganization: esperando activación de org
+  const isFullyLoaded = !loading && (isSignedIn ? (tokenReady && hasOrganization) : true);
 
   useEffect(() => {
-    if (!loading) {
-      // Si no está autenticado en Clerk, redirigir a sign-in
-      if (!isSignedIn) {
-        router.push('/sign-in');
-        return;
-      }
+    // Solo redirigir cuando TODO está cargado
+    if (!isFullyLoaded) return;
 
-      // Si requiere roles específicos y no los tiene, redirigir
-      if (requiredRoles.length > 0 && !hasAnyRole(requiredRoles)) {
-        router.push('/unauthorized');
-        return;
-      }
+    // Si no está autenticado en Clerk, redirigir a sign-in
+    if (!isSignedIn) {
+      router.push('/sign-in');
+      return;
     }
-  }, [user, loading, isSignedIn, hasAnyRole, requiredRoles, router]);
 
-  // Mostrar spinner mientras carga auth o espera token
-  if (isLoading) {
+    // Si requiere roles específicos y no los tiene, redirigir
+    if (requiredRoles.length > 0 && !hasAnyRole(requiredRoles)) {
+      router.push('/unauthorized');
+      return;
+    }
+  }, [isFullyLoaded, isSignedIn, hasAnyRole, requiredRoles, router]);
+
+  // Mostrar spinner mientras cualquier cosa esté cargando
+  if (!isFullyLoaded) {
     return <PageSpinner />;
   }
 
@@ -39,30 +43,11 @@ export default function ProtectedRoute({ children, requiredRoles = [] }) {
     return null;
   }
 
-  // Si no tiene organización activa, mostrar mensaje de espera
-  // La auto-activación de org debería estar en proceso en AuthContext
-  if (!hasOrganization) {
-    return (
-      <div className="min-h-screen bg-dark-700 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-dark-600 rounded-xl p-8 text-center border border-dark-400">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-surgical-500 mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold text-white mb-4">Activando organización...</h2>
-          <p className="text-gray-400 mb-4">
-            Estamos configurando tu acceso al sistema. Por favor espera un momento.
-          </p>
-          <p className="text-sm text-gray-500">
-            Si este mensaje persiste, contacta al administrador de tu organización en Clerk.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   // Si requiere roles y no los tiene, no renderizar
   if (requiredRoles.length > 0 && !hasAnyRole(requiredRoles)) {
     return null;
   }
 
-  // Renderizar children
+  // Renderizar children - ya tenemos org y token listos
   return <>{children}</>;
 }
