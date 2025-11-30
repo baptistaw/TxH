@@ -24,13 +24,18 @@ export default function HomePage() {
 }
 
 function HomePageContent() {
-  const { user } = useAuth();
+  const { user, synced } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState(null);
   const [recentCases, setRecentCases] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Esperar a que el usuario esté sincronizado antes de hacer llamadas API
+    if (!synced) {
+      return;
+    }
+
     const fetchData = async () => {
       try {
         // Cargar casos recientes
@@ -53,7 +58,7 @@ function HomePageContent() {
     };
 
     fetchData();
-  }, []);
+  }, [synced]);
 
   // Mapeo de especialidades a texto legible
   const specialtyLabels = {
