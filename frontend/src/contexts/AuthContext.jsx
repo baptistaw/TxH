@@ -25,9 +25,27 @@ export function AuthProvider({ children }) {
   // Pasamos una función que siempre obtiene token fresco con org_id
   useEffect(() => {
     if (getToken && activeOrg) {
-      // Wrapper que fuerza skipCache para asegurar que el token tenga org_id
+      // Wrapper que fuerza skipCache y especifica la organización
       const getTokenWithOrg = async () => {
-        return await getToken({ skipCache: true });
+        const token = await getToken({
+          skipCache: true,
+          template: 'org-token' // Usar template con org claims si existe
+        });
+
+        // Debug: verificar que el token tiene org_id
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            console.log('Token org_id:', payload.org_id, 'Expected:', activeOrg.id);
+            if (!payload.org_id) {
+              console.warn('Token does not contain org_id! Check Clerk JWT template settings.');
+            }
+          } catch (e) {
+            console.error('Error parsing token:', e);
+          }
+        }
+
+        return token;
       };
       initializeAuth(getTokenWithOrg);
       setApiReady(true);
