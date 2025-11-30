@@ -55,113 +55,94 @@ function HomePageContent() {
     fetchData();
   }, []);
 
+  // Mapeo de especialidades a texto legible
+  const specialtyLabels = {
+    ANESTESIOLOGO: 'Anestesiologo',
+    CIRUJANO: 'Cirujano',
+    INTENSIVISTA: 'Intensivista',
+    HEPATOLOGO: 'Hepatologo',
+    COORDINADORA: 'Coordinador/a',
+    OTRO: 'Profesional',
+  };
+
+  // Mapeo de roles a texto legible
+  const roleLabels = {
+    ADMIN: 'Administrador',
+    ANESTESIOLOGO: 'Anestesiologo',
+    VIEWER: 'Visualizador',
+  };
+
   return (
     <AppLayout>
       <div className="h-full px-8 py-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">
-            Bienvenido, {user?.name || 'Usuario'}
-          </h1>
-          <p className="text-gray-400">
-            Sistema de Registro Anestesiológico - Trasplantes Hepáticos
-          </p>
-        </div>
-
-        {/* Estadísticas Rápidas */}
-        {!loading && stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-400">
-                      Total Pacientes
-                    </p>
-                    <p className="text-3xl font-bold text-gray-100">
-                      {stats.totalPatients}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <svg
-                      className="w-6 h-6 text-blue-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                      />
-                    </svg>
-                  </div>
+        {/* Welcome Banner */}
+        <div className="mb-8 bg-gradient-to-r from-surgical-600/20 to-medical-600/20 border border-surgical-500/30 rounded-2xl p-6">
+          <div className="flex items-start gap-6">
+            {/* User Avatar */}
+            <div className="flex-shrink-0">
+              {user?.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt={user.name}
+                  className="w-20 h-20 rounded-full border-2 border-surgical-500 shadow-glow"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-surgical-500/30 border-2 border-surgical-500 flex items-center justify-center">
+                  <svg
+                    className="w-10 h-10 text-surgical-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </div>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-400">
-                      Total Trasplantes
-                    </p>
-                    <p className="text-3xl font-bold text-gray-100">
-                      {stats.totalCases}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-medical-500/20 flex items-center justify-center">
-                    <svg
-                      className="w-6 h-6 text-medical-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Welcome Text */}
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-100 mb-1">
+                Bienvenido, {user?.name || 'Usuario'}
+              </h1>
+              <div className="flex items-center gap-3 mb-3">
+                {user?.specialty && (
+                  <span className="px-3 py-1 bg-surgical-500/20 text-surgical-400 rounded-full text-sm font-medium">
+                    {specialtyLabels[user.specialty] || user.specialty}
+                  </span>
+                )}
+                {user?.role && (
+                  <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium">
+                    {roleLabels[user.role] || user.role}
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-400 max-w-2xl">
+                Sistema de Registro Anestesiologico para Trasplante Hepatico. Gestiona pacientes,
+                evaluaciones preoperatorias, registros intraoperatorios y seguimiento postoperatorio.
+              </p>
+            </div>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-400">
-                      Casos Recientes
-                    </p>
-                    <p className="text-3xl font-bold text-gray-100">
-                      {recentCases.length}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <svg
-                      className="w-6 h-6 text-green-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
+            {/* Quick Stats Summary */}
+            {!loading && stats && (
+              <div className="hidden lg:flex flex-col gap-2 text-right">
+                <div className="text-3xl font-bold text-surgical-400">
+                  {stats.totalCases}
                 </div>
-              </CardContent>
-            </Card>
+                <div className="text-sm text-gray-400">trasplantes registrados</div>
+                <div className="text-lg font-semibold text-gray-300 mt-2">
+                  {stats.totalPatients}
+                </div>
+                <div className="text-sm text-gray-400">pacientes activos</div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Flujos de Trabajo Principales */}
         <div className="mb-8">
