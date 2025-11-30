@@ -45,31 +45,37 @@ export function AuthProvider({ children }) {
 
       // Si ya tiene organización activa, verificar token y marcar como listo
       if (activeOrg) {
-        // Forzar obtención de nuevo token con org_id
-        try {
-          const token = await getToken({ skipCache: true });
-          if (token) {
-            // Verificar que el token tiene org_id
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.org_id) {
-              setTokenReady(true);
-              return;
-            }
-          }
-        } catch (err) {
-          console.error('Error verifying token:', err);
-        }
-        // Si no tiene org_id, intentar refrescar después de un delay
-        setTimeout(async () => {
+        // Forzar obtención de nuevo token con org_id y verificar
+        const verifyToken = async (attempts = 0) => {
           try {
             const token = await getToken({ skipCache: true });
             if (token) {
-              setTokenReady(true);
+              // Verificar que el token tiene org_id
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              if (payload.org_id) {
+                console.log('Token ready with org_id:', payload.org_id);
+                setTokenReady(true);
+                return true;
+              }
             }
           } catch (err) {
-            console.error('Error refreshing token:', err);
+            console.error('Error verifying token:', err);
           }
-        }, 500);
+
+          // Si no tiene org_id y no hemos intentado muchas veces, reintentar
+          if (attempts < 5) {
+            console.log(`Token sin org_id, reintentando (${attempts + 1}/5)...`);
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return verifyToken(attempts + 1);
+          }
+
+          console.warn('Token no tiene org_id después de varios intentos');
+          // Aún así marcamos como listo para evitar bloqueo infinito
+          setTokenReady(true);
+          return false;
+        };
+
+        await verifyToken();
         return;
       }
 
@@ -83,18 +89,11 @@ export function AuthProvider({ children }) {
 
         try {
           await setActive({ organization: firstOrg.id });
-          // Esperar a que el token se actualice con el nuevo org_id
-          setTimeout(async () => {
-            try {
-              await getToken({ skipCache: true });
-              setTokenReady(true);
-            } catch (err) {
-              console.error('Error getting new token:', err);
-            }
-            setActivatingOrg(false);
-          }, 500);
+          // La organización se activó, pero el token tardará en actualizarse
+          // El siguiente render con activeOrg = true manejará la verificación del token
         } catch (err) {
           console.error('Error activating organization:', err);
+        } finally {
           setActivatingOrg(false);
         }
       }
