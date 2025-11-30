@@ -3,6 +3,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 // Rutas públicas que no requieren autenticación
 const isPublicRoute = createRouteMatcher([
+  '/', // Landing page
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/login(.*)', // Redirigir a sign-in

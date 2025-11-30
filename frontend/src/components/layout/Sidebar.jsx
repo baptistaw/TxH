@@ -169,7 +169,7 @@ export default function Sidebar() {
       <div className="p-4 border-b border-dark-500">
         <div className="flex items-center justify-between">
           {!collapsed && (
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/dashboard" className="flex items-center gap-3">
               <img
                 src={ORG_LOGO_URL}
                 alt={ORG_NAME}
