@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { authenticate, authorize, ROLES } = require('../middlewares/auth');
+const { tenantMiddleware } = require('../middlewares/tenant');
 const { asyncHandler } = require('../middlewares/errorHandler');
 const prisma = require('../lib/prisma');
 const googleDriveService = require('../services/googleDrive');
@@ -43,7 +44,7 @@ const upload = multer({
 });
 
 // GET /api/preop - Listar evaluaciones
-router.get('/', authenticate, asyncHandler(async (req, res) => {
+router.get('/', authenticate, tenantMiddleware, asyncHandler(async (req, res) => {
   const {
     patientId,
     caseId,
@@ -62,9 +63,11 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
   } = req.query;
   const userId = req.user.id;
   const userRole = req.user.role;
+  const { organizationId } = req; // Multi-tenancy
 
-  // Construir filtros
+  // Construir filtros - SIEMPRE incluir organizationId
   const where = {
+    organizationId, // Multi-tenancy filter
     ...(search && {
       OR: [
         { patientId: { contains: search } },
@@ -129,9 +132,13 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
 }));
 
 // GET /api/preop/:id - Obtener evaluación
-router.get('/:id', authenticate, asyncHandler(async (req, res) => {
-  const preop = await prisma.preopEvaluation.findUnique({
-    where: { id: req.params.id },
+router.get('/:id', authenticate, tenantMiddleware, asyncHandler(async (req, res) => {
+  const { organizationId } = req; // Multi-tenancy
+  const preop = await prisma.preopEvaluation.findFirst({
+    where: {
+      id: req.params.id,
+      organizationId, // Multi-tenancy filter
+    },
     include: { patient: true, labs: true },
   });
   if (!preop) return res.status(404).json({ error: 'No encontrado' });
@@ -139,12 +146,14 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
 }));
 
 // POST /api/preop - Crear evaluación
-router.post('/', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
+router.post('/', authenticate, tenantMiddleware, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
+    const { organizationId } = req; // Multi-tenancy
     const preop = await prisma.preopEvaluation.create({
       data: {
         ...req.body,
+        organizationId, // Multi-tenancy
         clinicianId: req.body.clinicianId || userId, // Usar el ID del usuario logueado si no se especifica
       }
     });
@@ -153,14 +162,18 @@ router.post('/', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
 );
 
 // PUT /api/preop/:id - Actualizar evaluación
-router.put('/:id', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
+router.put('/:id', authenticate, tenantMiddleware, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
+    const { organizationId } = req; // Multi-tenancy
 
-    // Verificar que existe la evaluación
-    const existingPreop = await prisma.preopEvaluation.findUnique({
-      where: { id: req.params.id },
+    // Verificar que existe la evaluación y pertenece a la organización
+    const existingPreop = await prisma.preopEvaluation.findFirst({
+      where: {
+        id: req.params.id,
+        organizationId, // Multi-tenancy filter
+      },
       select: { clinicianId: true },
     });
 
@@ -184,14 +197,18 @@ router.put('/:id', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
 );
 
 // POST /api/preop/:id/labs - Crear laboratorio para evaluación
-router.post('/:id/labs', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
+router.post('/:id/labs', authenticate, tenantMiddleware, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
+    const { organizationId } = req; // Multi-tenancy
 
-    // Verificar que existe la evaluación
-    const existingPreop = await prisma.preopEvaluation.findUnique({
-      where: { id: req.params.id },
+    // Verificar que existe la evaluación y pertenece a la organización
+    const existingPreop = await prisma.preopEvaluation.findFirst({
+      where: {
+        id: req.params.id,
+        organizationId, // Multi-tenancy filter
+      },
       select: { clinicianId: true },
     });
 

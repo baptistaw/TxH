@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const patientController = require('../controllers/patientController');
 const { authenticate, authorize, ROLES } = require('../middlewares/auth');
+const { tenantMiddleware } = require('../middlewares/tenant');
 const { validate, schemas } = require('../middlewares/validate');
 const { z } = require('zod');
 
@@ -42,28 +43,30 @@ const querySchema = z.object({
 
 /**
  * GET /api/patients
- * Listar pacientes (requiere autenticación)
+ * Listar pacientes (requiere autenticación y organización)
  */
 router.get(
   '/',
   authenticate,
+  tenantMiddleware, // Multi-tenancy: inyecta organizationId
   validate(querySchema, 'query'),
   patientController.getAllPatients
 );
 
 /**
  * GET /api/patients/:id
- * Obtener paciente por CI (requiere autenticación)
+ * Obtener paciente por CI (requiere autenticación y organización)
  */
-router.get('/:id', authenticate, patientController.getPatientById);
+router.get('/:id', authenticate, tenantMiddleware, patientController.getPatientById);
 
 /**
  * POST /api/patients
- * Crear paciente (solo admin y anestesiólogo)
+ * Crear paciente (solo admin y anestesiólogo, asignado a la organización)
  */
 router.post(
   '/',
   authenticate,
+  tenantMiddleware, // Multi-tenancy
   authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   validate(createPatientSchema),
   patientController.createPatient
@@ -71,11 +74,12 @@ router.post(
 
 /**
  * PUT /api/patients/:id
- * Actualizar paciente (solo admin y anestesiólogo)
+ * Actualizar paciente (solo admin y anestesiólogo, verificando organización)
  */
 router.put(
   '/:id',
   authenticate,
+  tenantMiddleware, // Multi-tenancy
   authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   validate(updatePatientSchema),
   patientController.updatePatient
@@ -83,11 +87,12 @@ router.put(
 
 /**
  * DELETE /api/patients/:id
- * Eliminar paciente (solo admin)
+ * Eliminar paciente (solo admin, verificando organización)
  */
 router.delete(
   '/:id',
   authenticate,
+  tenantMiddleware, // Multi-tenancy
   authorize(ROLES.ADMIN),
   patientController.deletePatient
 );

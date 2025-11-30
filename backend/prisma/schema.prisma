@@ -274,6 +274,44 @@ enum AnesthesiaTechnique {
 }
 
 // ============================================================================
+// MULTI-TENANCY - Organización
+// ============================================================================
+
+/// Organización - tenant del sistema (vinculada a Clerk Organization)
+model Organization {
+  id        String   @id // Clerk Organization ID (org_xxxxx)
+  name      String // Nombre de la organización
+  slug      String?  @unique // Slug de Clerk (ej: pnth-uruguay)
+
+  // Configuración
+  logoUrl   String? // URL del logo (de Clerk o personalizado)
+  timezone  String   @default("America/Montevideo")
+
+  // Estado
+  isActive  Boolean  @default(true)
+
+  // Metadatos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones - todos los datos pertenecen a una organización
+  patients           Patient[]
+  clinicians         Clinician[]
+  transplantCases    TransplantCase[]
+  procedures         Procedure[]
+  preops             PreopEvaluation[]
+  etiologies         Etiology[]
+  antibiotics        Antibiotic[]
+  positions          Position[]
+  locations          Location[]
+  antibioticProtocols AntibioticProtocol[]
+  catalogs           Catalog[]
+
+  @@index([isActive])
+  @@map("organizations")
+}
+
+// ============================================================================
 // MODELOS PRINCIPALES
 // ============================================================================
 
@@ -282,6 +320,10 @@ model Patient {
   // Clave primaria clínica
   id    String  @id @db.VarChar(20) // CI normalizado con DV (8 dígitos sin guión)
   ciRaw String? @db.VarChar(30) // CI original del Excel (auditoría)
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   // Validación de CI
   ciSuspicious Boolean @default(false) // Marca si el DV no coincide
@@ -310,6 +352,7 @@ model Patient {
   observations String?    @db.Text
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?  // Soft delete - null = activo, fecha = eliminado
 
   // Relaciones
   cases      TransplantCase[]
@@ -317,8 +360,10 @@ model Patient {
   preops     PreopEvaluation[]
   mortality  Mortality? // Datos de seguimiento y mortalidad
 
+  @@index([organizationId])
   @@index([name])
   @@index([provider])
+  @@index([deletedAt]) // Para queries de soft delete
   @@map("patients")
 }
 
@@ -329,6 +374,10 @@ model Clinician {
   specialty Specialty?
   email     String     @unique
   phone     String?
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   // Autenticación Clerk
   clerkId   String?    @unique // ID de usuario en Clerk
@@ -343,16 +392,19 @@ model Clinician {
   // Metadatos
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft delete - null = activo, fecha = eliminado
 
   // Relaciones
   teamAssignments  TeamAssignment[]
   procedures       Procedure[]
   preopEvaluations PreopEvaluation[]
 
+  @@index([organizationId])
   @@index([specialty])
   @@index([userRole])
   @@index([isActive])
   @@index([clerkId])
+  @@index([deletedAt])
   @@map("clinicians")
 }
 
@@ -360,6 +412,10 @@ model Clinician {
 /// Representa un procedimiento completo (un paciente puede tener múltiples casos si es retrasplante)
 model TransplantCase {
   id String @id @default(cuid())
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   // Relación con paciente
   patientId String
@@ -388,6 +444,7 @@ model TransplantCase {
   observations String?    @db.Text
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?  // Soft delete - null = activo, fecha = eliminado
 
   // Relaciones
   team             TeamAssignment[]
@@ -400,15 +457,21 @@ model TransplantCase {
   observations_rel Observation[]
   attachments      Attachment[]
 
+  @@index([organizationId])
   @@index([patientId, startAt])
   @@index([startAt])
   @@index([isRetransplant])
+  @@index([deletedAt]) // Para queries de soft delete
   @@map("transplant_cases")
 }
 
 /// Procedimiento no-trasplante (biopsias, endoscopías, etc.)
 model Procedure {
   id String @id @default(cuid())
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   // Relación con paciente
   patientId String
@@ -489,14 +552,17 @@ model Procedure {
   dataSource DataSource @default(APPSHEET) // Origen de los datos para estudios retrospectivos
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
+  deletedAt  DateTime?  // Soft delete - null = activo, fecha = eliminado
 
   // Relaciones
   intraopRecordsProcedure ProcedureIntraopRecord[]
 
+  @@index([organizationId])
   @@index([patientId, startAt])
   @@index([startAt])
   @@index([procedureType])
   @@index([clinicianId])
+  @@index([deletedAt]) // Para queries de soft delete
   @@map("procedures")
 }
 
@@ -601,6 +667,10 @@ model TeamAssignment {
 model PreopEvaluation {
   id String @id @default(cuid())
 
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
   // Relaciones
   patientId String
   patient   Patient @relation(fields: [patientId], references: [id])
@@ -692,6 +762,7 @@ model PreopEvaluation {
   // Archivos adjuntos (estudios de imagen, informes)
   attachments PreopAttachment[]
 
+  @@index([organizationId])
   @@index([patientId])
   @@index([caseId])
   @@index([evaluationDate])
@@ -1234,26 +1305,104 @@ model Attachment {
 }
 
 // ============================================================================
-// AUDITORÍA (opcional, para tracking de cambios)
+// AUDITORÍA - Tracking de cambios críticos
 // ============================================================================
+
+/// Tipo de acción de auditoría
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE      // Restaurar un registro soft-deleted
+  SOFT_DELETE  // Soft delete (marcar deletedAt)
+}
 
 /// Log de auditoría para cambios críticos
 model AuditLog {
   id String @id @default(cuid())
 
-  tableName String
-  recordId  String
-  action    String // CREATE, UPDATE, DELETE
-  userId    Int? // Clinician que realizó el cambio
-  changes   Json // JSON con campos modificados
+  // Multi-tenancy
+  organizationId String
+
+  // Información del registro afectado
+  tableName String   // Nombre de la tabla (patients, transplant_cases, etc.)
+  recordId  String   // ID del registro modificado
+  action    AuditAction // Tipo de acción
+
+  // Usuario que realizó el cambio
+  userId    Int?     // FK a Clinician (opcional para acciones del sistema)
+  userEmail String?  // Email del usuario (para auditoría incluso si se borra el usuario)
+
+  // Detalles del cambio
+  oldValues Json?    // Valores anteriores (para UPDATE/DELETE)
+  newValues Json?    // Valores nuevos (para CREATE/UPDATE)
+  changes   Json?    // Resumen de cambios (campos modificados)
+
+  // Metadatos de la request
   ipAddress String?
   userAgent String?
+  requestId String?  // ID único de la request para correlacionar múltiples cambios
 
   createdAt DateTime @default(now())
 
+  @@index([organizationId])
   @@index([tableName, recordId])
+  @@index([userId])
+  @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ============================================================================
+// FIRMA DIGITAL DE ACTOS MÉDICOS
+// ============================================================================
+
+/// Tipo de documento firmable
+enum SignableDocumentType {
+  TRANSPLANT_CASE      // Caso de trasplante completo
+  PROCEDURE            // Procedimiento no-trasplante
+  PREOP_EVALUATION     // Evaluación preoperatoria
+}
+
+/// Firma digital de actos médicos
+/// Vincula un registro médico con la autenticación del profesional responsable
+model DigitalSignature {
+  id String @id @default(cuid())
+
+  // Multi-tenancy
+  organizationId String
+
+  // Documento firmado
+  documentType SignableDocumentType
+  documentId   String // ID del registro firmado (TransplantCase.id, Procedure.id, PreopEvaluation.id)
+
+  // Firmante
+  signedById    Int       // FK a Clinician
+  signedByEmail String    // Email del firmante (inmutable para auditoría)
+  signedByName  String    // Nombre del firmante (inmutable para auditoría)
+
+  // Datos de la firma
+  signedAt      DateTime  @default(now())
+  signatureHash String    // Hash SHA-256 de: documentId + userId + timestamp + contenido
+
+  // Metadatos de verificación
+  ipAddress     String?   // IP desde donde se firmó
+  userAgent     String?   // User-Agent del navegador
+
+  // Estado
+  isValid       Boolean   @default(true) // false si la firma fue invalidada (ej: documento modificado)
+  invalidatedAt DateTime?
+  invalidatedReason String?
+
+  // Referencia al audit log
+  auditLogId    String?   // ID del registro de auditoría asociado
+
+  @@unique([documentType, documentId]) // Solo una firma válida por documento
+  @@index([organizationId])
+  @@index([documentType, documentId])
+  @@index([signedById])
+  @@index([signedAt])
+  @@map("digital_signatures")
 }
 
 // ============================================================================
@@ -1263,7 +1412,12 @@ model AuditLog {
 /// Catálogo de etiologías de hepatopatía
 model Etiology {
   id          String  @id @default(cuid())
-  code        String  @unique // Código normalizado (ej: "HVC", "NASH", "HAI")
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  code        String // Código normalizado (ej: "HVC", "NASH", "HAI")
   name        String // Nombre completo
   category    String? // Categoría: viral, autoinmune, metabólica, tóxica, etc.
   description String? @db.Text
@@ -1275,6 +1429,8 @@ model Etiology {
 
   preopEtiologies PreopEtiology[]
 
+  @@unique([organizationId, code]) // Código único por organización
+  @@index([organizationId])
   @@index([category])
   @@index([active])
   @@map("etiologies")
@@ -1330,7 +1486,12 @@ model VascularLine {
 /// Catálogo de procedencias/destinos
 model Location {
   id   String @id @default(cuid())
-  code String @unique
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  code String
   name String
 
   type String // "provenance" o "destination"
@@ -1340,6 +1501,8 @@ model Location {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([organizationId, code])
+  @@index([organizationId])
   @@index([type])
   @@index([active])
   @@map("locations")
@@ -1348,7 +1511,12 @@ model Location {
 /// Catálogo de posiciones quirúrgicas
 model Position {
   id   String @id @default(cuid())
-  code String @unique
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  code String
   name String
 
   description String? @db.Text
@@ -1358,6 +1526,8 @@ model Position {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([organizationId, code])
+  @@index([organizationId])
   @@index([active])
   @@map("positions")
 }
@@ -1365,7 +1535,12 @@ model Position {
 /// Catálogo de antibióticos
 model Antibiotic {
   id   String @id @default(cuid())
-  code String @unique
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  code String
   name String
 
   category    String? // Categoría: Betalactámico, Aminoglucósido, Fluoroquinolona, etc.
@@ -1377,6 +1552,8 @@ model Antibiotic {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([organizationId, code])
+  @@index([organizationId])
   @@index([active])
   @@index([category])
   @@map("antibiotics")
@@ -1395,8 +1572,13 @@ model BloodGroup {
 /// Protocolo de antibióticos profilácticos
 model AntibioticProtocol {
   id   String @id @default(cuid())
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
   name String // Ej: "Profilaxis estándar trasplante hepático"
-  code String @unique
+  code String
 
   type String // "hepatico", "hepatorrenal", "especial"
 
@@ -1415,6 +1597,8 @@ model AntibioticProtocol {
   // Fases del protocolo
   phases ProtocolPhase[]
 
+  @@unique([organizationId, code])
+  @@index([organizationId])
   @@index([type])
   @@index([active])
   @@index([isStandard])
@@ -1476,7 +1660,12 @@ model ProtocolAntibiotic {
 /// Catálogo genérico (ej: "Sex", "ASA", "Provider", "ProcedureType")
 model Catalog {
   id   String @id @default(cuid())
-  name String @unique // Nombre del catálogo (ej: "Sex", "Provider")
+
+  // Multi-tenancy
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  name String // Nombre del catálogo (ej: "Sex", "Provider")
 
   label       String // Etiqueta para mostrar (ej: "Sexo", "Prestador")
   description String? @db.Text
@@ -1488,6 +1677,8 @@ model Catalog {
 
   items CatalogItem[]
 
+  @@unique([organizationId, name]) // Nombre único por organización
+  @@index([organizationId])
   @@index([active])
   @@map("catalogs")
 }

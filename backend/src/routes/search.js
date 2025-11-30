@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middlewares/auth');
+const { tenantMiddleware } = require('../middlewares/tenant');
 const { asyncHandler } = require('../middlewares/errorHandler');
 const { validate } = require('../middlewares/validate');
 const { z } = require('zod');
@@ -80,8 +81,9 @@ const advancedProcedureSearchSchema = z.object({
  * GET /api/search/global
  * Búsqueda unificada que busca en pacientes, procedimientos y preops
  */
-router.get('/global', authenticate, validate(globalSearchSchema, 'query'), asyncHandler(async (req, res) => {
+router.get('/global', authenticate, tenantMiddleware, validate(globalSearchSchema, 'query'), asyncHandler(async (req, res) => {
   const { q, type, limit } = req.query;
+  const { organizationId } = req; // Multi-tenancy
   const searchTerm = q.toLowerCase();
 
   const results = {
@@ -95,6 +97,7 @@ router.get('/global', authenticate, validate(globalSearchSchema, 'query'), async
   if (type === 'all' || type === 'patients') {
     const patients = await prisma.patient.findMany({
       where: {
+        organizationId, // Multi-tenancy filter
         OR: [
           { id: { contains: searchTerm } },
           { name: { contains: searchTerm, mode: 'insensitive' } },
@@ -129,6 +132,7 @@ router.get('/global', authenticate, validate(globalSearchSchema, 'query'), async
   if (type === 'all' || type === 'procedures') {
     const procedures = await prisma.procedure.findMany({
       where: {
+        organizationId, // Multi-tenancy filter
         OR: [
           { patientId: { contains: searchTerm } },
           { patient: { name: { contains: searchTerm, mode: 'insensitive' } } },
@@ -166,6 +170,7 @@ router.get('/global', authenticate, validate(globalSearchSchema, 'query'), async
   if (type === 'all' || type === 'preops') {
     const preops = await prisma.preopEvaluation.findMany({
       where: {
+        organizationId, // Multi-tenancy filter
         OR: [
           { patientId: { contains: searchTerm } },
           { patient: { name: { contains: searchTerm, mode: 'insensitive' } } },
@@ -210,7 +215,7 @@ router.get('/global', authenticate, validate(globalSearchSchema, 'query'), async
  * GET /api/search/patients/advanced
  * Búsqueda avanzada de pacientes con múltiples filtros
  */
-router.get('/patients/advanced', authenticate, validate(advancedPatientSearchSchema, 'query'), asyncHandler(async (req, res) => {
+router.get('/patients/advanced', authenticate, tenantMiddleware, validate(advancedPatientSearchSchema, 'query'), asyncHandler(async (req, res) => {
   const {
     q,
     sex,
@@ -229,6 +234,7 @@ router.get('/patients/advanced', authenticate, validate(advancedPatientSearchSch
     sortBy,
     sortOrder,
   } = req.query;
+  const { organizationId } = req; // Multi-tenancy
 
   const skip = (page - 1) * limit;
 
@@ -246,8 +252,9 @@ router.get('/patients/advanced', authenticate, validate(advancedPatientSearchSch
     }
   }
 
-  // Construir where clause
+  // Construir where clause - SIEMPRE incluir organizationId
   const where = {
+    organizationId, // Multi-tenancy filter
     // Búsqueda de texto
     ...(q && {
       OR: [
@@ -359,7 +366,7 @@ router.get('/patients/advanced', authenticate, validate(advancedPatientSearchSch
  * GET /api/search/procedures/advanced
  * Búsqueda avanzada de procedimientos con múltiples filtros
  */
-router.get('/procedures/advanced', authenticate, validate(advancedProcedureSearchSchema, 'query'), asyncHandler(async (req, res) => {
+router.get('/procedures/advanced', authenticate, tenantMiddleware, validate(advancedProcedureSearchSchema, 'query'), asyncHandler(async (req, res) => {
   const {
     q,
     procedureType,
@@ -378,6 +385,7 @@ router.get('/procedures/advanced', authenticate, validate(advancedProcedureSearc
     sortBy,
     sortOrder,
   } = req.query;
+  const { organizationId } = req; // Multi-tenancy
 
   const skip = (page - 1) * limit;
 
@@ -389,7 +397,9 @@ router.get('/procedures/advanced', authenticate, validate(advancedProcedureSearc
     return undefined;
   };
 
+  // SIEMPRE incluir organizationId
   const where = {
+    organizationId, // Multi-tenancy filter
     // Búsqueda de texto
     ...(q && {
       OR: [
@@ -488,12 +498,16 @@ router.get('/procedures/advanced', authenticate, validate(advancedProcedureSearc
  * GET /api/search/patients/:id/timeline
  * Obtener timeline completo del paciente con todos los eventos
  */
-router.get('/patients/:id/timeline', authenticate, asyncHandler(async (req, res) => {
+router.get('/patients/:id/timeline', authenticate, tenantMiddleware, asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const { organizationId } = req; // Multi-tenancy
 
-  // Obtener paciente con todas sus relaciones
-  const patient = await prisma.patient.findUnique({
-    where: { id },
+  // Obtener paciente con todas sus relaciones, verificando organización
+  const patient = await prisma.patient.findFirst({
+    where: {
+      id,
+      organizationId, // Multi-tenancy filter
+    },
     include: {
       // Evaluaciones preoperatorias
       preops: {

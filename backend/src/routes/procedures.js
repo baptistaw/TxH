@@ -2,11 +2,12 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorize, ROLES } = require('../middlewares/auth');
+const { tenantMiddleware } = require('../middlewares/tenant');
 const { asyncHandler } = require('../middlewares/errorHandler');
 const prisma = require('../lib/prisma');
 
 // GET /api/procedures - Listar procedimientos
-router.get('/', authenticate, asyncHandler(async (req, res) => {
+router.get('/', authenticate, tenantMiddleware, asyncHandler(async (req, res) => {
   const {
     patientId,
     q: search,
@@ -24,9 +25,11 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
   } = req.query;
   const userId = req.user.id;
   const userRole = req.user.role;
+  const { organizationId } = req; // Multi-tenancy
 
-  // Construir filtros
+  // Construir filtros - SIEMPRE incluir organizationId
   const where = {
+    organizationId, // Multi-tenancy filter
     AND: [
       // Filtros básicos
       ...(patientId ? [{ patientId }] : []),
@@ -97,9 +100,13 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
 }));
 
 // GET /api/procedures/:id - Obtener procedimiento
-router.get('/:id', authenticate, asyncHandler(async (req, res) => {
-  const procedure = await prisma.procedure.findUnique({
-    where: { id: req.params.id },
+router.get('/:id', authenticate, tenantMiddleware, asyncHandler(async (req, res) => {
+  const { organizationId } = req; // Multi-tenancy
+  const procedure = await prisma.procedure.findFirst({
+    where: {
+      id: req.params.id,
+      organizationId, // Multi-tenancy filter
+    },
     include: {
       patient: true,
       clinician: { select: { id: true, name: true, specialty: true, email: true } },
@@ -113,12 +120,14 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
 }));
 
 // POST /api/procedures - Crear procedimiento
-router.post('/', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
+router.post('/', authenticate, tenantMiddleware, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
+    const { organizationId } = req; // Multi-tenancy
     const procedure = await prisma.procedure.create({
       data: {
         ...req.body,
+        organizationId, // Multi-tenancy
         clinicianId: req.body.clinicianId || userId, // Usar el ID del usuario logueado si no se especifica
       },
       include: {
@@ -131,14 +140,18 @@ router.post('/', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
 );
 
 // PUT /api/procedures/:id - Actualizar procedimiento
-router.put('/:id', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
+router.put('/:id', authenticate, tenantMiddleware, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
+    const { organizationId } = req; // Multi-tenancy
 
-    // Verificar que existe el procedimiento
-    const existingProcedure = await prisma.procedure.findUnique({
-      where: { id: req.params.id },
+    // Verificar que existe el procedimiento y pertenece a la organización
+    const existingProcedure = await prisma.procedure.findFirst({
+      where: {
+        id: req.params.id,
+        organizationId, // Multi-tenancy filter
+      },
       select: { clinicianId: true },
     });
 
@@ -163,8 +176,22 @@ router.put('/:id', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
 );
 
 // DELETE /api/procedures/:id - Eliminar procedimiento
-router.delete('/:id', authenticate, authorize(ROLES.ADMIN),
+router.delete('/:id', authenticate, tenantMiddleware, authorize(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
+    const { organizationId } = req; // Multi-tenancy
+
+    // Verificar que existe y pertenece a la organización
+    const existing = await prisma.procedure.findFirst({
+      where: {
+        id: req.params.id,
+        organizationId,
+      },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Procedimiento no encontrado' });
+    }
+
     await prisma.procedure.delete({
       where: { id: req.params.id },
     });
@@ -173,14 +200,18 @@ router.delete('/:id', authenticate, authorize(ROLES.ADMIN),
 );
 
 // POST /api/procedures/:id/intraop - Crear registro intraoperatorio
-router.post('/:id/intraop', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
+router.post('/:id/intraop', authenticate, tenantMiddleware, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
+    const { organizationId } = req; // Multi-tenancy
 
-    // Verificar que existe el procedimiento y permisos
-    const procedure = await prisma.procedure.findUnique({
-      where: { id: req.params.id },
+    // Verificar que existe el procedimiento y pertenece a la organización
+    const procedure = await prisma.procedure.findFirst({
+      where: {
+        id: req.params.id,
+        organizationId, // Multi-tenancy filter
+      },
       select: { clinicianId: true },
     });
 
@@ -213,14 +244,18 @@ router.post('/:id/intraop', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIO
 );
 
 // PUT /api/procedures/:id/intraop/:recordId - Actualizar registro intraoperatorio
-router.put('/:id/intraop/:recordId', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
+router.put('/:id/intraop/:recordId', authenticate, tenantMiddleware, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
+    const { organizationId } = req; // Multi-tenancy
 
-    // Verificar que existe el procedimiento y permisos
-    const procedure = await prisma.procedure.findUnique({
-      where: { id: req.params.id },
+    // Verificar que existe el procedimiento y pertenece a la organización
+    const procedure = await prisma.procedure.findFirst({
+      where: {
+        id: req.params.id,
+        organizationId, // Multi-tenancy filter
+      },
       select: { clinicianId: true },
     });
 
@@ -251,14 +286,18 @@ router.put('/:id/intraop/:recordId', authenticate, authorize(ROLES.ADMIN, ROLES.
 );
 
 // DELETE /api/procedures/:id/intraop/:recordId - Eliminar registro intraoperatorio
-router.delete('/:id/intraop/:recordId', authenticate, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
+router.delete('/:id/intraop/:recordId', authenticate, tenantMiddleware, authorize(ROLES.ADMIN, ROLES.ANESTESIOLOGO),
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
+    const { organizationId } = req; // Multi-tenancy
 
-    // Verificar que existe el procedimiento y permisos
-    const procedure = await prisma.procedure.findUnique({
-      where: { id: req.params.id },
+    // Verificar que existe el procedimiento y pertenece a la organización
+    const procedure = await prisma.procedure.findFirst({
+      where: {
+        id: req.params.id,
+        organizationId, // Multi-tenancy filter
+      },
       select: { clinicianId: true },
     });
 

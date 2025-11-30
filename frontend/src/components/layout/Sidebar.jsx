@@ -167,15 +167,17 @@ export default function Sidebar() {
       <div className="p-4 border-b border-dark-500">
         <div className="flex items-center justify-between">
           {!collapsed && (
-            <Link href="/dashboard" className="flex items-center gap-3">
+            <Link href="/dashboard" className="flex items-center gap-3 min-w-0 flex-1">
               <img
                 src={orgLogoUrl}
                 alt={orgName}
-                className="w-10 h-10 rounded-lg object-cover shadow-glow"
+                className="w-10 h-10 rounded-lg object-cover shadow-glow flex-shrink-0"
               />
-              <div className="flex-1 min-w-0">
-                <h1 className="text-sm font-bold text-surgical-400 truncate">{orgName}</h1>
-                <p className="text-xs text-gray-500">Sistema Anestesiológico</p>
+              <div className="flex-1 min-w-0 max-w-[140px]">
+                <h1 className="text-sm font-bold text-surgical-400 truncate" title={orgName}>
+                  {orgName}
+                </h1>
+                <p className="text-xs text-gray-500 truncate">Sistema Anestesiológico</p>
               </div>
             </Link>
           )}

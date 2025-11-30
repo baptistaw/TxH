@@ -38,17 +38,20 @@ export default function Navbar() {
           {/* Logo/Organización y navegación */}
           <div className="flex items-center gap-4">
             {/* Logo de la organización */}
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3 min-w-0 flex-shrink-0">
               <img
                 src={orgLogoUrl}
                 alt={orgName}
-                className="w-10 h-10 rounded-lg object-cover shadow-glow"
+                className="w-10 h-10 rounded-lg object-cover shadow-glow flex-shrink-0"
               />
-              <div>
-                <h1 className="text-lg font-bold text-surgical-400">
+              <div className="min-w-0 max-w-[200px] hidden sm:block">
+                <h1
+                  className="text-lg font-bold text-surgical-400 truncate"
+                  title={orgName}
+                >
                   {orgName}
                 </h1>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 truncate">
                   Sistema Anestesiológico
                 </p>
               </div>

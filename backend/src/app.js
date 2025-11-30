@@ -30,6 +30,7 @@ const searchRouter = require('./routes/search');
 const rotemRouter = require('./routes/rotem');
 const ocrRouter = require('./routes/ocr');
 const contactRouter = require('./routes/contact.routes');
+const signaturesRouter = require('./routes/signatures');
 
 // Crear app
 const app = express();
@@ -122,6 +123,7 @@ app.get('/api', (req, res) => {
       search: '/api/search',
       rotem: '/api/rotem',
       ocr: '/api/ocr',
+      signatures: '/api/signatures',
     },
   });
 });
@@ -147,6 +149,7 @@ app.use('/api/search', searchRouter);
 app.use('/api/rotem', rotemRouter);
 app.use('/api/ocr', ocrRouter);
 app.use('/api/contact', contactRouter);
+app.use('/api/signatures', signaturesRouter);
 
 // ==============================================================================
 // MANEJO DE ERRORES

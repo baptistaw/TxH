@@ -189,16 +189,20 @@ async function updateProfile(req, res, next) {
  * POST /api/auth/bootstrap
  *
  * REQUISITOS:
- * 1. No debe existir ningún ADMIN en la BD
+ * 1. No debe existir ningún ADMIN en la BD para esta organización
  * 2. El usuario debe tener rol org:admin en Clerk
  *
  * Esto garantiza que Clerk tiene control absoluto sobre quién
  * puede convertirse en el primer administrador del sistema.
+ *
+ * MULTI-TENANCY:
+ * - Crea la Organization si no existe
+ * - Vincula el ADMIN a esa organización
  */
 async function bootstrap(req, res, next) {
   try {
-    const { clerkId, email, orgRole, orgId } = req.user;
-    const { name, specialty } = req.body;
+    const { clerkId, email, orgRole, orgId, orgSlug } = req.user;
+    const { name, specialty, organizationName } = req.body;
 
     // 1. Verificar que el usuario sea org:admin en Clerk
     if (orgRole !== 'org:admin') {
@@ -216,36 +220,70 @@ async function bootstrap(req, res, next) {
       });
     }
 
-    // 2. Verificar que no existan ADMINs en la BD
+    // 2. Verificar que tiene una organización en Clerk
+    if (!orgId) {
+      return res.status(400).json({
+        error: 'Organización requerida',
+        message: 'Debes pertenecer a una organización en Clerk para hacer bootstrap.',
+      });
+    }
+
+    // 3. Buscar o crear la Organization en nuestra BD
+    let organization = await prisma.organization.findUnique({
+      where: { id: orgId },
+    });
+
+    if (!organization) {
+      organization = await prisma.organization.create({
+        data: {
+          id: orgId,
+          name: organizationName || orgSlug || 'Nueva Organización',
+          slug: orgSlug,
+        },
+      });
+
+      logger.info('Organization created during bootstrap', {
+        orgId,
+        orgSlug,
+        name: organization.name,
+      });
+    }
+
+    // 4. Verificar que no existan ADMINs en esta organización
     const existingAdmin = await prisma.clinician.findFirst({
-      where: { userRole: 'ADMIN' },
+      where: {
+        userRole: 'ADMIN',
+        organizationId: orgId, // Multi-tenancy: solo buscar en esta org
+      },
       select: { id: true, email: true },
     });
 
     if (existingAdmin) {
-      logger.warn('Bootstrap attempt with existing admin', {
+      logger.warn('Bootstrap attempt with existing admin in organization', {
         email,
         existingAdminEmail: existingAdmin.email,
+        orgId,
       });
 
       return res.status(409).json({
         error: 'Bootstrap no disponible',
-        message: 'Ya existe un administrador en el sistema. Contacta al admin existente para crear tu cuenta.',
+        message: 'Ya existe un administrador en esta organización. Contacta al admin existente para crear tu cuenta.',
       });
     }
 
-    // 3. Verificar que el usuario no exista ya en la BD
+    // 5. Verificar si el usuario ya existe en la BD (en cualquier org)
     const existingUser = await prisma.clinician.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      // Usuario existe pero no es admin - actualizar a ADMIN
+      // Usuario existe - actualizar a ADMIN y vincular a esta organización
       const updatedUser = await prisma.clinician.update({
         where: { id: existingUser.id },
         data: {
           userRole: 'ADMIN',
           clerkId,
+          organizationId: orgId, // Multi-tenancy
           name: name || existingUser.name,
           specialty: specialty || existingUser.specialty,
         },
@@ -256,6 +294,7 @@ async function bootstrap(req, res, next) {
           specialty: true,
           userRole: true,
           clerkId: true,
+          organizationId: true,
         },
       });
 
@@ -271,10 +310,14 @@ async function bootstrap(req, res, next) {
           ...updatedUser,
           role: updatedUser.userRole,
         },
+        organization: {
+          id: organization.id,
+          name: organization.name,
+        },
       });
     }
 
-    // 4. Crear nuevo usuario como ADMIN
+    // 6. Crear nuevo usuario como ADMIN
     if (!name) {
       return res.status(400).json({
         error: 'Datos incompletos',
@@ -289,6 +332,7 @@ async function bootstrap(req, res, next) {
         name,
         specialty: specialty || 'OTRO',
         userRole: 'ADMIN',
+        organizationId: orgId, // Multi-tenancy
       },
       select: {
         id: true,
@@ -297,6 +341,7 @@ async function bootstrap(req, res, next) {
         specialty: true,
         userRole: true,
         clerkId: true,
+        organizationId: true,
       },
     });
 
@@ -304,6 +349,7 @@ async function bootstrap(req, res, next) {
       userId: newAdmin.id,
       email,
       orgId,
+      organizationName: organization.name,
     });
 
     return res.status(201).json({
@@ -311,6 +357,10 @@ async function bootstrap(req, res, next) {
       user: {
         ...newAdmin,
         role: newAdmin.userRole,
+      },
+      organization: {
+        id: organization.id,
+        name: organization.name,
       },
     });
   } catch (error) {
@@ -322,15 +372,28 @@ async function bootstrap(req, res, next) {
 /**
  * Check bootstrap status
  * GET /api/auth/bootstrap/status
- * Verifica si el bootstrap está disponible (no hay ADMINs)
+ * Verifica si el bootstrap está disponible (no hay ADMINs en esta organización)
+ * MULTI-TENANCY: Verifica por organización, no globalmente
  */
 async function getBootstrapStatus(req, res, next) {
   try {
-    const { orgRole } = req.user;
+    const { orgRole, orgId } = req.user;
 
-    // Contar ADMINs existentes
+    // Si no tiene organización en Clerk, no puede hacer bootstrap
+    if (!orgId) {
+      return res.json({
+        bootstrapAvailable: false,
+        isEligible: false,
+        message: 'Debes pertenecer a una organización en Clerk para hacer bootstrap.',
+      });
+    }
+
+    // Contar ADMINs existentes en esta organización
     const adminCount = await prisma.clinician.count({
-      where: { userRole: 'ADMIN' },
+      where: {
+        userRole: 'ADMIN',
+        organizationId: orgId, // Multi-tenancy: solo en esta org
+      },
     });
 
     const isAvailable = adminCount === 0;
@@ -339,11 +402,12 @@ async function getBootstrapStatus(req, res, next) {
     res.json({
       bootstrapAvailable: isAvailable,
       isEligible,
+      organizationId: orgId,
       message: isAvailable
         ? isEligible
-          ? 'Puedes crear el primer administrador del sistema.'
+          ? 'Puedes crear el primer administrador de esta organización.'
           : 'El bootstrap está disponible pero necesitas ser org:admin en Clerk.'
-        : 'Ya existe un administrador en el sistema.',
+        : 'Ya existe un administrador en esta organización.',
     });
   } catch (error) {
     logger.error('Bootstrap status error', { error: error.message });

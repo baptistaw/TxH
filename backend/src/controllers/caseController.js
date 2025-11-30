@@ -23,6 +23,7 @@ const getAllCases = asyncHandler(async (req, res) => {
   } = req.query;
   const userId = req.user.id;
   const userRole = req.user.role;
+  const { organizationId } = req; // Multi-tenancy
 
   // Nuevo sistema de permisos:
   // - Admin ve todos los casos siempre
@@ -32,6 +33,7 @@ const getAllCases = asyncHandler(async (req, res) => {
   const filterByClinicianId = myPatients === 'true' ? userId : (clinicianId ? parseInt(clinicianId) : undefined);
 
   const result = await caseService.getAllCases({
+    organizationId, // Multi-tenancy filter
     page: parseInt(page) || 1,
     limit: parseInt(limit) || 20,
     search,
@@ -52,12 +54,14 @@ const getAllCases = asyncHandler(async (req, res) => {
 });
 
 const getCaseById = asyncHandler(async (req, res) => {
-  const transplantCase = await caseService.getCaseById(req.params.id);
+  const { organizationId } = req; // Multi-tenancy
+  const transplantCase = await caseService.getCaseById(req.params.id, organizationId);
   res.json(transplantCase);
 });
 
 const createCase = asyncHandler(async (req, res) => {
-  const transplantCase = await caseService.createCase(req.body);
+  const { organizationId } = req; // Multi-tenancy
+  const transplantCase = await caseService.createCase(req.body, organizationId);
   res.status(201).json(transplantCase);
 });
 
@@ -65,6 +69,7 @@ const updateCase = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const userRole = req.user.role;
   const caseId = req.params.id;
+  const { organizationId } = req; // Multi-tenancy
 
   console.log('🔐 PERMISSION CHECK - updateCase');
   console.log(`   User ID: ${userId}`);
@@ -102,12 +107,13 @@ const updateCase = asyncHandler(async (req, res) => {
     console.log('   ✅ Permission granted - user is ADMIN');
   }
 
-  const transplantCase = await caseService.updateCase(caseId, req.body);
+  const transplantCase = await caseService.updateCase(caseId, req.body, organizationId);
   res.json(transplantCase);
 });
 
 const deleteCase = asyncHandler(async (req, res) => {
-  await caseService.deleteCase(req.params.id);
+  const { organizationId } = req; // Multi-tenancy
+  await caseService.deleteCase(req.params.id, organizationId);
   res.status(204).send();
 });
 

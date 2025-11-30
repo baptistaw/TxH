@@ -424,6 +424,184 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Coming Soon Section */}
+      <section id="coming-soon" className="py-32 px-4 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[120px] animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto">
+          {/* Section Header */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full mb-6">
+              <div className="w-2 h-2 bg-amber-400 rounded-full animate-ping"></div>
+              <span className="text-amber-400 font-medium text-sm">Proximamente</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+              Expandiendo fronteras
+              <span className="block text-gray-500">en trasplante</span>
+            </h2>
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+              Nuestra plataforma esta evolucionando para soportar todos los programas de trasplante de organos solidos.
+              Misma tecnologia AI, adaptada a cada especialidad.
+            </p>
+          </div>
+
+          {/* Coming Soon Cards */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Renal Card */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="relative bg-gradient-to-br from-dark-600 to-dark-700 rounded-3xl p-8 border border-dark-400 hover:border-emerald-500/50 transition-all duration-500">
+                {/* Coming Soon Badge */}
+                <div className="absolute top-4 right-4">
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full border border-emerald-500/30">
+                    Q2 2025
+                  </span>
+                </div>
+
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                  </svg>
+                </div>
+
+                <h3 className="text-2xl font-bold text-white mb-3">Trasplante Renal</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  Soporte completo para trasplante renal incluyendo donante vivo, tipaje HLA, crossmatch y seguimiento inmunologico.
+                </p>
+
+                <div className="space-y-3 mb-6">
+                  <FeatureItem text="Donante vivo y cadaverico" color="emerald" />
+                  <FeatureItem text="Panel de anticuerpos (PRA)" color="emerald" />
+                  <FeatureItem text="Compatibilidad HLA" color="emerald" />
+                  <FeatureItem text="Seguimiento de creatinina" color="emerald" />
+                </div>
+
+                <div className="pt-4 border-t border-dark-400">
+                  <div className="flex items-center gap-2 text-gray-500 text-sm">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    En desarrollo activo
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reno-Pancreatico (SPK) Card - Featured */}
+            <div className="group relative md:col-span-2 lg:col-span-1 lg:scale-105">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="relative bg-gradient-to-br from-dark-600 to-dark-700 rounded-3xl p-8 border-2 border-amber-500/30 hover:border-amber-500/60 transition-all duration-500">
+                {/* Featured Badge */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-dark-600 text-xs font-bold rounded-full shadow-lg shadow-amber-500/30">
+                    MAS SOLICITADO
+                  </span>
+                </div>
+
+                {/* Coming Soon Badge */}
+                <div className="absolute top-4 right-4">
+                  <span className="px-3 py-1 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full border border-amber-500/30">
+                    Q3 2025
+                  </span>
+                </div>
+
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform mt-2">
+                  <svg className="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </div>
+
+                <h3 className="text-2xl font-bold text-white mb-1">Trasplante Reno-Pancreatico</h3>
+                <p className="text-amber-400 text-sm font-medium mb-3">SPK - Simultaneous Pancreas-Kidney</p>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  El trasplante combinado mas frecuente. Soporte integral para diabeticos tipo 1 con nefropatia terminal.
+                  Registro de ambos organos en un solo procedimiento.
+                </p>
+
+                <div className="space-y-3 mb-6">
+                  <FeatureItem text="Flujo SPK optimizado (85-90% de los casos)" color="amber" />
+                  <FeatureItem text="Tiempos de isquemia por organo" color="amber" />
+                  <FeatureItem text="Seguimiento C-peptido y HbA1c" color="amber" />
+                  <FeatureItem text="Funcion renal y pancreatica" color="amber" />
+                  <FeatureItem text="Drenaje exocrino (enterico/vesical)" color="amber" />
+                </div>
+
+                <div className="pt-4 border-t border-dark-400">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-amber-400 text-sm font-medium">
+                      <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                      Alta prioridad
+                    </div>
+                    <span className="text-gray-500 text-xs">Documentacion disponible</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hepato-Renal Card */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="relative bg-gradient-to-br from-dark-600 to-dark-700 rounded-3xl p-8 border border-dark-400 hover:border-purple-500/50 transition-all duration-500">
+                {/* Coming Soon Badge */}
+                <div className="absolute top-4 right-4">
+                  <span className="px-3 py-1 bg-purple-500/20 text-purple-400 text-xs font-medium rounded-full border border-purple-500/30">
+                    Q4 2025
+                  </span>
+                </div>
+
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+
+                <h3 className="text-2xl font-bold text-white mb-3">Trasplante Hepato-Renal</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  Trasplante combinado de higado y rinon para sindrome hepatorrenal, poliquistosis o hiperoxaluria primaria.
+                </p>
+
+                <div className="space-y-3 mb-6">
+                  <FeatureItem text="Extension del modulo hepatico actual" color="purple" />
+                  <FeatureItem text="Manejo de sindrome hepatorrenal" color="purple" />
+                  <FeatureItem text="Tiempos de isquemia separados" color="purple" />
+                </div>
+
+                <div className="pt-4 border-t border-dark-400">
+                  <div className="flex items-center gap-2 text-gray-500 text-sm">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Planificado
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Newsletter / Interest Form */}
+          <div className="mt-16 text-center">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 bg-dark-600/50 backdrop-blur-xl rounded-2xl border border-dark-400">
+              <div className="text-left">
+                <p className="text-white font-medium">¿Interesado en estos programas?</p>
+                <p className="text-gray-400 text-sm">Contactanos para ser parte del programa piloto</p>
+              </div>
+              <a
+                href="#contact"
+                className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-dark-600 font-semibold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/25 flex items-center gap-2 whitespace-nowrap"
+              >
+                Solicitar acceso anticipado
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Contact Form Section */}
       <section id="contact" className="py-32 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-dark-500 to-dark-600"></div>
@@ -629,6 +807,23 @@ function WorkflowStep({ number, title, description, color }) {
         <h4 className="text-lg font-semibold text-white mb-1">{title}</h4>
         <p className="text-gray-400">{description}</p>
       </div>
+    </div>
+  );
+}
+
+function FeatureItem({ text, color }) {
+  const colors = {
+    emerald: 'text-emerald-400',
+    amber: 'text-amber-400',
+    purple: 'text-purple-400',
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <svg className={`w-4 h-4 ${colors[color]} flex-shrink-0`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+      <span className="text-gray-300 text-sm">{text}</span>
     </div>
   );
 }
