@@ -2,19 +2,18 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 // Rutas públicas que no requieren autenticación
+// NOTA: sign-up está deshabilitado - solo admins pueden crear usuarios
 const isPublicRoute = createRouteMatcher([
   '/', // Landing page
   '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/login(.*)', // Redirigir a sign-in
   '/api/webhooks(.*)', // Webhooks de Clerk
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname;
 
-  // Redirigir /login a /sign-in
-  if (pathname.startsWith('/login')) {
+  // Redirigir /login y /sign-up a /sign-in (sign-up deshabilitado)
+  if (pathname.startsWith('/login') || pathname.startsWith('/sign-up')) {
     return Response.redirect(new URL('/sign-in', req.url));
   }
 
