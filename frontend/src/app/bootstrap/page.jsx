@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useOrganizationList } from '@clerk/nextjs';
 import { authApi } from '@/lib/api';
 import { useOrganization } from '@/hooks/useOrganization';
 
@@ -20,22 +20,60 @@ const SPECIALTIES = [
 export default function BootstrapPage() {
   const router = useRouter();
   const { user, isLoaded: userLoaded } = useUser();
-  const { name: orgName, logoUrl: orgLogoUrl, memberRole, isLoaded: orgLoaded } = useOrganization();
+  const { userMemberships, setActive, isLoaded: orgListLoaded } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
+  const { name: orgName, logoUrl: orgLogoUrl, memberRole, isLoaded: orgLoaded, hasOrganization, id: currentOrgId } = useOrganization();
 
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [activatingOrg, setActivatingOrg] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
     specialty: 'ANESTESIOLOGIA',
   });
 
+  // Activar automáticamente la primera organización si el usuario tiene una pero no está activa
+  useEffect(() => {
+    async function activateFirstOrganization() {
+      if (!orgListLoaded || !userLoaded || activatingOrg) return;
+
+      // Si ya tiene organización activa, no hacer nada
+      if (hasOrganization && currentOrgId) return;
+
+      // Verificar si tiene membresías
+      const memberships = userMemberships?.data || [];
+      if (memberships.length > 0) {
+        const firstOrg = memberships[0].organization;
+        console.log('Activating organization:', firstOrg.name);
+        setActivatingOrg(true);
+
+        try {
+          await setActive({ organization: firstOrg.id });
+          // La página se recargará automáticamente con la organización activa
+        } catch (err) {
+          console.error('Error activating organization:', err);
+          setActivatingOrg(false);
+        }
+      }
+    }
+
+    activateFirstOrganization();
+  }, [orgListLoaded, userLoaded, hasOrganization, currentOrgId, userMemberships, setActive, activatingOrg]);
+
   // Verificar estado del bootstrap al cargar
   useEffect(() => {
     async function checkBootstrapStatus() {
-      if (!userLoaded || !orgLoaded) return;
+      if (!userLoaded || !orgLoaded || activatingOrg) return;
+
+      // Si no tiene organización activa, esperar a que se active
+      if (!hasOrganization) {
+        setLoading(true);
+        return;
+      }
 
       try {
         const response = await authApi.getBootstrapStatus();
@@ -60,7 +98,7 @@ export default function BootstrapPage() {
     }
 
     checkBootstrapStatus();
-  }, [userLoaded, orgLoaded, user, router]);
+  }, [userLoaded, orgLoaded, user, router, hasOrganization, activatingOrg]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -2,7 +2,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useUser, useAuth as useClerkAuth, useClerk } from '@clerk/nextjs';
+import { useUser, useAuth as useClerkAuth, useClerk, useOrganizationList, useOrganization } from '@clerk/nextjs';
 import { useRouter, usePathname } from 'next/navigation';
 import { authApi, initializeAuth } from '@/lib/api';
 
@@ -13,6 +13,10 @@ export function AuthProvider({ children }) {
   const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn } = useUser();
   const { getToken } = useClerkAuth();
   const { signOut } = useClerk();
+  const { organization: activeOrg, isLoaded: orgLoaded } = useOrganization();
+  const { userMemberships, setActive, isLoaded: orgListLoaded } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
   const router = useRouter();
   const pathname = usePathname();
 
@@ -21,6 +25,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [synced, setSynced] = useState(false);
   const [bootstrapStatus, setBootstrapStatus] = useState(null);
+  const [activatingOrg, setActivatingOrg] = useState(false);
 
   // Inicializar API con función de obtención de token de Clerk
   useEffect(() => {
@@ -28,6 +33,36 @@ export function AuthProvider({ children }) {
       initializeAuth(getToken);
     }
   }, [getToken]);
+
+  // Activar automáticamente la primera organización si el usuario tiene una pero no está activa
+  useEffect(() => {
+    async function activateFirstOrganization() {
+      // Solo ejecutar si todo está cargado y el usuario está autenticado
+      if (!orgListLoaded || !isClerkLoaded || !isSignedIn || activatingOrg) return;
+
+      // Si ya tiene organización activa, no hacer nada
+      if (activeOrg) return;
+
+      // Verificar si tiene membresías
+      const memberships = userMemberships?.data || [];
+      if (memberships.length > 0) {
+        const firstOrg = memberships[0].organization;
+        console.log('Auto-activating organization:', firstOrg.name);
+        setActivatingOrg(true);
+
+        try {
+          await setActive({ organization: firstOrg.id });
+          // El token se actualizará automáticamente con el org_id
+        } catch (err) {
+          console.error('Error activating organization:', err);
+        } finally {
+          setActivatingOrg(false);
+        }
+      }
+    }
+
+    activateFirstOrganization();
+  }, [orgListLoaded, isClerkLoaded, isSignedIn, activeOrg, userMemberships, setActive, activatingOrg]);
 
   // Sincronizar usuario de Clerk con BD local
   const syncUserWithDB = useCallback(async () => {
@@ -149,9 +184,14 @@ export function AuthProvider({ children }) {
     return await getToken();
   }, [isSignedIn, getToken]);
 
+  // Estado de organización
+  const hasOrganization = !!activeOrg;
+  const organizationId = activeOrg?.id || null;
+  const organizationName = activeOrg?.name || 'Sistema TxH';
+
   const value = {
     user,
-    loading: !isClerkLoaded || loading,
+    loading: !isClerkLoaded || loading || activatingOrg,
     isSignedIn,
     synced,
     bootstrapStatus,
@@ -162,6 +202,10 @@ export function AuthProvider({ children }) {
     updateUser,
     getAuthToken,
     syncUserWithDB,
+    // Organización
+    hasOrganization,
+    organizationId,
+    organizationName,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

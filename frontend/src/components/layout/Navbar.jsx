@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { UserButton } from '@clerk/nextjs';
+import { UserButton, OrganizationSwitcher } from '@clerk/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import GlobalSearch from '@/components/search/GlobalSearch';
@@ -31,31 +31,47 @@ export default function Navbar() {
     },
   };
 
+  // Estilos para OrganizationSwitcher
+  const orgSwitcherAppearance = {
+    elements: {
+      rootBox: 'flex items-center',
+      organizationSwitcherTrigger: 'bg-dark-700 border border-dark-400 hover:border-surgical-500 rounded-lg px-3 py-2 text-gray-300 hover:text-white transition-colors',
+      organizationSwitcherTriggerIcon: 'text-gray-400',
+      organizationPreviewMainIdentifier: 'text-gray-200 font-medium',
+      organizationPreviewSecondaryIdentifier: 'text-gray-500',
+      organizationSwitcherPopoverCard: 'bg-dark-600 border-dark-400',
+      organizationSwitcherPopoverActions: 'border-dark-400',
+      organizationSwitcherPopoverActionButton: 'text-gray-300 hover:bg-dark-500',
+      organizationSwitcherPopoverFooter: 'border-dark-400',
+    },
+  };
+
   return (
     <nav className="bg-dark-600 border-b border-dark-400 shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo/Organización y navegación */}
           <div className="flex items-center gap-4">
-            {/* Logo de la organización */}
-            <Link href="/" className="flex items-center gap-3 min-w-0 flex-shrink-0">
-              <img
-                src={orgLogoUrl}
-                alt={orgName}
-                className="w-10 h-10 rounded-lg object-cover shadow-glow flex-shrink-0"
-              />
-              <div className="min-w-0 max-w-[200px] hidden sm:block">
-                <h1
-                  className="text-lg font-bold text-surgical-400 truncate"
-                  title={orgName}
-                >
-                  {orgName}
-                </h1>
-                <p className="text-xs text-gray-500 truncate">
-                  Sistema Anestesiológico
-                </p>
-              </div>
-            </Link>
+            {/* Logo y selector de organización */}
+            <div className="flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-3 min-w-0 flex-shrink-0">
+                <img
+                  src={orgLogoUrl}
+                  alt={orgName}
+                  className="w-10 h-10 rounded-lg object-cover shadow-glow flex-shrink-0"
+                />
+              </Link>
+
+              {/* Organization Switcher de Clerk */}
+              {isSignedIn && (
+                <OrganizationSwitcher
+                  appearance={orgSwitcherAppearance}
+                  hidePersonal={true}
+                  afterSelectOrganizationUrl="/dashboard"
+                  afterLeaveOrganizationUrl="/sign-in"
+                />
+              )}
+            </div>
 
             {/* Navigation links */}
             <div className="hidden md:flex items-center gap-2 ml-4">

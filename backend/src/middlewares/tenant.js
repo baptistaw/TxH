@@ -10,9 +10,6 @@ const logger = require('../lib/logger');
  *
  * También puede crear la organización automáticamente si no existe
  * (útil para el bootstrap inicial).
- *
- * MODO TRANSICIÓN: Durante la migración de datos históricos, permite
- * acceso sin organización para usuarios autenticados.
  */
 const tenantMiddleware = async (req, res, next) => {
   try {
@@ -26,18 +23,17 @@ const tenantMiddleware = async (req, res, next) => {
 
     const { orgId, orgSlug } = req.user;
 
-    // MODO TRANSICIÓN: Permitir acceso sin organización durante migración
-    // TODO: Cambiar a strict mode después de migrar todos los datos
+    // Sin organización activa en Clerk, denegar acceso
     if (!orgId) {
-      logger.debug('User without organization accessing system (transition mode)', {
+      logger.warn('User without organization tried to access', {
         email: req.user.email,
         clerkId: req.user.clerkId,
       });
 
-      // Permitir acceso sin organizationId (datos no filtrados por org)
-      req.organizationId = null;
-      req.organization = null;
-      return next();
+      return res.status(403).json({
+        error: 'No organization',
+        message: 'Debes seleccionar una organización para acceder al sistema. Usa el selector de organización en la barra de navegación.',
+      });
     }
 
     // Buscar o crear la organización en nuestra BD
@@ -91,6 +87,20 @@ const tenantMiddleware = async (req, res, next) => {
 };
 
 /**
+ * Middleware estricto para operaciones de escritura
+ * REQUIERE organización para crear/modificar/eliminar datos
+ */
+const requireOrganization = (req, res, next) => {
+  if (!req.organizationId) {
+    return res.status(403).json({
+      error: 'No organization',
+      message: 'Debes pertenecer a una organización para realizar esta operación.',
+    });
+  }
+  next();
+};
+
+/**
  * Middleware opcional de tenant
  * No falla si no hay organización, pero la inyecta si existe
  */
@@ -118,18 +128,14 @@ const optionalTenant = async (req, res, next) => {
 /**
  * Helper para agregar filtro de organización a queries de Prisma
  *
- * MODO TRANSICIÓN: Si no hay organizationId, no agrega filtro
- * (devuelve todos los datos sin filtrar por org)
- *
  * Uso:
  * const patients = await prisma.patient.findMany({
  *   where: withOrg(req, { name: { contains: 'Juan' } }),
  * });
  */
 function withOrg(req, where = {}) {
-  // Modo transición: sin organizationId, devolver query sin filtro de org
   if (!req.organizationId) {
-    return where;
+    throw new Error('organizationId not set. Did you forget to use tenantMiddleware?');
   }
 
   return {
@@ -141,17 +147,14 @@ function withOrg(req, where = {}) {
 /**
  * Helper para agregar organizationId a datos de creación
  *
- * MODO TRANSICIÓN: Si no hay organizationId, no lo agrega
- *
  * Uso:
  * const patient = await prisma.patient.create({
  *   data: withOrgData(req, { name: 'Juan', ... }),
  * });
  */
 function withOrgData(req, data = {}) {
-  // Modo transición: sin organizationId, crear sin org
   if (!req.organizationId) {
-    return data;
+    throw new Error('organizationId not set. Did you forget to use tenantMiddleware?');
   }
 
   return {
@@ -162,6 +165,7 @@ function withOrgData(req, data = {}) {
 
 module.exports = {
   tenantMiddleware,
+  requireOrganization,
   optionalTenant,
   withOrg,
   withOrgData,
