@@ -450,18 +450,25 @@ export default function LandingPage() {
 
           {/* Coming Soon Cards */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Renal Card */}
-            <div className="group relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative bg-gradient-to-br from-dark-600 to-dark-700 rounded-3xl p-8 border border-dark-400 hover:border-emerald-500/50 transition-all duration-500">
-                {/* Coming Soon Badge */}
-                <div className="absolute top-4 right-4">
-                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full border border-emerald-500/30">
-                    Q2 2025
+            {/* Renal Card - Featured / Most Requested */}
+            <div className="group relative md:col-span-2 lg:col-span-1 lg:scale-105">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="relative bg-gradient-to-br from-dark-600 to-dark-700 rounded-3xl p-8 border-2 border-emerald-500/30 hover:border-emerald-500/60 transition-all duration-500">
+                {/* Featured Badge */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-dark-600 text-xs font-bold rounded-full shadow-lg shadow-emerald-500/30">
+                    MAS SOLICITADO
                   </span>
                 </div>
 
-                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                {/* Coming Soon Badge */}
+                <div className="absolute top-4 right-4">
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full border border-emerald-500/30">
+                    Q1 2025
+                  </span>
+                </div>
+
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform mt-2">
                   <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                   </svg>
@@ -480,7 +487,49 @@ export default function LandingPage() {
                 </div>
 
                 <div className="pt-4 border-t border-dark-400">
-                  <div className="flex items-center gap-2 text-gray-500 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                      Alta prioridad
+                    </div>
+                    <span className="text-gray-500 text-xs">Documentacion disponible</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reno-Pancreatico (SPK) Card - Active Development */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="relative bg-gradient-to-br from-dark-600 to-dark-700 rounded-3xl p-8 border border-dark-400 hover:border-amber-500/50 transition-all duration-500">
+                {/* Coming Soon Badge */}
+                <div className="absolute top-4 right-4">
+                  <span className="px-3 py-1 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full border border-amber-500/30">
+                    Q2 2025
+                  </span>
+                </div>
+
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </div>
+
+                <h3 className="text-2xl font-bold text-white mb-1">Trasplante Reno-Pancreatico</h3>
+                <p className="text-amber-400 text-sm font-medium mb-3">SPK - Simultaneous Pancreas-Kidney</p>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  El trasplante combinado mas frecuente (85-90%). Soporte integral para diabeticos tipo 1 con nefropatia terminal.
+                </p>
+
+                <div className="space-y-3 mb-6">
+                  <FeatureItem text="Flujo SPK optimizado" color="amber" />
+                  <FeatureItem text="Tiempos de isquemia por organo" color="amber" />
+                  <FeatureItem text="Seguimiento C-peptido y HbA1c" color="amber" />
+                  <FeatureItem text="Drenaje exocrino (enterico/vesical)" color="amber" />
+                </div>
+
+                <div className="pt-4 border-t border-dark-400">
+                  <div className="flex items-center gap-2 text-amber-400 text-sm">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -490,65 +539,14 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Reno-Pancreatico (SPK) Card - Featured */}
-            <div className="group relative md:col-span-2 lg:col-span-1 lg:scale-105">
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative bg-gradient-to-br from-dark-600 to-dark-700 rounded-3xl p-8 border-2 border-amber-500/30 hover:border-amber-500/60 transition-all duration-500">
-                {/* Featured Badge */}
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-dark-600 text-xs font-bold rounded-full shadow-lg shadow-amber-500/30">
-                    MAS SOLICITADO
-                  </span>
-                </div>
-
-                {/* Coming Soon Badge */}
-                <div className="absolute top-4 right-4">
-                  <span className="px-3 py-1 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full border border-amber-500/30">
-                    Q3 2025
-                  </span>
-                </div>
-
-                <div className="w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform mt-2">
-                  <svg className="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </div>
-
-                <h3 className="text-2xl font-bold text-white mb-1">Trasplante Reno-Pancreatico</h3>
-                <p className="text-amber-400 text-sm font-medium mb-3">SPK - Simultaneous Pancreas-Kidney</p>
-                <p className="text-gray-400 mb-6 leading-relaxed">
-                  El trasplante combinado mas frecuente. Soporte integral para diabeticos tipo 1 con nefropatia terminal.
-                  Registro de ambos organos en un solo procedimiento.
-                </p>
-
-                <div className="space-y-3 mb-6">
-                  <FeatureItem text="Flujo SPK optimizado (85-90% de los casos)" color="amber" />
-                  <FeatureItem text="Tiempos de isquemia por organo" color="amber" />
-                  <FeatureItem text="Seguimiento C-peptido y HbA1c" color="amber" />
-                  <FeatureItem text="Funcion renal y pancreatica" color="amber" />
-                  <FeatureItem text="Drenaje exocrino (enterico/vesical)" color="amber" />
-                </div>
-
-                <div className="pt-4 border-t border-dark-400">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-amber-400 text-sm font-medium">
-                      <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                      Alta prioridad
-                    </div>
-                    <span className="text-gray-500 text-xs">Documentacion disponible</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Hepato-Renal Card */}
+            {/* Hepato-Renal Card - Active Development */}
             <div className="group relative">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative bg-gradient-to-br from-dark-600 to-dark-700 rounded-3xl p-8 border border-dark-400 hover:border-purple-500/50 transition-all duration-500">
                 {/* Coming Soon Badge */}
                 <div className="absolute top-4 right-4">
                   <span className="px-3 py-1 bg-purple-500/20 text-purple-400 text-xs font-medium rounded-full border border-purple-500/30">
-                    Q4 2025
+                    Q2 2025
                   </span>
                 </div>
 
@@ -570,11 +568,11 @@ export default function LandingPage() {
                 </div>
 
                 <div className="pt-4 border-t border-dark-400">
-                  <div className="flex items-center gap-2 text-gray-500 text-sm">
+                  <div className="flex items-center gap-2 text-purple-400 text-sm">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Planificado
+                    En desarrollo activo
                   </div>
                 </div>
               </div>
