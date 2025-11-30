@@ -21,11 +21,17 @@ export function AuthProvider({ children }) {
   const [synced, setSynced] = useState(false);
 
   // Inicializar API con función de obtención de token de Clerk
+  // Pasamos una función que siempre obtiene token fresco con org_id
   useEffect(() => {
-    if (getToken) {
-      initializeAuth(getToken);
+    if (getToken && activeOrg) {
+      // Wrapper que fuerza skipCache para asegurar que el token tenga org_id
+      const getTokenWithOrg = async () => {
+        return await getToken({ skipCache: true });
+      };
+      initializeAuth(getTokenWithOrg);
+      console.log('API initialized with org token for:', activeOrg.name);
     }
-  }, [getToken]);
+  }, [getToken, activeOrg]);
 
   // Sincronizar usuario de Clerk con BD local (solo cuando hay org activa)
   const syncUserWithDB = useCallback(async () => {
