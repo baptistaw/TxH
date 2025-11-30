@@ -2,20 +2,27 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorize, ROLES } = require('../middlewares/auth');
+const { tenantMiddleware } = require('../middlewares/tenant');
 const { asyncHandler } = require('../middlewares/errorHandler');
 const prisma = require('../lib/prisma');
+
+// Todas las rutas de admin requieren autenticación, autorización ADMIN, y organización
+router.use(authenticate);
+router.use(authorize(ROLES.ADMIN));
+router.use(tenantMiddleware);
 
 // ==============================================================================
 // GESTIÓN DE USUARIOS (Clinicians)
 // ==============================================================================
 
-// GET /api/admin/users - Listar todos los usuarios
-router.get('/users', authenticate, authorize(ROLES.ADMIN),
+// GET /api/admin/users - Listar todos los usuarios de la organización
+router.get('/users',
   asyncHandler(async (req, res) => {
     const { page = 1, limit = 50, search, role, active } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const where = {
+      organizationId: req.organizationId, // Multi-tenancy: solo usuarios de esta org
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
@@ -58,10 +65,13 @@ router.get('/users', authenticate, authorize(ROLES.ADMIN),
 );
 
 // GET /api/admin/users/:id - Obtener usuario por ID
-router.get('/users/:id', authenticate, authorize(ROLES.ADMIN),
+router.get('/users/:id',
   asyncHandler(async (req, res) => {
-    const user = await prisma.clinician.findUnique({
-      where: { id: parseInt(req.params.id) },
+    const user = await prisma.clinician.findFirst({
+      where: {
+        id: parseInt(req.params.id),
+        organizationId: req.organizationId, // Multi-tenancy
+      },
       include: {
         _count: {
           select: {
@@ -81,13 +91,18 @@ router.get('/users/:id', authenticate, authorize(ROLES.ADMIN),
   })
 );
 
-// POST /api/admin/users - Crear usuario
-router.post('/users', authenticate, authorize(ROLES.ADMIN),
+// POST /api/admin/users - Crear usuario en la organización
+router.post('/users',
   asyncHandler(async (req, res) => {
     const bcrypt = require('bcrypt');
     const { name, email, specialty, phone, userRole, password } = req.body;
 
-    // Validar email único
+    // Validar campos requeridos
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Nombre y email son requeridos' });
+    }
+
+    // Validar email único globalmente
     const existing = await prisma.clinician.findUnique({
       where: { email },
     });
@@ -103,7 +118,7 @@ router.post('/users', authenticate, authorize(ROLES.ADMIN),
     });
     const newId = (maxId?.id || 0) + 1;
 
-    // Hashear contraseña
+    // Hashear contraseña si se proporciona (legacy - ahora se usa Clerk)
     const SALT_ROUNDS = 10;
     const hashedPassword = password
       ? await bcrypt.hash(password, SALT_ROUNDS)
@@ -118,6 +133,7 @@ router.post('/users', authenticate, authorize(ROLES.ADMIN),
         phone,
         userRole: userRole || 'VIEWER',
         password: hashedPassword,
+        organizationId: req.organizationId, // Multi-tenancy: asignar a esta org
       },
     });
 
@@ -125,12 +141,24 @@ router.post('/users', authenticate, authorize(ROLES.ADMIN),
   })
 );
 
-// PUT /api/admin/users/:id - Actualizar usuario
-router.put('/users/:id', authenticate, authorize(ROLES.ADMIN),
+// PUT /api/admin/users/:id - Actualizar usuario de la organización
+router.put('/users/:id',
   asyncHandler(async (req, res) => {
     const bcrypt = require('bcrypt');
     const { name, email, specialty, phone, userRole, password, isActive } = req.body;
     const userId = parseInt(req.params.id);
+
+    // Verificar que el usuario pertenece a esta organización
+    const existingUser = await prisma.clinician.findFirst({
+      where: {
+        id: userId,
+        organizationId: req.organizationId, // Multi-tenancy
+      },
+    });
+
+    if (!existingUser) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
 
     // Validar email único (excluyendo al usuario actual)
     if (email) {
