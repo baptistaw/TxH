@@ -5,16 +5,14 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/hooks/useOrganization';
 import { getInitials } from '@/lib/utils';
 import { useState } from 'react';
 import GlobalSearch from '@/components/search/GlobalSearch';
 
-// Logo de la organización
-const ORG_LOGO_URL = '/logo.jpg';
-const ORG_NAME = 'PNTH Uruguay';
-
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { name: orgName, logoUrl: orgLogoUrl, isLoaded: orgLoaded } = useOrganization();
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -171,12 +169,12 @@ export default function Sidebar() {
           {!collapsed && (
             <Link href="/dashboard" className="flex items-center gap-3">
               <img
-                src={ORG_LOGO_URL}
-                alt={ORG_NAME}
+                src={orgLogoUrl}
+                alt={orgName}
                 className="w-10 h-10 rounded-lg object-cover shadow-glow"
               />
               <div className="flex-1 min-w-0">
-                <h1 className="text-sm font-bold text-surgical-400 truncate">{ORG_NAME}</h1>
+                <h1 className="text-sm font-bold text-surgical-400 truncate">{orgName}</h1>
                 <p className="text-xs text-gray-500">Sistema Anestesiológico</p>
               </div>
             </Link>

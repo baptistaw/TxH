@@ -3,6 +3,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useUser, useAuth as useClerkAuth, useClerk } from '@clerk/nextjs';
+import { useRouter, usePathname } from 'next/navigation';
 import { authApi, initializeAuth } from '@/lib/api';
 
 const AuthContext = createContext({});
@@ -12,11 +13,14 @@ export function AuthProvider({ children }) {
   const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn } = useUser();
   const { getToken } = useClerkAuth();
   const { signOut } = useClerk();
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Estado local para datos de BD
   const [dbUser, setDbUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [synced, setSynced] = useState(false);
+  const [bootstrapStatus, setBootstrapStatus] = useState(null);
 
   // Inicializar API con función de obtención de token de Clerk
   useEffect(() => {
@@ -42,10 +46,29 @@ export function AuthProvider({ children }) {
         setSynced(true);
       } else {
         // Usuario nuevo - intentar sincronizar por email
-        const syncResponse = await authApi.sync();
-        if (syncResponse.user) {
-          setDbUser(syncResponse.user);
-          setSynced(true);
+        try {
+          const syncResponse = await authApi.sync();
+          if (syncResponse.user) {
+            setDbUser(syncResponse.user);
+            setSynced(true);
+          }
+        } catch (syncError) {
+          // Si falla la sincronización, verificar si el bootstrap está disponible
+          if (syncError.status === 404) {
+            try {
+              const bootstrapResponse = await authApi.getBootstrapStatus();
+              setBootstrapStatus(bootstrapResponse);
+
+              // Si el bootstrap está disponible y el usuario es elegible, redirigir
+              if (bootstrapResponse.bootstrapAvailable && bootstrapResponse.isEligible) {
+                if (pathname !== '/bootstrap') {
+                  router.push('/bootstrap');
+                }
+              }
+            } catch (bootstrapError) {
+              console.error('Error checking bootstrap status:', bootstrapError);
+            }
+          }
         }
       }
     } catch (error) {
@@ -55,7 +78,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [isSignedIn, clerkUser]);
+  }, [isSignedIn, clerkUser, pathname, router]);
 
   // Efecto para sincronizar cuando Clerk carga
   useEffect(() => {
@@ -131,6 +154,7 @@ export function AuthProvider({ children }) {
     loading: !isClerkLoaded || loading,
     isSignedIn,
     synced,
+    bootstrapStatus,
     logout,
     isAuthenticated,
     hasRole,

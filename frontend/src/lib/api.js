@@ -159,7 +159,7 @@ export const authApi = {
     return api.get('/auth/me');
   },
 
-  // Sincronizar usuario de Clerk con BD local
+  // Sincronizar usuario de Clerk con BD local (solo vincula clerkId, no toca roles)
   sync: () => {
     return api.post('/auth/sync');
   },
@@ -167,6 +167,17 @@ export const authApi = {
   // Actualizar perfil en BD local
   updateProfile: (data) => {
     return api.put('/auth/profile', data);
+  },
+
+  // Verificar si el bootstrap está disponible
+  getBootstrapStatus: () => {
+    return api.get('/auth/bootstrap/status');
+  },
+
+  // Ejecutar bootstrap (crear primer ADMIN)
+  // Requiere: no haya ADMINs en BD + usuario sea org:admin en Clerk
+  bootstrap: (data) => {
+    return api.post('/auth/bootstrap', data);
   },
 };
 

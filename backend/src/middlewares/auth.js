@@ -61,6 +61,11 @@ const authenticate = async (req, res, next) => {
     // Obtener el clerkId del token verificado
     const clerkId = verifiedToken.sub;
 
+    // Obtener información de la organización de Clerk
+    const orgId = verifiedToken.org_id || null;
+    const orgRole = verifiedToken.org_role || null;
+    const orgSlug = verifiedToken.org_slug || null;
+
     // Buscar el usuario en nuestra BD por clerkId
     const clinician = await prisma.clinician.findFirst({
       where: { clerkId },
@@ -83,6 +88,10 @@ const authenticate = async (req, res, next) => {
         email: verifiedToken.email,
         role: 'VIEWER', // Rol por defecto para usuarios no registrados
         isNewUser: true,
+        // Información de organización de Clerk
+        orgId,
+        orgRole,
+        orgSlug,
       };
     } else {
       // Usuario encontrado en BD
@@ -93,6 +102,10 @@ const authenticate = async (req, res, next) => {
         name: clinician.name,
         specialty: clinician.specialty,
         role: clinician.userRole,
+        // Información de organización de Clerk
+        orgId,
+        orgRole,
+        orgSlug,
       };
     }
 

@@ -5,14 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/hooks/useOrganization';
 import GlobalSearch from '@/components/search/GlobalSearch';
-
-// Logo de la organización (mismo que en sign-in)
-const ORG_LOGO_URL = '/logo.jpg';
-const ORG_NAME = 'PNTH Uruguay';
 
 export default function Navbar() {
   const { user, isSignedIn } = useAuth();
+  const { name: orgName, logoUrl: orgLogoUrl } = useOrganization();
   const pathname = usePathname();
 
   const navLinks = [
@@ -42,13 +40,13 @@ export default function Navbar() {
             {/* Logo de la organización */}
             <Link href="/" className="flex items-center gap-3">
               <img
-                src={ORG_LOGO_URL}
-                alt={ORG_NAME}
+                src={orgLogoUrl}
+                alt={orgName}
                 className="w-10 h-10 rounded-lg object-cover shadow-glow"
               />
               <div>
                 <h1 className="text-lg font-bold text-surgical-400">
-                  {ORG_NAME}
+                  {orgName}
                 </h1>
                 <p className="text-xs text-gray-500">
                   Sistema Anestesiológico

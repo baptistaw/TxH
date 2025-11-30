@@ -25,4 +25,18 @@ router.post('/sync', authenticate, authController.syncUser);
  */
 router.put('/profile', authenticate, authController.updateProfile);
 
+/**
+ * @route   GET /api/auth/bootstrap/status
+ * @desc    Verificar si el bootstrap está disponible
+ * @access  Private (requiere token Clerk)
+ */
+router.get('/bootstrap/status', authenticate, authController.getBootstrapStatus);
+
+/**
+ * @route   POST /api/auth/bootstrap
+ * @desc    Crear primer ADMIN (solo si no existe ninguno y usuario es org:admin en Clerk)
+ * @access  Private (requiere token Clerk + org:admin en Clerk)
+ */
+router.post('/bootstrap', authenticate, authController.bootstrap);
+
 module.exports = router;

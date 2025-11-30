@@ -60,6 +60,7 @@ async function getCurrentUser(req, res, next) {
  * Sync user - Sincronizar usuario de Clerk con BD local
  * POST /api/auth/sync
  * Vincula el clerkId con un usuario existente por email
+ * NOTA: Los roles se gestionan SOLO desde la BD, no se sincronizan desde Clerk
  */
 async function syncUser(req, res, next) {
   try {
@@ -77,7 +78,7 @@ async function syncUser(req, res, next) {
     });
 
     if (clinician) {
-      // Usuario existe, actualizar clerkId si no tiene
+      // Solo actualizar clerkId si no tiene (vincular cuenta)
       if (!clinician.clerkId) {
         clinician = await prisma.clinician.update({
           where: { id: clinician.id },
@@ -93,7 +94,7 @@ async function syncUser(req, res, next) {
           },
         });
 
-        logger.info('ClerkId synced to existing user', {
+        logger.info('ClerkId linked to existing user', {
           userId: clinician.id,
           email,
           clerkId,
@@ -183,8 +184,177 @@ async function updateProfile(req, res, next) {
   }
 }
 
+/**
+ * Bootstrap - Crear primer ADMIN de la organización
+ * POST /api/auth/bootstrap
+ *
+ * REQUISITOS:
+ * 1. No debe existir ningún ADMIN en la BD
+ * 2. El usuario debe tener rol org:admin en Clerk
+ *
+ * Esto garantiza que Clerk tiene control absoluto sobre quién
+ * puede convertirse en el primer administrador del sistema.
+ */
+async function bootstrap(req, res, next) {
+  try {
+    const { clerkId, email, orgRole, orgId } = req.user;
+    const { name, specialty } = req.body;
+
+    // 1. Verificar que el usuario sea org:admin en Clerk
+    if (orgRole !== 'org:admin') {
+      logger.warn('Bootstrap attempt without org:admin role', {
+        email,
+        clerkId,
+        orgRole,
+      });
+
+      return res.status(403).json({
+        error: 'Acceso denegado',
+        message: 'Solo los administradores de la organización en Clerk pueden realizar el bootstrap.',
+        requiredRole: 'org:admin',
+        currentRole: orgRole || 'ninguno',
+      });
+    }
+
+    // 2. Verificar que no existan ADMINs en la BD
+    const existingAdmin = await prisma.clinician.findFirst({
+      where: { userRole: 'ADMIN' },
+      select: { id: true, email: true },
+    });
+
+    if (existingAdmin) {
+      logger.warn('Bootstrap attempt with existing admin', {
+        email,
+        existingAdminEmail: existingAdmin.email,
+      });
+
+      return res.status(409).json({
+        error: 'Bootstrap no disponible',
+        message: 'Ya existe un administrador en el sistema. Contacta al admin existente para crear tu cuenta.',
+      });
+    }
+
+    // 3. Verificar que el usuario no exista ya en la BD
+    const existingUser = await prisma.clinician.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      // Usuario existe pero no es admin - actualizar a ADMIN
+      const updatedUser = await prisma.clinician.update({
+        where: { id: existingUser.id },
+        data: {
+          userRole: 'ADMIN',
+          clerkId,
+          name: name || existingUser.name,
+          specialty: specialty || existingUser.specialty,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          specialty: true,
+          userRole: true,
+          clerkId: true,
+        },
+      });
+
+      logger.info('Existing user promoted to ADMIN via bootstrap', {
+        userId: updatedUser.id,
+        email,
+        orgId,
+      });
+
+      return res.status(200).json({
+        message: 'Usuario promovido a ADMIN exitosamente',
+        user: {
+          ...updatedUser,
+          role: updatedUser.userRole,
+        },
+      });
+    }
+
+    // 4. Crear nuevo usuario como ADMIN
+    if (!name) {
+      return res.status(400).json({
+        error: 'Datos incompletos',
+        message: 'Debes proporcionar tu nombre para crear la cuenta.',
+      });
+    }
+
+    const newAdmin = await prisma.clinician.create({
+      data: {
+        clerkId,
+        email,
+        name,
+        specialty: specialty || 'OTRO',
+        userRole: 'ADMIN',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        specialty: true,
+        userRole: true,
+        clerkId: true,
+      },
+    });
+
+    logger.info('First ADMIN created via bootstrap', {
+      userId: newAdmin.id,
+      email,
+      orgId,
+    });
+
+    return res.status(201).json({
+      message: 'Primer administrador creado exitosamente',
+      user: {
+        ...newAdmin,
+        role: newAdmin.userRole,
+      },
+    });
+  } catch (error) {
+    logger.error('Bootstrap error', { error: error.message });
+    next(error);
+  }
+}
+
+/**
+ * Check bootstrap status
+ * GET /api/auth/bootstrap/status
+ * Verifica si el bootstrap está disponible (no hay ADMINs)
+ */
+async function getBootstrapStatus(req, res, next) {
+  try {
+    const { orgRole } = req.user;
+
+    // Contar ADMINs existentes
+    const adminCount = await prisma.clinician.count({
+      where: { userRole: 'ADMIN' },
+    });
+
+    const isAvailable = adminCount === 0;
+    const isEligible = orgRole === 'org:admin';
+
+    res.json({
+      bootstrapAvailable: isAvailable,
+      isEligible,
+      message: isAvailable
+        ? isEligible
+          ? 'Puedes crear el primer administrador del sistema.'
+          : 'El bootstrap está disponible pero necesitas ser org:admin en Clerk.'
+        : 'Ya existe un administrador en el sistema.',
+    });
+  } catch (error) {
+    logger.error('Bootstrap status error', { error: error.message });
+    next(error);
+  }
+}
+
 module.exports = {
   getCurrentUser,
   syncUser,
   updateProfile,
+  bootstrap,
+  getBootstrapStatus,
 };
