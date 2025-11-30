@@ -73,6 +73,81 @@ const STATIC_ENUMS = {
     { code: 'ANESTESIOLOGO', label: 'Anestesiólogo' },
     { code: 'VIEWER', label: 'Visor' },
   ],
+  ProcedureType: [
+    // Biopsias hepáticas
+    { code: 'BIOPSIA_HEPATICA_PERCUTANEA', label: 'Biopsia hepática percutánea' },
+    { code: 'BIOPSIA_HEPATICA_TRANSYUGULAR', label: 'Biopsia hepática transyugular' },
+    { code: 'BIOPSIA_HEPATICA_PROTOCOLO', label: 'Biopsia de protocolo post-trasplante' },
+    // Endoscopías digestivas
+    { code: 'FGC_DIAGNOSTICA', label: 'Fibrogastroscopía diagnóstica' },
+    { code: 'FGC_TERAPEUTICA', label: 'Fibrogastroscopía terapéutica' },
+    { code: 'FGC_LIGADURA_VARICES', label: 'Ligadura de várices esofágicas' },
+    { code: 'FGC_ESCLEROTERAPIA', label: 'Escleroterapia de várices' },
+    { code: 'FBC_DIAGNOSTICA', label: 'Fibrocolonoscopía diagnóstica' },
+    { code: 'FBC_BIOPSIA', label: 'Fibrocolonoscopía con biopsia' },
+    // CPRE y vía biliar
+    { code: 'CPRE_DIAGNOSTICA', label: 'CPRE diagnóstica' },
+    { code: 'CPRE_ESFINTEROTOMIA', label: 'CPRE con esfinterotomía' },
+    { code: 'CPRE_PROTESIS_BILIAR', label: 'CPRE con colocación de prótesis biliar' },
+    { code: 'CPRE_DILATACION_ESTENOSIS', label: 'CPRE con dilatación de estenosis' },
+    { code: 'COLANGIOGRAFIA_TRANSPARIETOHEPATICA', label: 'Colangiografía transparietohepática' },
+    // Procedimientos intervencionistas
+    { code: 'TIPS', label: 'TIPS (Shunt portosistémico intrahepático transyugular)' },
+    { code: 'PARACENTESIS_DIAGNOSTICA', label: 'Paracentesis diagnóstica' },
+    { code: 'PARACENTESIS_EVACUADORA', label: 'Paracentesis evacuadora' },
+    { code: 'TORACENTESIS', label: 'Toracentesis' },
+    { code: 'ARTERIOGRAFIA_HEPATICA', label: 'Arteriografía hepática' },
+    { code: 'EMBOLIZACION_ARTERIAL', label: 'Embolización arterial' },
+    { code: 'QUIMIOEMBOLIZACION_TACE', label: 'Quimioembolización transarterial (TACE)' },
+    { code: 'RADIOFRECUENCIA_HEPATICA', label: 'Ablación por radiofrecuencia hepática' },
+    // Accesos vasculares y diálisis
+    { code: 'COLOCACION_CVC', label: 'Colocación de catéter venoso central' },
+    { code: 'COLOCACION_CATETER_DIALISIS', label: 'Colocación de catéter de diálisis' },
+    { code: 'HEMODIALISIS', label: 'Sesión de hemodiálisis' },
+    { code: 'DIALISIS_PERITONEAL', label: 'Diálisis peritoneal' },
+    // Cirugías abdominales
+    { code: 'LAPAROTOMIA_EXPLORADORA', label: 'Laparotomía exploradora' },
+    { code: 'DRENAJE_ABSCESO', label: 'Drenaje de absceso' },
+    { code: 'HERNIOPLASTIA', label: 'Reparación de hernia' },
+    { code: 'COLECISTECTOMIA', label: 'Colecistectomía' },
+    { code: 'ESPLENECTOMIA', label: 'Esplenectomía' },
+    { code: 'NEFRECTOMIA', label: 'Nefrectomía' },
+    // Cirugías torácicas
+    { code: 'TORACOTOMIA', label: 'Toracotomía' },
+    { code: 'VIDEOTORACOSCOPIA', label: 'Videotoracoscopía (VATS)' },
+    { code: 'DRENAJE_PLEURAL', label: 'Drenaje pleural' },
+    // Procedimientos cardíacos
+    { code: 'CORONARIOGRAFIA', label: 'Coronariografía' },
+    { code: 'ANGIOPLASTIA', label: 'Angioplastia coronaria' },
+    { code: 'ECOCARDIOGRAMA_TE', label: 'Ecocardiograma transesofágico' },
+    // Procedimientos urológicos
+    { code: 'CISTOSCOPIA', label: 'Cistoscopía' },
+    { code: 'NEFROSTOMIA_PERCUTANEA', label: 'Nefrostomía percutánea' },
+    // Otros procedimientos quirúrgicos
+    { code: 'TRAQUEOSTOMIA', label: 'Traqueostomía' },
+    { code: 'GASTROSTOMIA_PERCUTANEA', label: 'Gastrostomía percutánea (PEG)' },
+    { code: 'CIRUGIA_ORTOPEDICA', label: 'Cirugía ortopédica' },
+    { code: 'CIRUGIA_VASCULAR', label: 'Cirugía vascular' },
+    { code: 'CIRUGIA_NEUROLOGICA', label: 'Cirugía neurológica' },
+    { code: 'PROCEDIMIENTO_DENTAL', label: 'Procedimiento odontológico' },
+    // Trasplante
+    { code: 'TRASPLANTE_HEPATICO', label: 'Trasplante hepático' },
+    { code: 'RETRASPLANTE_HEPATICO', label: 'Retrasplante hepático' },
+    { code: 'TRASPLANTE_RENAL', label: 'Trasplante renal' },
+    // Otros
+    { code: 'CER', label: 'CER' },
+    { code: 'OTRO', label: 'Otro procedimiento' },
+  ],
+  ProcedureLocation: [
+    { code: 'BLOCK_QUIRURGICO', label: 'Block Quirúrgico' },
+    { code: 'CTI', label: 'CTI' },
+    { code: 'HEMODINAMIA', label: 'Hemodinamia' },
+    { code: 'ENDOSCOPIA', label: 'Sala de Endoscopía' },
+    { code: 'IMAGENES', label: 'Imagenología' },
+    { code: 'INTERNACION', label: 'Sala de Internación' },
+    { code: 'EMERGENCIA', label: 'Emergencia' },
+    { code: 'OTRO', label: 'Otro' },
+  ],
 };
 
 /**
