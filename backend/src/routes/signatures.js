@@ -4,7 +4,7 @@ const router = express.Router();
 const { authenticate } = require('../middlewares/auth');
 const { tenantMiddleware } = require('../middlewares/tenant');
 const signatureController = require('../controllers/signatureController');
-const asyncHandler = require('../utils/asyncHandler');
+const { asyncHandler } = require('../middlewares/errorHandler');
 
 // Todas las rutas requieren autenticación y contexto de organización
 router.use(authenticate);
