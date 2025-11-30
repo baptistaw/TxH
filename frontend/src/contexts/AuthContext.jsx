@@ -19,6 +19,7 @@ export function AuthProvider({ children }) {
   const [dbUser, setDbUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [synced, setSynced] = useState(false);
+  const [apiReady, setApiReady] = useState(false);
 
   // Inicializar API con función de obtención de token de Clerk
   // Pasamos una función que siempre obtiene token fresco con org_id
@@ -29,7 +30,9 @@ export function AuthProvider({ children }) {
         return await getToken({ skipCache: true });
       };
       initializeAuth(getTokenWithOrg);
-      console.log('API initialized with org token for:', activeOrg.name);
+      setApiReady(true);
+    } else {
+      setApiReady(false);
     }
   }, [getToken, activeOrg]);
 
@@ -144,8 +147,9 @@ export function AuthProvider({ children }) {
   const organizationId = activeOrg?.id || null;
   const organizationName = activeOrg?.name || 'Sistema TxH';
 
-  // Estado de carga: esperar Clerk + org
-  const isLoading = !isClerkLoaded || !orgLoaded || loading;
+  // Estado de carga: esperar Clerk + org + API inicializada
+  // Si el usuario está autenticado con org, también esperar a que la API esté lista
+  const isLoading = !isClerkLoaded || !orgLoaded || loading || (isSignedIn && activeOrg && !apiReady);
 
   const value = {
     user,

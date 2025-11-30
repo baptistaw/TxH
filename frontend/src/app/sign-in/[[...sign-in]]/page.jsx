@@ -11,15 +11,9 @@ export default function SignInPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
   const router = useRouter();
 
-  // Debug logs
-  useEffect(() => {
-    console.log('SignIn Page State:', { isLoaded, isSignedIn, orgLoaded, hasOrg: !!organization });
-  }, [isLoaded, isSignedIn, orgLoaded, organization]);
-
   // Si ya está autenticado y tiene org, ir al dashboard
   useEffect(() => {
     if (isLoaded && orgLoaded && isSignedIn && organization) {
-      console.log('Already authenticated with org, redirecting to dashboard');
       router.replace('/dashboard');
     }
   }, [isLoaded, orgLoaded, isSignedIn, organization, router]);
