@@ -30,16 +30,10 @@ const getAllCases = async ({
   }
 
   const skip = (page - 1) * limit;
-  const where = {
-    organizationId, // Multi-tenancy filter
+
+  // Base filters que siempre aplican
+  const baseFilters = {
     deletedAt: null, // Solo registros activos (soft delete)
-    ...(search && {
-      OR: [
-        { id: { contains: search } },
-        { patientId: { contains: search } },
-        { patient: { name: { contains: search, mode: 'insensitive' } } },
-      ],
-    }),
     ...(patientId && { patientId }),
     ...((startDate || endDate) && {
       startAt: {
@@ -53,7 +47,37 @@ const getAllCases = async ({
         ...(transplantDateTo && { lte: transplantDateTo }),
       },
     }),
-    ...(etiology && {
+    ...(isRetransplant !== undefined && { isRetransplant }),
+    ...(isHepatoRenal !== undefined && { isHepatoRenal }),
+    ...(optimalDonor !== undefined && { optimalDonor }),
+    ...(dataSource && { dataSource }),
+  };
+
+  // Construir array de condiciones AND
+  const andConditions = [baseFilters];
+
+  // Multi-tenancy: datos de org actual O históricos sin org
+  andConditions.push({
+    OR: [
+      { organizationId },
+      { organizationId: null },
+    ],
+  });
+
+  // Búsqueda por texto
+  if (search) {
+    andConditions.push({
+      OR: [
+        { id: { contains: search } },
+        { patientId: { contains: search } },
+        { patient: { name: { contains: search, mode: 'insensitive' } } },
+      ],
+    });
+  }
+
+  // Filtro por etiología
+  if (etiology) {
+    andConditions.push({
       preopEvaluations: {
         some: {
           OR: [
@@ -62,19 +86,24 @@ const getAllCases = async ({
           ],
         },
       },
-    }),
-    ...(sex && { patient: { sex } }),
-    ...(isRetransplant !== undefined && { isRetransplant }),
-    ...(isHepatoRenal !== undefined && { isHepatoRenal }),
-    ...(optimalDonor !== undefined && { optimalDonor }),
-    ...(dataSource && { dataSource }),
-    // Filtrar por clínico si no es admin
-    ...(clinicianId && {
+    });
+  }
+
+  // Filtro por sexo
+  if (sex) {
+    andConditions.push({ patient: { sex } });
+  }
+
+  // Filtrar por clínico
+  if (clinicianId) {
+    andConditions.push({
       team: {
         some: { clinicianId },
       },
-    }),
-  };
+    });
+  }
+
+  const where = { AND: andConditions };
 
   const [cases, total] = await Promise.all([
     prisma.transplantCase.findMany({
@@ -107,7 +136,11 @@ const getCaseById = async (id, organizationId) => {
   const transplantCase = await prisma.transplantCase.findFirst({
     where: {
       id,
-      organizationId, // Multi-tenancy filter
+      // Multi-tenancy: permitir datos de org actual O históricos sin org
+      OR: [
+        { organizationId },
+        { organizationId: null },
+      ],
       deletedAt: null, // Solo registros activos
     },
     include: {
