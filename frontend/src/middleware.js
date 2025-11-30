@@ -11,9 +11,16 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  const pathname = req.nextUrl.pathname;
+
   // Redirigir /login a /sign-in
-  if (req.nextUrl.pathname.startsWith('/login')) {
+  if (pathname.startsWith('/login')) {
     return Response.redirect(new URL('/sign-in', req.url));
+  }
+
+  // Landing page es pública (verificación explícita)
+  if (pathname === '/') {
+    return;
   }
 
   // Proteger rutas privadas
