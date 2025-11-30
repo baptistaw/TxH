@@ -492,7 +492,7 @@ export const exportsApi = {
    */
   downloadPDF: async (caseId) => {
     const url = `${API_URL}/exports/case/${caseId}/pdf`;
-    const token = getToken();
+    const token = await getToken();
 
     const response = await fetch(url, {
       method: 'GET',
@@ -534,7 +534,7 @@ export const exportsApi = {
    */
   downloadCSV: async (caseId, format = 'complete') => {
     const url = `${API_URL}/exports/case/${caseId}/csv?format=${format}`;
-    const token = getToken();
+    const token = await getToken();
 
     const response = await fetch(url, {
       method: 'GET',
@@ -570,7 +570,7 @@ export const exportsApi = {
    */
   downloadPreopPDF: async (preopId, patientName = 'paciente') => {
     const url = `${API_URL}/exports/preop/${preopId}/pdf`;
-    const token = getToken();
+    const token = await getToken();
 
     const response = await fetch(url, {
       method: 'GET',
@@ -617,7 +617,7 @@ export const exportsApi = {
    */
   downloadProcedurePDF: async (procedureId, patientName = 'paciente') => {
     const url = `${API_URL}/exports/procedure/${procedureId}/pdf`;
-    const token = getToken();
+    const token = await getToken();
 
     const response = await fetch(url, {
       method: 'GET',
