@@ -8,6 +8,7 @@ import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { preopApi, adminApi, exportsApi } from '@/lib/api';
+import { downloadPreopPDF } from '@/lib/pdfService';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { formatDate, formatDateTime } from '@/lib/utils';
@@ -236,8 +237,8 @@ function PreopEvaluationDetailContent() {
     try {
       setDownloadingPDF(true);
       setError(null);
-      const patientName = evaluation?.patient?.name || 'paciente';
-      await exportsApi.downloadPreopPDF(params.id, patientName);
+      // Generar PDF en el cliente con jsPDF
+      downloadPreopPDF(evaluation);
     } catch (err) {
       console.error('Error downloading PDF:', err);
       setError('Error al descargar el PDF');
