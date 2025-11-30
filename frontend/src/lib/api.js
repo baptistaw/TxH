@@ -19,6 +19,10 @@ export class ApiError extends Error {
  * Se inicializa desde AuthContext
  */
 let clerkGetToken = null;
+let authReadyResolve = null;
+let authReadyPromise = new Promise((resolve) => {
+  authReadyResolve = resolve;
+});
 
 /**
  * Inicializar la función de obtención de token de Clerk
@@ -26,13 +30,40 @@ let clerkGetToken = null;
  */
 export function initializeAuth(getTokenFn) {
   clerkGetToken = getTokenFn;
+  // Señalar que la auth está lista
+  if (authReadyResolve) {
+    authReadyResolve();
+  }
+}
+
+/**
+ * Resetear el estado de auth (para logout)
+ */
+export function resetAuth() {
+  clerkGetToken = null;
+  authReadyPromise = new Promise((resolve) => {
+    authReadyResolve = resolve;
+  });
 }
 
 /**
  * Obtener token de Clerk (async)
+ * Espera hasta que la auth esté inicializada
  */
 async function getToken() {
   if (typeof window === 'undefined') return null;
+
+  // Esperar a que la auth esté lista (máximo 10 segundos)
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Auth timeout')), 10000)
+  );
+
+  try {
+    await Promise.race([authReadyPromise, timeout]);
+  } catch (error) {
+    console.warn('Auth not ready, proceeding without token');
+    return null;
+  }
 
   // Intentar obtener token de Clerk
   if (clerkGetToken) {
