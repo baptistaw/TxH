@@ -1,4 +1,5 @@
-// src/components/auth/ProtectedRoute.jsx - Integración con Clerk
+// src/components/auth/ProtectedRoute.jsx - Versión simplificada
+// Usuarios ya vienen con org activa desde Clerk (creados por superusuario)
 'use client';
 
 import { useEffect } from 'react';
@@ -7,47 +8,40 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PageSpinner } from '@/components/ui/Spinner';
 
 export default function ProtectedRoute({ children, requiredRoles = [] }) {
-  const { user, loading, hasAnyRole, isSignedIn, hasOrganization, tokenReady } = useAuth();
+  const { loading, hasAnyRole, isSignedIn, hasOrganization } = useAuth();
   const router = useRouter();
 
-  // Estado de carga completo:
-  // - loading: auth context aún cargando
-  // - isSignedIn && !tokenReady: usuario autenticado pero token sin org_id
-  // - isSignedIn && !hasOrganization: esperando activación de org
-  const isFullyLoaded = !loading && (isSignedIn ? (tokenReady && hasOrganization) : true);
-
   useEffect(() => {
-    // Solo redirigir cuando TODO está cargado
-    if (!isFullyLoaded) return;
+    // Solo redirigir cuando auth está cargado
+    if (loading) return;
 
-    // Si no está autenticado en Clerk, redirigir a sign-in
-    if (!isSignedIn) {
+    // Si no está autenticado o no tiene org, ir a sign-in
+    if (!isSignedIn || !hasOrganization) {
       router.push('/sign-in');
       return;
     }
 
-    // Si requiere roles específicos y no los tiene, redirigir
+    // Si requiere roles específicos y no los tiene
     if (requiredRoles.length > 0 && !hasAnyRole(requiredRoles)) {
       router.push('/unauthorized');
       return;
     }
-  }, [isFullyLoaded, isSignedIn, hasAnyRole, requiredRoles, router]);
+  }, [loading, isSignedIn, hasOrganization, hasAnyRole, requiredRoles, router]);
 
-  // Mostrar spinner mientras cualquier cosa esté cargando
-  if (!isFullyLoaded) {
+  // Mostrar spinner mientras carga
+  if (loading) {
     return <PageSpinner />;
   }
 
-  // Si no está autenticado, no renderizar nada (se redirige)
-  if (!isSignedIn) {
+  // Si no está autenticado o sin org, no renderizar (se redirige)
+  if (!isSignedIn || !hasOrganization) {
     return null;
   }
 
-  // Si requiere roles y no los tiene, no renderizar
+  // Si requiere roles y no los tiene
   if (requiredRoles.length > 0 && !hasAnyRole(requiredRoles)) {
     return null;
   }
 
-  // Renderizar children - ya tenemos org y token listos
   return <>{children}</>;
 }
