@@ -676,8 +676,12 @@ export const exportsApi = {
     const url = `${API_URL}/exports/spss`;
     const token = await getToken();
 
+    console.log('SPSS Export Request:', { url, caseIds, profile, hasToken: !!token });
+
     const response = await fetch(url, {
       method: 'POST',
+      mode: 'cors',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -742,8 +746,12 @@ export const exportsApi = {
     const url = `${API_URL}/exports/spss/bundle`;
     const token = await getToken();
 
+    console.log('SPSS Bundle Export Request:', { url, caseIds, profile, hasToken: !!token });
+
     const response = await fetch(url, {
       method: 'POST',
+      mode: 'cors',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
