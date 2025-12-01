@@ -23,13 +23,16 @@ async function exportCasePDF(req, res) {
     // Generate PDF
     const pdfBuffer = await pdfService.generateCasePDF(id);
 
+    // Ensure it's a proper Buffer
+    const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+
     // Set headers for download
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="caso-${id}.pdf"`);
-    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Content-Length', buffer.length);
 
-    // Send PDF
-    res.send(pdfBuffer);
+    // Send PDF as binary
+    res.end(buffer);
 
     logger.info(`Successfully exported case ${id} as PDF`);
   } catch (error) {
@@ -263,6 +266,9 @@ async function exportPreopPDF(req, res) {
     // Generate PDF
     const pdfBuffer = await pdfService.generatePreopPDF(id);
 
+    // Ensure it's a proper Buffer
+    const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+
     // Get preop info for filename
     const preop = await prisma.preopEvaluation.findUnique({
       where: { id },
@@ -274,10 +280,10 @@ async function exportPreopPDF(req, res) {
     // Set headers for download
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="evaluacion-pretrasplante-${patientName}-${id}.pdf"`);
-    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Content-Length', buffer.length);
 
-    // Send PDF
-    res.send(pdfBuffer);
+    // Send PDF as binary
+    res.end(buffer);
 
     logger.info(`Successfully exported preop evaluation ${id} as PDF`);
   } catch (error) {
@@ -408,6 +414,9 @@ async function exportProcedurePDF(req, res) {
     // Generate PDF
     const pdfBuffer = await pdfService.generateProcedurePDF(id);
 
+    // Ensure it's a proper Buffer
+    const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+
     // Get procedure info for filename
     const procedure = await prisma.procedure.findUnique({
       where: { id },
@@ -419,10 +428,10 @@ async function exportProcedurePDF(req, res) {
     // Set headers for download
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="procedimiento-${patientName}-${id}.pdf"`);
-    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Content-Length', buffer.length);
 
-    // Send PDF
-    res.send(pdfBuffer);
+    // Send PDF as binary
+    res.end(buffer);
 
     logger.info(`Successfully exported procedure ${id} as PDF`);
   } catch (error) {
