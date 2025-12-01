@@ -663,7 +663,7 @@ async function exportSPSS(req, res) {
       });
     }
 
-    logger.info(`CSV generated successfully: ${csv.length} chars, ${metadata.totalCases} cases`);
+    logger.info(`CSV generated successfully: ${csv.length} chars, ${metadata.totalRows} rows from ${metadata.totalCases} cases`);
 
     // Set headers for download
     const timestamp = new Date().toISOString().slice(0, 10);
@@ -675,7 +675,7 @@ async function exportSPSS(req, res) {
     // Add UTF-8 BOM for Excel compatibility and send
     res.send('\ufeff' + csv);
 
-    logger.info(`Successfully exported ${metadata.totalCases} cases for SPSS (profile: ${profile})`);
+    logger.info(`Successfully exported ${metadata.totalRows} rows from ${metadata.totalCases} cases for SPSS (profile: ${profile})`);
   } catch (error) {
     logger.error('Error exporting SPSS:', error);
     res.status(500).json({

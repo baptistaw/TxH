@@ -2815,6 +2815,10 @@ function getAvailableSPSSProfiles() {
 
 /**
  * Generate SPSS-compatible CSV for multiple cases with a specific profile
+ * IMPORTANT: Generates ONE ROW PER INTRAOP RECORD to allow case reconstruction
+ * Each row contains: patient data, case data, team, preop, lines/monitoring,
+ * fluids totals, postop, mortality, AND specific intraop record data
+ *
  * @param {string[]} caseIds - Array of case IDs to export
  * @param {string} profileId - Profile ID (demographic, laboratory, etc.)
  * @param {Object} options - Additional options
@@ -2831,7 +2835,7 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
   for (const caseId of caseIds) {
     try {
       const data = await getCaseDataComplete(caseId);
-      const { case: c, patient, preop, preopLabs, postop, mortality, team, linesMonitoring, fluidsBlood } = data;
+      const { case: c, patient, preop, preopLabs, postop, mortality, team, linesMonitoring, fluidsBlood, intraop } = data;
 
       // Aggregate fluids - handle undefined/null fluidsBlood
       const fluids = aggregateFluidsBlood(fluidsBlood || []);
@@ -2841,18 +2845,36 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
         ? Math.floor((new Date(c.startAt) - new Date(patient.birthDate)) / 31557600000)
         : null;
 
-      // Build complete row with all variables
-      const fullRow = {
-        // Patient
+      // Get team members by role
+      const anesthesiologists = getTeamByRole(team || [], 'ANESTESIOLOGO');
+      const surgeons = getTeamByRole(team || [], 'CIRUJANO');
+      const intensivists = getTeamByRole(team || [], 'INTENSIVISTA');
+      const hepatologists = getTeamByRole(team || [], 'HEPATOLOGO');
+      const nurseCoords = getTeamByRole(team || [], 'NURSE_COORD');
+
+      // Build base row with patient, case, team, preop, lines, fluids, postop, mortality
+      const baseRow = {
+        // Patient identification
         'ID_Caso': c.id,
+        'CI': formatCI(patient.id),
         'CI_Raw': patient.ciRaw || '',
+        'Nombre_Paciente': patient.name || '',
+        'Fecha_Nacimiento': formatDate(patient.birthDate),
         'Edad': age,
         'Sexo': patient.sex || '',
         'Peso_kg': patient.weight || '',
         'Talla_cm': patient.height || '',
         'ASA': patient.asa || c.asa || '',
         'Prestador': patient.provider || '',
+        'Procedencia_Paciente': patient.placeOfOrigin || '',
         'Grupo_Sanguineo': patient.bloodGroup || '',
+
+        // Team
+        'Anestesiologos': anesthesiologists,
+        'Cirujanos': surgeons,
+        'Intensivistas': intensivists,
+        'Hepatologos': hepatologists,
+        'Enfermeras_Coord': nurseCoords,
 
         // Case
         'Fecha_Inicio': formatDate(c.startAt),
@@ -2864,8 +2886,10 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
         'Es_Retrasplante': boolToNumeric(c.isRetransplant),
         'Hepato_Renal': boolToNumeric(c.isHepatoRenal),
         'Donante_Optimo': boolToNumeric(c.optimalDonor),
+        'Procedencia_Caso': c.provenance || '',
         'Tiempo_Isquemia_Fria_min': c.coldIschemiaTime || '',
         'Tiempo_Isquemia_Caliente_min': c.warmIschemiaTime || '',
+        'Origen_Datos': c.dataSource || '',
 
         // Preop - Scores
         'MELD': preop?.meld || '',
@@ -2905,6 +2929,12 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
         'Diabetes': boolToNumeric(preop?.diabetes),
         'Disfuncion_Tiroidea': boolToNumeric(preop?.thyroidDysfunction),
         'Cirugia_Abdominal_Previa': boolToNumeric(preop?.previousAbdSurgery),
+        'Alergias': preop?.allergies || '',
+        'Medicacion_Habitual': preop?.habitualMeds || '',
+
+        // Preop - Via aerea
+        'Mallampati': preop?.mpt || '',
+        'Apertura_Bucal': preop?.mouthOpening || '',
 
         // Preop - Laboratorios
         'Preop_Hb': preopLabs?.hb || '',
@@ -2934,35 +2964,58 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
         'Secuencia_Rapida': boolToNumeric(linesMonitoring?.tubeSellick),
         'CVC_1': linesMonitoring?.cvc1 || '',
         'CVC_2': linesMonitoring?.cvc2 || '',
+        'CVC_3': linesMonitoring?.cvc3 || '',
         'Linea_Arterial_1': linesMonitoring?.arterialLine1 || '',
+        'Linea_Arterial_2': linesMonitoring?.arterialLine2 || '',
         'Swan_Ganz': boolToNumeric(linesMonitoring?.swanGanz),
-        'Cell_Saver': boolToNumeric(linesMonitoring?.cellSaverUsed),
+        'VVP': linesMonitoring?.peripheralIV || '',
+        'Premedicacion': linesMonitoring?.premedication || '',
+        'ATB_Profilactico': linesMonitoring?.prophylacticATB || '',
+        'Cell_Saver_Usado': boolToNumeric(linesMonitoring?.cellSaverUsed),
         'Calentador': boolToNumeric(linesMonitoring?.warmer),
         'Manta_Termica': boolToNumeric(linesMonitoring?.thermalBlanket),
+        'Vendaje_Elastico': boolToNumeric(linesMonitoring?.elasticBandages),
 
-        // Fluids totals
-        'Plasmalyte_ml': fluids.plasmalyte || '',
-        'Ringer_ml': fluids.ringer || '',
-        'SF_ml': fluids.saline || '',
-        'Dextrosa_ml': fluids.dextrose || '',
-        'Coloides_ml': fluids.colloids || '',
-        'Albumina_ml': fluids.albumin || '',
-        'GR_Unidades': fluids.redBloodCells || '',
-        'PFC_Unidades': fluids.plasma || '',
-        'Plaquetas_Unidades': fluids.platelets || '',
-        'Crioprecipitados_Unidades': fluids.cryoprecipitate || '',
-        'Fibrinogeno_Unidades': fluids.fibrinogen || '',
-        'Cell_Saver_ml': fluids.cellSaver || '',
-        'Diuresis_ml': fluids.urineOutput || '',
+        // Fluids totals (aggregated for the entire case)
+        'Total_Plasmalyte_ml': fluids.plasmalyte || '',
+        'Total_Ringer_ml': fluids.ringer || '',
+        'Total_SF_ml': fluids.saline || '',
+        'Total_Dextrosa_ml': fluids.dextrose || '',
+        'Total_Coloides_ml': fluids.colloids || '',
+        'Total_Albumina_ml': fluids.albumin || '',
+        'Total_GR_Unidades': fluids.redBloodCells || '',
+        'Total_PFC_Unidades': fluids.plasma || '',
+        'Total_Plaquetas_Unidades': fluids.platelets || '',
+        'Total_Crioprecipitado_ml': fluids.cryoprecip || '',
+        'Total_Cell_Saver_ml': fluids.cellSaver || '',
+        'Total_Fibrinogeno_g': fluids.fibrinogen || '',
+        'Total_CCP_Unidades': fluids.pcc || '',
+        'Total_Factor_VII_mg': fluids.factorVII || '',
+        'Total_Perdidas_Insensibles_ml': fluids.insensibleLoss || '',
+        'Total_Ascitis_ml': fluids.ascites || '',
+        'Total_Aspirador_ml': fluids.suction || '',
+        'Total_Gasas_ml': fluids.gauze || '',
+        'Total_Diuresis_ml': fluids.urine || '',
+        'Total_Balance_ml': fluids.balance || '',
 
         // Postoperatorio
-        'CTI_Post': postop?.icuDays || '',
-        'Complicaciones_Post': postop?.complications || '',
-        'Reintervencion': boolToNumeric(postop?.reoperation),
+        'Extubado_en_BQ': boolToNumeric(postop?.extubatedInOR),
+        'Horas_ARM': postop?.mechVentHours || '',
+        'Dias_ARM': postop?.mechVentDays || '',
+        'Falla_Extubacion_24h': boolToNumeric(postop?.reintubation24h),
+        'Reoperacion': boolToNumeric(postop?.reoperation),
+        'Causa_Reoperacion': postop?.reoperationCause || '',
+        'Falla_Primaria_Injerto': boolToNumeric(postop?.primaryGraftFailure),
+        'IRA': boolToNumeric(postop?.acuteRenalFailure),
+        'Edema_Pulmonar': boolToNumeric(postop?.pulmonaryEdema),
+        'Neurotoxicidad': boolToNumeric(postop?.neurotoxicity),
         'Rechazo': boolToNumeric(postop?.rejection),
-        'Fallo_Primario': boolToNumeric(postop?.primaryNonFunction),
-        'Infeccion_Post': boolToNumeric(postop?.infection),
-        'Dialisis_Post': boolToNumeric(postop?.dialysis),
+        'Complicaciones_Biliares': boolToNumeric(postop?.biliaryComplications),
+        'Complicaciones_Vasculares': boolToNumeric(postop?.vascularComplications),
+        'Sangrado_Quirurgico': boolToNumeric(postop?.surgicalBleeding),
+        'APACHE_II': postop?.apacheInitial || '',
+        'Otras_Complicaciones': postop?.otherComplications || '',
+        'Dias_UCI': postop?.icuDays || '',
 
         // Mortalidad
         'Fallecido': boolToNumeric(mortality?.deceased),
@@ -2974,20 +3027,207 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
         'Causa_Muerte': mortality?.causeOfDeath || '',
       };
 
-      // Filter to only include variables from the selected profile
-      let row;
-      if (profile.variables === null) {
-        row = fullRow;
-      } else {
-        row = {};
-        for (const varName of profile.variables) {
-          if (varName in fullRow) {
-            row[varName] = fullRow[varName];
+      // If there are no intraop records, create one row with empty intraop fields
+      const intraopRecords = intraop && intraop.length > 0 ? intraop : [null];
+
+      // Generate one row per intraop record
+      for (let i = 0; i < intraopRecords.length; i++) {
+        const ir = intraopRecords[i];
+
+        // Build intraop-specific fields
+        const intraopFields = {
+          // Intraop identification
+          'Intraop_ID': ir?.id || '',
+          'Intraop_Numero': i + 1,
+          'Total_Registros_Intraop': intraopRecords.filter(r => r !== null).length,
+          'Intraop_Fase': ir?.phase || '',
+          'Intraop_Timestamp': ir?.timestamp ? new Date(ir.timestamp).toISOString() : '',
+          'Intraop_Hora': formatTime(ir?.timestamp),
+
+          // Ventilación
+          'Intraop_Modo_Vent': ir?.ventMode || '',
+          'Intraop_FiO2': ir?.fio2 || '',
+          'Intraop_Volumen_Tidal': ir?.tidalVolume || '',
+          'Intraop_FR': ir?.respRate || '',
+          'Intraop_PEEP': ir?.peep || '',
+          'Intraop_Presion_Pico': ir?.peakPressure || '',
+          'Intraop_Presion_Meseta': ir?.plateauPressure || '',
+          'Intraop_Relacion_IE': ir?.ieRatio || '',
+          'Intraop_Compliance': ir?.compliance || '',
+          'Intraop_Volumen_Minuto': ir?.minuteVolume || '',
+
+          // Agente inhalatorio
+          'Intraop_Agente_Inhalatorio': ir?.inhalAgent || '',
+          'Intraop_Agente_Fi': ir?.inhalAgentFi || '',
+          'Intraop_Agente_Et': ir?.inhalAgentEt || '',
+          'Intraop_Agente_MAC': ir?.inhalAgentMAC || '',
+
+          // Hemodinamia
+          'Intraop_FC': ir?.heartRate || '',
+          'Intraop_SpO2': ir?.satO2 || '',
+          'Intraop_PAS': ir?.pas || '',
+          'Intraop_PAD': ir?.pad || '',
+          'Intraop_PAM': ir?.pam || '',
+          'Intraop_PVC': ir?.cvp || '',
+          'Intraop_EtCO2': ir?.etCO2 || '',
+          'Intraop_Temp': ir?.temp || '',
+          'Intraop_Temp_Central': ir?.tempCentral || '',
+
+          // PAP (Swan-Ganz)
+          'Intraop_PAPS': ir?.paps || '',
+          'Intraop_PAPD': ir?.papd || '',
+          'Intraop_PAPM': ir?.papm || '',
+          'Intraop_PCP': ir?.pcwp || '',
+          'Intraop_GC': ir?.cardiacOutput || '',
+
+          // Monitoreo avanzado
+          'Intraop_BIS': ir?.bis || '',
+          'Intraop_EMG': ir?.emg || '',
+          'Intraop_PIC': ir?.icp || '',
+          'Intraop_SvO2': ir?.svO2 || '',
+          'Intraop_ST': ir?.stSegment || '',
+          'Intraop_Ritmo': ir?.rhythmType || '',
+
+          // Laboratorios - Hematología
+          'Intraop_Hb': ir?.hb || '',
+          'Intraop_Hto': ir?.hto || '',
+          'Intraop_Plaquetas': ir?.platelets || '',
+
+          // Laboratorios - Coagulación
+          'Intraop_TP': ir?.pt || '',
+          'Intraop_INR': ir?.inr || '',
+          'Intraop_Fibrinogeno': ir?.fibrinogen || '',
+          'Intraop_APTT': ir?.aptt || '',
+
+          // Laboratorios - Electrolitos
+          'Intraop_Sodio': ir?.sodium || '',
+          'Intraop_Potasio': ir?.potassium || '',
+          'Intraop_Calcio_Ionico': ir?.ionicCalcium || '',
+          'Intraop_Magnesio': ir?.magnesium || '',
+          'Intraop_Cloro': ir?.chloride || '',
+          'Intraop_Fosforo': ir?.phosphorus || '',
+
+          // Laboratorios - Gases arteriales
+          'Intraop_pH': ir?.pH || '',
+          'Intraop_PaO2': ir?.paO2 || '',
+          'Intraop_PaCO2': ir?.paCO2 || '',
+          'Intraop_SatO2_Gas': ir?.sO2Gas || '',
+          'Intraop_HCO3': ir?.hco3 || '',
+          'Intraop_BE': ir?.baseExcess || '',
+          'Intraop_Anion_Gap': ir?.anionGap || '',
+          'Intraop_Osmolaridad': ir?.osmolarity || '',
+          'Intraop_Bili_Gas': ir?.bilirubinGas || '',
+
+          // Laboratorios - Gases venosos
+          'Intraop_pH_Venoso': ir?.pvpH || '',
+          'Intraop_PvO2': ir?.pvO2 || '',
+          'Intraop_PvCO2': ir?.pvCO2 || '',
+
+          // Laboratorios - Función renal
+          'Intraop_Urea': ir?.azotemia || '',
+          'Intraop_Creatinina': ir?.creatinine || '',
+
+          // Laboratorios - Función hepática
+          'Intraop_TGO': ir?.sgot || '',
+          'Intraop_TGP': ir?.sgpt || '',
+          'Intraop_Bili_Total': ir?.totalBili || '',
+          'Intraop_Bili_Directa': ir?.directBili || '',
+          'Intraop_Albumina': ir?.albumin || '',
+
+          // Laboratorios - Metabólicos
+          'Intraop_Glicemia': ir?.glucose || '',
+          'Intraop_Lactato': ir?.lactate || '',
+          'Intraop_Proteinas': ir?.proteins || '',
+
+          // ETE
+          'Intraop_ETE_VD': ir?.eteRightVentricle || '',
+          'Intraop_ETE_TAPSE': ir?.eteTapse || '',
+          'Intraop_ETE_VI': ir?.eteLeftVentricle || '',
+          'Intraop_ETE_Dilatacion': ir?.eteChamberDilation || '',
+          'Intraop_ETE_PSAP': ir?.etePsap || '',
+          'Intraop_ETE_Trombo': ir?.eteThrombus || '',
+          'Intraop_ETE_Pericardico': ir?.etePericardial || '',
+          'Intraop_ETE_Volumen': ir?.eteVolumeStatus || '',
+          'Intraop_ETE_Obs': ir?.eteObservations || '',
+
+          // ROTEM - EXTEM
+          'Intraop_ROTEM_CT_EXTEM': ir?.rotemCtExtem || '',
+          'Intraop_ROTEM_CFT_EXTEM': ir?.rotemCftExtem || '',
+          'Intraop_ROTEM_A5_EXTEM': ir?.rotemA5Extem || '',
+          'Intraop_ROTEM_A10_EXTEM': ir?.rotemA10Extem || '',
+          'Intraop_ROTEM_MCF_EXTEM': ir?.rotemMcfExtem || '',
+          'Intraop_ROTEM_CLI30': ir?.rotemCli30 || '',
+          'Intraop_ROTEM_CLI60': ir?.rotemCli60 || '',
+          'Intraop_ROTEM_ML': ir?.rotemMl || '',
+
+          // ROTEM - FIBTEM
+          'Intraop_ROTEM_CT_FIBTEM': ir?.rotemCtFibtem || '',
+          'Intraop_ROTEM_A5_FIBTEM': ir?.rotemA5Fibtem || '',
+          'Intraop_ROTEM_A10_FIBTEM': ir?.rotemA10Fibtem || '',
+          'Intraop_ROTEM_MCF_FIBTEM': ir?.rotemMcfFibtem || '',
+
+          // ROTEM - INTEM/HEPTEM/APTEM
+          'Intraop_ROTEM_CT_INTEM': ir?.rotemCtIntem || '',
+          'Intraop_ROTEM_CT_HEPTEM': ir?.rotemCtHeptem || '',
+          'Intraop_ROTEM_A5_APTEM': ir?.rotemA5Aptem || '',
+
+          // Fármacos - Opiáceos
+          'Intraop_Opiaceo_Bolo': boolToNumeric(ir?.opioidBolus),
+          'Intraop_Opiaceo_Infusion': boolToNumeric(ir?.opioidInfusion),
+
+          // Fármacos - Hipnóticos
+          'Intraop_Hipnotico_Bolo': boolToNumeric(ir?.hypnoticBolus),
+          'Intraop_Hipnotico_Infusion': boolToNumeric(ir?.hypnoticInfusion),
+
+          // Fármacos - Relajantes
+          'Intraop_Relajante_Bolo': boolToNumeric(ir?.relaxantBolus),
+          'Intraop_Relajante_Infusion': boolToNumeric(ir?.relaxantInfusion),
+
+          // Fármacos - Lidocaína
+          'Intraop_Lidocaina_Bolo': boolToNumeric(ir?.lidocaineBolus),
+          'Intraop_Lidocaina_Infusion': boolToNumeric(ir?.lidocaineInfusion),
+
+          // Fármacos - Vasopresores/Inotrópicos
+          'Intraop_Adrenalina_Bolo': boolToNumeric(ir?.adrenalineBolus),
+          'Intraop_Adrenalina_Infusion': boolToNumeric(ir?.adrenalineInfusion),
+          'Intraop_Dobutamina': boolToNumeric(ir?.dobutamine),
+          'Intraop_Dopamina': boolToNumeric(ir?.dopamine),
+          'Intraop_Noradrenalina': boolToNumeric(ir?.noradrenaline),
+          'Intraop_Fenilefrina': boolToNumeric(ir?.phenylephrine),
+
+          // Fármacos - Otros
+          'Intraop_Insulina_Bolo': boolToNumeric(ir?.insulinBolus),
+          'Intraop_Insulina_Infusion': boolToNumeric(ir?.insulinInfusion),
+          'Intraop_Furosemida': boolToNumeric(ir?.furosemide),
+          'Intraop_Tranexamico_Bolo': boolToNumeric(ir?.tranexamicBolus),
+          'Intraop_Tranexamico_Infusion': boolToNumeric(ir?.tranexamicInfusion),
+          'Intraop_Calcio_Bolo': boolToNumeric(ir?.calciumGluconBolus),
+          'Intraop_Calcio_Infusion': boolToNumeric(ir?.calciumGluconInfusion),
+          'Intraop_Bicarbonato': boolToNumeric(ir?.sodiumBicarb),
+          'Intraop_ATB': boolToNumeric(ir?.antibiotics),
+
+          // Calidad de datos
+          'Intraop_Sospechoso': boolToNumeric(ir?.suspicious),
+        };
+
+        // Merge base row with intraop fields
+        const fullRow = { ...baseRow, ...intraopFields };
+
+        // Filter to only include variables from the selected profile (for complete, include all)
+        let row;
+        if (profile.variables === null) {
+          row = fullRow;
+        } else {
+          row = {};
+          for (const varName of profile.variables) {
+            if (varName in fullRow) {
+              row[varName] = fullRow[varName];
+            }
           }
         }
-      }
 
-      allRows.push(row);
+        allRows.push(row);
+      }
     } catch (error) {
       console.error(`Error processing case ${caseId}:`, error.message);
       // Continue with next case
@@ -3023,15 +3263,17 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
     return {
       csv,
       metadata: {
-        totalCases: cleanedRows.length,
+        totalRows: cleanedRows.length,
+        totalCases: caseIds.length,
         profile: profileId,
         variables: fields.length,
         generatedAt: new Date().toISOString(),
+        note: 'Una fila por registro intraoperatorio. Cada fila incluye datos completos del caso.',
       },
     };
   }
 
-  return csv;
+  return { csv };
 }
 
 /**
