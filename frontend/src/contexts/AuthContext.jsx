@@ -2,7 +2,7 @@
 // Flujo: Superusuario crea org y usuarios en Clerk -> Usuario se logea con org activa
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useUser, useAuth as useClerkAuth, useClerk, useOrganization } from '@clerk/nextjs';
 import { authApi, initializeAuth } from '@/lib/api';
 
@@ -21,25 +21,34 @@ export function AuthProvider({ children }) {
   const [synced, setSynced] = useState(false);
   const [apiReady, setApiReady] = useState(false);
 
+  // Ref para evitar sincronizaciones duplicadas y re-renders innecesarios
+  const syncInProgress = useRef(false);
+  const lastOrgId = useRef(null);
+
   // Inicializar API con función de obtención de token de Clerk
-  // Pasamos una función que siempre obtiene token fresco con org_id
+  // Solo re-inicializar cuando cambia la organización
   useEffect(() => {
     if (getToken && activeOrg) {
-      // Wrapper que fuerza skipCache para obtener token con org claims actuales
-      const getTokenWithOrg = async () => {
-        // No usar template, los claims de org se configuran en Clerk Dashboard > Sessions
-        const token = await getToken({ skipCache: true });
+      // Solo re-inicializar si cambió la organización
+      if (lastOrgId.current === activeOrg.id && apiReady) {
+        return;
+      }
+      lastOrgId.current = activeOrg.id;
 
-        // Debug: verificar que el token tiene org_id
-        if (token) {
+      // Wrapper que obtiene token con org claims
+      const getTokenWithOrg = async () => {
+        // Usar skipCache solo cuando realmente necesitamos un token fresco
+        const token = await getToken();
+
+        // Debug solo en desarrollo
+        if (process.env.NODE_ENV === 'development' && token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            console.log('Token org_id:', payload.org_id, 'Expected:', activeOrg.id);
             if (!payload.org_id) {
-              console.warn('Token does not contain org_id! Check Clerk Dashboard > Sessions > Customize session token');
+              console.warn('Token does not contain org_id! Check Clerk Dashboard > Sessions');
             }
           } catch (e) {
-            console.error('Error parsing token:', e);
+            // Silently ignore parse errors
           }
         }
 
@@ -47,69 +56,95 @@ export function AuthProvider({ children }) {
       };
       initializeAuth(getTokenWithOrg);
       setApiReady(true);
-    } else {
+    } else if (!activeOrg) {
+      lastOrgId.current = null;
       setApiReady(false);
     }
-  }, [getToken, activeOrg]);
+  }, [getToken, activeOrg, apiReady]);
 
   // Sincronizar usuario de Clerk con BD local (solo cuando hay org activa)
   const syncUserWithDB = useCallback(async () => {
     if (!isSignedIn || !clerkUser || !activeOrg || !apiReady) {
-      setDbUser(null);
+      // Solo limpiar dbUser si realmente no hay sesión
+      if (!isSignedIn) {
+        setDbUser(null);
+      }
       setLoading(false);
       return;
     }
 
-    console.log('syncUserWithDB: Starting sync...');
+    // Evitar sincronizaciones duplicadas
+    if (syncInProgress.current) {
+      return;
+    }
+
+    // Si ya está sincronizado y la org no cambió, no re-sincronizar
+    if (synced && dbUser && lastOrgId.current === activeOrg.id) {
+      setLoading(false);
+      return;
+    }
+
+    syncInProgress.current = true;
 
     try {
       // Obtener datos del usuario desde nuestra BD
       const response = await authApi.me();
-      console.log('syncUserWithDB: me() response:', response);
 
       if (response.user && !response.user.isNewUser) {
         // Usuario existe y está vinculado
-        console.log('syncUserWithDB: User found with role:', response.user.role);
         setDbUser(response.user);
         setSynced(true);
       } else {
         // Usuario en Clerk pero no vinculado en BD - intentar sincronizar
-        console.log('syncUserWithDB: User is new, attempting sync...');
         try {
           const syncResponse = await authApi.sync();
-          console.log('syncUserWithDB: sync() response:', syncResponse);
 
           if (syncResponse.user) {
             // Sync exitoso - usuario vinculado
-            console.log('syncUserWithDB: Sync successful, role:', syncResponse.user.role);
             setDbUser(syncResponse.user);
             setSynced(true);
           }
         } catch (syncError) {
           console.error('syncUserWithDB: Sync error:', syncError);
-          // Usuario no existe en BD - será creado por admin
-          // Mantener datos básicos de Clerk
-          setDbUser(null);
+          // Usuario no existe en BD - mantener dbUser anterior si existe
+          // para evitar flash a VIEWER
+          if (!dbUser) {
+            setDbUser(null);
+          }
         }
       }
     } catch (error) {
       console.error('syncUserWithDB: Error getting user:', error);
-      setDbUser(null);
+      // No limpiar dbUser en error para mantener el rol anterior
+      // Esto evita el flash a VIEWER cuando hay errores de red temporales
     } finally {
+      syncInProgress.current = false;
       setLoading(false);
     }
-  }, [isSignedIn, clerkUser, activeOrg, apiReady]);
+  }, [isSignedIn, clerkUser, activeOrg, apiReady, synced, dbUser]);
 
   // Efecto para sincronizar cuando Clerk, org y API están listos
+  // Solo sincronizar una vez por cambio de organización
   useEffect(() => {
-    if (isClerkLoaded && orgLoaded) {
-      if (isSignedIn && activeOrg && apiReady) {
-        syncUserWithDB();
-      } else if (!isSignedIn || !activeOrg) {
-        setDbUser(null);
-        setLoading(false);
-      }
-      // Si apiReady es false pero tenemos org, mantener loading=true
+    if (!isClerkLoaded || !orgLoaded) {
+      return;
+    }
+
+    if (!isSignedIn) {
+      setDbUser(null);
+      setSynced(false);
+      setLoading(false);
+      return;
+    }
+
+    if (!activeOrg) {
+      // Usuario logueado pero sin org seleccionada
+      setLoading(false);
+      return;
+    }
+
+    if (apiReady) {
+      syncUserWithDB();
     }
   }, [isClerkLoaded, orgLoaded, isSignedIn, activeOrg, apiReady, syncUserWithDB]);
 
@@ -175,10 +210,14 @@ export function AuthProvider({ children }) {
   const organizationId = activeOrg?.id || null;
   const organizationName = activeOrg?.name || 'Sistema TxH';
 
-  // Estado de carga: esperar Clerk + org + sync completado
-  const isLoading = !isClerkLoaded || !orgLoaded || loading;
+  // Estado de carga:
+  // - Esperar que Clerk y org estén cargados
+  // - Si hay usuario sincronizado, ya no mostrar loading
+  // - Solo mostrar loading inicial, no en re-sincronizaciones
+  const isLoading = !isClerkLoaded || !orgLoaded || (loading && !synced);
 
-  const value = {
+  // Memoizar el valor del contexto para evitar re-renders innecesarios
+  const value = useMemo(() => ({
     user,
     loading: isLoading,
     isSignedIn,
@@ -194,7 +233,21 @@ export function AuthProvider({ children }) {
     hasOrganization,
     organizationId,
     organizationName,
-  };
+  }), [
+    user,
+    isLoading,
+    isSignedIn,
+    synced,
+    logout,
+    isAuthenticated,
+    hasRole,
+    hasAnyRole,
+    getAuthToken,
+    syncUserWithDB,
+    hasOrganization,
+    organizationId,
+    organizationName,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
