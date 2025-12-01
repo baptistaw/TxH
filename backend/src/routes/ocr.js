@@ -33,6 +33,67 @@ const upload = multer({
 });
 
 /**
+ * GET /api/ocr/health
+ * Diagnóstico de la conexión con Google Cloud Vision
+ * NO requiere autenticación para facilitar debugging
+ */
+router.get('/health', async (req, res) => {
+  const diagnostics = {
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    googleCloudCredentials: {
+      GOOGLE_CLOUD_CREDENTIALS: process.env.GOOGLE_CLOUD_CREDENTIALS
+        ? `SET (${process.env.GOOGLE_CLOUD_CREDENTIALS.length} chars, starts with: ${process.env.GOOGLE_CLOUD_CREDENTIALS.substring(0, 10)}...)`
+        : 'NOT SET',
+      GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || 'NOT SET',
+    },
+    visionApiTest: null,
+  };
+
+  try {
+    // Intentar crear cliente y hacer una petición de prueba
+    const { getVisionClient } = require('../services/googleVisionService');
+    const client = getVisionClient();
+    diagnostics.visionClientCreated = true;
+
+    // Imagen de prueba mínima (1x1 pixel)
+    const testImageBuffer = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    );
+
+    const [result] = await client.textDetection({
+      image: { content: testImageBuffer },
+    });
+
+    diagnostics.visionApiTest = {
+      success: true,
+      message: 'Cloud Vision API funcionando correctamente',
+      annotationsFound: result.textAnnotations?.length || 0,
+    };
+
+    res.json({
+      success: true,
+      message: 'OCR service is healthy',
+      diagnostics,
+    });
+  } catch (error) {
+    diagnostics.visionApiTest = {
+      success: false,
+      error: error.message,
+      code: error.code,
+      details: error.details || null,
+    };
+
+    res.status(500).json({
+      success: false,
+      message: 'OCR service error',
+      diagnostics,
+    });
+  }
+});
+
+/**
  * GET /api/ocr/equipment-types
  * Lista todos los tipos de equipos médicos soportados
  */

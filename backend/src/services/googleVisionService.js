@@ -20,15 +20,23 @@ let visionClient = null;
  */
 function getVisionClient() {
   if (!visionClient) {
-    // Opcion 1: Credenciales como JSON string en variable de entorno
+    // Opcion 1: Credenciales como JSON string o Base64 en variable de entorno
     if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
       try {
-        const credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
+        let credentialsString = process.env.GOOGLE_CLOUD_CREDENTIALS;
+
+        // Detectar si es Base64 (no empieza con {)
+        if (!credentialsString.trim().startsWith('{')) {
+          console.log('[Google Vision] Detectado formato Base64, decodificando...');
+          credentialsString = Buffer.from(credentialsString, 'base64').toString('utf8');
+        }
+
+        const credentials = JSON.parse(credentialsString);
         visionClient = new vision.ImageAnnotatorClient({ credentials });
         console.log('[Google Vision] Cliente inicializado con credenciales JSON');
       } catch (error) {
         console.error('[Google Vision] Error parseando GOOGLE_CLOUD_CREDENTIALS:', error.message);
-        throw new Error('GOOGLE_CLOUD_CREDENTIALS no es un JSON valido');
+        throw new Error('GOOGLE_CLOUD_CREDENTIALS no es un JSON valido (ni texto ni Base64)');
       }
     }
     // Opcion 2: Ruta al archivo de credenciales
