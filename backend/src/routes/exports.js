@@ -185,4 +185,102 @@ router.post(
   exportsController.emailProcedurePDF
 );
 
+// ============================================================================
+// SPSS EXPORT ROUTES
+// ============================================================================
+
+/**
+ * Get available SPSS export profiles
+ * GET /api/exports/spss/profiles
+ *
+ * Roles: admin, viewer (data analyst)
+ *
+ * Response:
+ * {
+ *   "success": true,
+ *   "profiles": [
+ *     { "id": "demographic", "name": "Demográfico", "description": "...", "variableCount": 15 },
+ *     ...
+ *   ]
+ * }
+ */
+router.get(
+  '/spss/profiles',
+  authorize('ADMIN', 'VIEWER'),
+  exportsController.getSPSSProfiles
+);
+
+/**
+ * Export cases as SPSS-compatible CSV
+ * POST /api/exports/spss
+ *
+ * Body:
+ * {
+ *   "caseIds": [1, 2, 3],           // Optional - exports specific cases
+ *   "profile": "demographic",        // Profile ID
+ *   "filters": {                     // Optional - used when caseIds not provided
+ *     "year": 2024,
+ *     "dateFrom": "2024-01-01",
+ *     "dateTo": "2024-12-31"
+ *   }
+ * }
+ *
+ * Roles: admin, viewer (data analyst)
+ *
+ * Response: CSV file download
+ */
+router.post(
+  '/spss',
+  authorize('ADMIN', 'VIEWER'),
+  exportsController.exportSPSS
+);
+
+/**
+ * Get SPSS syntax file for a profile
+ * GET /api/exports/spss/syntax/:profile
+ *
+ * Roles: admin, viewer (data analyst)
+ *
+ * Response: .sps file download with VARIABLE LABELS and VALUE LABELS
+ */
+router.get(
+  '/spss/syntax/:profile',
+  authorize('ADMIN', 'VIEWER'),
+  exportsController.getSPSSSyntax
+);
+
+/**
+ * Export complete SPSS bundle (ZIP with CSV + syntax + dictionary)
+ * POST /api/exports/spss/bundle
+ *
+ * Body: Same as POST /api/exports/spss
+ *
+ * Roles: admin, viewer (data analyst)
+ *
+ * Response: ZIP file with:
+ * - datos-{profile}.csv
+ * - sintaxis-spss-{profile}.sps
+ * - diccionario-datos.txt
+ * - LEAME.txt
+ */
+router.post(
+  '/spss/bundle',
+  authorize('ADMIN', 'VIEWER'),
+  exportsController.exportSPSSBundle
+);
+
+/**
+ * Get data dictionary
+ * GET /api/exports/data-dictionary
+ *
+ * Roles: admin, viewer (data analyst)
+ *
+ * Response: Text file with all variable definitions
+ */
+router.get(
+  '/data-dictionary',
+  authorize('ADMIN', 'VIEWER'),
+  exportsController.getDataDictionary
+);
+
 module.exports = router;

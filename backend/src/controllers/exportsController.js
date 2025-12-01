@@ -9,6 +9,7 @@ const csvService = require('../services/csvService');
 const emailService = require('../services/emailService');
 const logger = require('../lib/logger');
 const prisma = require('../lib/prisma');
+const archiver = require('archiver');
 
 /**
  * Export case as PDF
@@ -553,6 +554,274 @@ async function emailProcedurePDF(req, res) {
   }
 }
 
+// ============================================================================
+// SPSS EXPORT ENDPOINTS
+// ============================================================================
+
+/**
+ * Get available SPSS export profiles
+ * GET /api/exports/spss/profiles
+ */
+async function getSPSSProfiles(req, res) {
+  try {
+    const profiles = csvService.getAvailableSPSSProfiles();
+
+    res.json({
+      success: true,
+      profiles,
+    });
+  } catch (error) {
+    logger.error('Error getting SPSS profiles:', error);
+    res.status(500).json({
+      error: 'Failed to get SPSS profiles',
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * Export cases as SPSS-compatible CSV
+ * POST /api/exports/spss
+ * Body: {
+ *   caseIds?: number[],      // Optional - if not provided, exports all cases for organization
+ *   profile: string,          // Profile ID (demographic, comorbidities, etc.)
+ *   filters?: {               // Optional filters when exporting all
+ *     year?: number,
+ *     dateFrom?: string,
+ *     dateTo?: string
+ *   }
+ * }
+ */
+async function exportSPSS(req, res) {
+  try {
+    const { caseIds, profile = 'complete', filters = {} } = req.body;
+    const organizationId = req.auth?.orgId;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        error: 'Organization required',
+        message: 'No organization ID found in request',
+      });
+    }
+
+    logger.info(`SPSS export requested - profile: ${profile}, org: ${organizationId}`);
+
+    // Get case IDs if not provided
+    let targetCaseIds = caseIds;
+    if (!targetCaseIds || targetCaseIds.length === 0) {
+      targetCaseIds = await csvService.getAllCasesForOrganization(organizationId, filters);
+    }
+
+    if (targetCaseIds.length === 0) {
+      return res.status(404).json({
+        error: 'No cases found',
+        message: 'No cases match the specified criteria',
+      });
+    }
+
+    logger.info(`Exporting ${targetCaseIds.length} cases with profile: ${profile}`);
+
+    // Generate SPSS export
+    const { csv, metadata } = await csvService.generateSPSSExport(targetCaseIds, profile, {
+      includeMetadata: true,
+    });
+
+    // Set headers for download
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const filename = `spss-export-${profile}-${timestamp}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Add UTF-8 BOM for Excel compatibility and send
+    res.send('\ufeff' + csv);
+
+    logger.info(`Successfully exported ${metadata.totalCases} cases for SPSS (profile: ${profile})`);
+  } catch (error) {
+    logger.error('Error exporting SPSS:', error);
+    res.status(500).json({
+      error: 'Failed to generate SPSS export',
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * Get SPSS syntax file for a profile
+ * GET /api/exports/spss/syntax/:profile
+ */
+async function getSPSSSyntax(req, res) {
+  try {
+    const { profile } = req.params;
+
+    const syntax = csvService.generateSPSSSyntax(profile);
+
+    if (!syntax) {
+      return res.status(404).json({
+        error: 'Profile not found',
+        message: `Profile "${profile}" not found`,
+      });
+    }
+
+    // Set headers for download
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="spss-syntax-${profile}.sps"`);
+
+    res.send(syntax);
+
+    logger.info(`SPSS syntax downloaded for profile: ${profile}`);
+  } catch (error) {
+    logger.error('Error generating SPSS syntax:', error);
+    res.status(500).json({
+      error: 'Failed to generate SPSS syntax',
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * Export all data as ZIP with CSV + SPSS syntax + data dictionary
+ * POST /api/exports/spss/bundle
+ * Body: {
+ *   caseIds?: number[],
+ *   profile: string,
+ *   filters?: object
+ * }
+ */
+async function exportSPSSBundle(req, res) {
+  try {
+    const { caseIds, profile = 'complete', filters = {} } = req.body;
+    const organizationId = req.auth?.orgId;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        error: 'Organization required',
+        message: 'No organization ID found in request',
+      });
+    }
+
+    // Get case IDs if not provided
+    let targetCaseIds = caseIds;
+    if (!targetCaseIds || targetCaseIds.length === 0) {
+      targetCaseIds = await csvService.getAllCasesForOrganization(organizationId, filters);
+    }
+
+    if (targetCaseIds.length === 0) {
+      return res.status(404).json({
+        error: 'No cases found',
+        message: 'No cases match the specified criteria',
+      });
+    }
+
+    logger.info(`SPSS bundle export - ${targetCaseIds.length} cases, profile: ${profile}`);
+
+    // Generate all components
+    const { csv, metadata, dataDictionary } = await csvService.generateSPSSExport(targetCaseIds, profile, {
+      includeMetadata: true,
+      includeDataDictionary: true,
+    });
+
+    const syntax = csvService.generateSPSSSyntax(profile);
+
+    // Create ZIP archive
+    const timestamp = new Date().toISOString().slice(0, 10);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="spss-bundle-${profile}-${timestamp}.zip"`);
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    archive.on('error', (err) => {
+      throw err;
+    });
+
+    archive.pipe(res);
+
+    // Add files to ZIP
+    archive.append('\ufeff' + csv, { name: `datos-${profile}.csv` });
+    archive.append(syntax, { name: `sintaxis-spss-${profile}.sps` });
+    archive.append(dataDictionary, { name: 'diccionario-datos.txt' });
+
+    // Add README
+    const readme = `EXPORTACIÓN SPSS - Sistema de Registro Anestesiológico TxH
+========================================================
+
+Fecha de exportación: ${new Date().toLocaleString('es-UY')}
+Perfil: ${profile}
+Total de casos: ${metadata.totalCases}
+Variables incluidas: ${metadata.variableCount}
+
+CONTENIDO DEL ARCHIVO:
+- datos-${profile}.csv: Datos en formato CSV (compatible con SPSS)
+- sintaxis-spss-${profile}.sps: Archivo de sintaxis SPSS con etiquetas de variables
+- diccionario-datos.txt: Diccionario de datos con descripción de cada variable
+
+INSTRUCCIONES DE USO EN SPSS:
+1. Importar datos-${profile}.csv usando File > Open > Data
+2. Seleccionar delimitador: punto y coma (;)
+3. Ejecutar sintaxis-spss-${profile}.sps para aplicar etiquetas
+
+CODIFICACIÓN DE VARIABLES:
+- Variables booleanas: 1 = Sí, 0 = No
+- Valores faltantes: celda vacía
+- Encoding: UTF-8 con BOM
+
+Generado automáticamente por Sistema TxH
+`;
+
+    archive.append(readme, { name: 'LEAME.txt' });
+
+    await archive.finalize();
+
+    logger.info(`SPSS bundle exported successfully - ${metadata.totalCases} cases`);
+  } catch (error) {
+    logger.error('Error exporting SPSS bundle:', error);
+    res.status(500).json({
+      error: 'Failed to generate SPSS bundle',
+      message: error.message,
+    });
+  }
+}
+
+/**
+ * Get data dictionary for export
+ * GET /api/exports/data-dictionary
+ */
+async function getDataDictionary(req, res) {
+  try {
+    const dictionary = csvService.DATA_DICTIONARY;
+
+    // Format as readable text
+    let text = 'DICCIONARIO DE DATOS - Sistema de Registro Anestesiológico TxH\n';
+    text += '='.repeat(70) + '\n\n';
+    text += `Generado: ${new Date().toLocaleString('es-UY')}\n`;
+    text += `Total de variables: ${Object.keys(dictionary).length}\n\n`;
+    text += '='.repeat(70) + '\n\n';
+
+    for (const [key, info] of Object.entries(dictionary)) {
+      text += `VARIABLE: ${key}\n`;
+      text += `-`.repeat(50) + '\n';
+      text += `  Etiqueta: ${info.label}\n`;
+      text += `  Tipo: ${info.type}\n`;
+      if (info.unit) text += `  Unidad: ${info.unit}\n`;
+      if (info.description) text += `  Descripción: ${info.description}\n`;
+      if (info.values) text += `  Valores: ${JSON.stringify(info.values)}\n`;
+      text += '\n';
+    }
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="diccionario-datos.txt"');
+
+    res.send(text);
+  } catch (error) {
+    logger.error('Error generating data dictionary:', error);
+    res.status(500).json({
+      error: 'Failed to generate data dictionary',
+      message: error.message,
+    });
+  }
+}
+
 module.exports = {
   exportCasePDF,
   exportCaseCSV,
@@ -562,4 +831,10 @@ module.exports = {
   emailPreopPDF,
   exportProcedurePDF,
   emailProcedurePDF,
+  // SPSS exports
+  getSPSSProfiles,
+  exportSPSS,
+  getSPSSSyntax,
+  exportSPSSBundle,
+  getDataDictionary,
 };
