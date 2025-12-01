@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { casesApi, exportsApi } from '@/lib/api';
-import { downloadCasePDF } from '@/lib/pdfService';
 import {
   formatDate,
   formatDateTime,
@@ -45,8 +44,6 @@ function CaseDetailPageContent() {
   const [caseData, setCaseData] = useState(null);
   const [team, setTeam] = useState([]);
   const [preop, setPreop] = useState(null);
-  const [intraop, setIntraop] = useState([]);
-  const [fluids, setFluids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(false);
@@ -78,22 +75,6 @@ function CaseDetailPageContent() {
         } catch (err) {
           console.warn('No se pudo cargar preop:', err);
         }
-
-        // Cargar intraop (para PDF)
-        try {
-          const intraopResponse = await casesApi.getIntraop(caseId);
-          setIntraop(intraopResponse || []);
-        } catch (err) {
-          console.warn('No se pudo cargar intraop:', err);
-        }
-
-        // Cargar fluids (para PDF)
-        try {
-          const fluidsResponse = await casesApi.getFluids(caseId);
-          setFluids(fluidsResponse || []);
-        } catch (err) {
-          console.warn('No se pudo cargar fluids:', err);
-        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -106,12 +87,11 @@ function CaseDetailPageContent() {
     }
   }, [caseId]);
 
-  // Handler para descargar PDF (generado en el cliente)
+  // Handler para descargar PDF
   const handleDownloadPDF = async () => {
     setDownloading(true);
     try {
-      // Generar PDF en el cliente con jsPDF
-      downloadCasePDF(caseData, preop, intraop, fluids, team);
+      await exportsApi.downloadPDF(caseId);
     } catch (err) {
       console.error('Error al descargar PDF:', err);
       alert('Error al descargar PDF: ' + err.message);

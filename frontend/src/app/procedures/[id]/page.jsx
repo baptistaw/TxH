@@ -6,8 +6,7 @@ import Link from 'next/link';
 import Card, { CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { proceduresApi } from '@/lib/api';
-import { downloadProcedurePDF } from '@/lib/pdfService';
+import { proceduresApi, exportsApi } from '@/lib/api';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { formatDate, formatDateTime } from '@/lib/utils';
@@ -243,7 +242,8 @@ function ProcedureDetailContent() {
     try {
       setDownloadingPDF(true);
       setError(null);
-      downloadProcedurePDF(procedure);
+      const patientName = procedure?.patient?.name || 'paciente';
+      await exportsApi.downloadProcedurePDF(params.id, patientName);
     } catch (err) {
       console.error('Error downloading PDF:', err);
       setError('Error al descargar el PDF');

@@ -1,12 +1,52 @@
 // src/lib/puppeteer.js - Configuración de Puppeteer para diferentes entornos
-const puppeteer = require('puppeteer');
+// En producción usa @sparticuz/chromium que funciona en Render/serverless
+// En desarrollo usa puppeteer con Chrome bundled
 
 /**
- * Obtener opciones de lanzamiento de Puppeteer según el entorno
- * En Render/producción usa Chrome del sistema, en desarrollo usa el bundled
+ * Lanzar navegador con configuración optimizada según el entorno
+ */
+async function launchBrowser() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction) {
+    // En producción, usar puppeteer-core con @sparticuz/chromium
+    const puppeteer = require('puppeteer-core');
+    const chromium = require('@sparticuz/chromium');
+
+    // Configurar chromium para menor uso de memoria
+    chromium.setHeadlessMode = true;
+    chromium.setGraphicsMode = false;
+
+    return await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+  } else {
+    // En desarrollo, usar puppeteer normal con Chrome bundled
+    const puppeteer = require('puppeteer');
+
+    return await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+      ],
+    });
+  }
+}
+
+/**
+ * Obtener opciones de lanzamiento (legacy - para compatibilidad)
+ * @deprecated Usar launchBrowser() directamente
  */
 function getLaunchOptions() {
-  const options = {
+  return {
     headless: 'new',
     args: [
       '--no-sandbox',
@@ -18,34 +58,6 @@ function getLaunchOptions() {
       '--single-process',
     ],
   };
-
-  // En producción (Render), intentar usar Chrome del sistema
-  if (process.env.NODE_ENV === 'production') {
-    // Render tiene Chrome instalado en estas rutas
-    const possiblePaths = [
-      '/usr/bin/google-chrome',
-      '/usr/bin/google-chrome-stable',
-      '/usr/bin/chromium',
-      '/usr/bin/chromium-browser',
-    ];
-
-    const fs = require('fs');
-    for (const chromePath of possiblePaths) {
-      if (fs.existsSync(chromePath)) {
-        options.executablePath = chromePath;
-        break;
-      }
-    }
-  }
-
-  return options;
-}
-
-/**
- * Lanzar navegador con configuración optimizada
- */
-async function launchBrowser() {
-  return await puppeteer.launch(getLaunchOptions());
 }
 
 module.exports = {

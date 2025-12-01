@@ -1,6 +1,6 @@
 // src/services/pdfService-improved.js - Servicio mejorado para generación de PDFs
 
-const puppeteer = require('puppeteer');
+const { launchBrowser } = require('../lib/puppeteer');
 const { format } = require('date-fns');
 const { es } = require('date-fns/locale');
 const prisma = require('../lib/prisma');
@@ -2178,10 +2178,7 @@ async function generateCasePDF(caseId) {
   const html = generateHTML(data);
 
   // Generar PDF con Puppeteer
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await launchBrowser();
 
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -3071,10 +3068,7 @@ async function generatePreopPDF(preopId) {
   const html = generatePreopHTML(data);
 
   // Generar PDF con Puppeteer
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await launchBrowser();
 
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -3499,10 +3493,7 @@ async function generateProcedurePDF(procedureId) {
   const data = await getProcedureDataForPDF(procedureId);
   const html = generateProcedureHTML(data);
 
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await launchBrowser();
 
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: 'networkidle0' });
