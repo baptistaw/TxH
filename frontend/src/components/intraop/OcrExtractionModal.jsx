@@ -10,6 +10,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
 
 // Labels legibles para los campos extraídos
 const FIELD_LABELS = {
@@ -129,6 +130,9 @@ export default function OcrExtractionModal({
   onApplyValues,
   apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
 }) {
+  // Hook de Clerk para obtener token
+  const { getToken } = useAuth();
+
   // Estado
   const [images, setImages] = useState([]); // Array de { base64, mediaType, preview, id }
   const [loading, setLoading] = useState(false);
@@ -249,7 +253,8 @@ export default function OcrExtractionModal({
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
+      // Obtener token de Clerk
+      const token = await getToken();
 
       const response = await fetch(`${normalizedApiUrl}/api/ocr/extract-batch`, {
         method: 'POST',
@@ -286,7 +291,7 @@ export default function OcrExtractionModal({
     } finally {
       setLoading(false);
     }
-  }, [images, normalizedApiUrl]);
+  }, [images, normalizedApiUrl, getToken]);
 
   // Manejar cambio en valor editado
   const handleValueChange = useCallback((field, value) => {
