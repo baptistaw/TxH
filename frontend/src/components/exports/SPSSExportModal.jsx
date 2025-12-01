@@ -3,7 +3,7 @@
 /**
  * Modal de Exportación SPSS
  *
- * Permite al usuario seleccionar un perfil de exportación y descargar
+ * Permite al usuario seleccionar uno o múltiples perfiles de exportación y descargar
  * datos en formato compatible con SPSS, con opción de incluir sintaxis
  * y diccionario de datos.
  */
@@ -30,16 +30,21 @@ export default function SPSSExportModal({
   caseIds = [], // Lista específica de casos
 }) {
   const [profiles, setProfiles] = useState([]);
-  const [selectedProfile, setSelectedProfile] = useState('complete');
+  const [selectedProfiles, setSelectedProfiles] = useState(['complete']);
   const [loading, setLoading] = useState(false);
   const [loadingProfiles, setLoadingProfiles] = useState(true);
   const [error, setError] = useState(null);
   const [downloadType, setDownloadType] = useState('csv'); // 'csv', 'bundle'
+  const [exportProgress, setExportProgress] = useState({ current: 0, total: 0 });
 
   // Cargar perfiles disponibles
   useEffect(() => {
     if (isOpen) {
       loadProfiles();
+      // Reset state when opening
+      setSelectedProfiles(['complete']);
+      setError(null);
+      setExportProgress({ current: 0, total: 0 });
     }
   }, [isOpen]);
 
@@ -56,6 +61,27 @@ export default function SPSSExportModal({
     }
   };
 
+  const toggleProfile = (profileId) => {
+    setSelectedProfiles((prev) => {
+      if (prev.includes(profileId)) {
+        // Don't allow deselecting all
+        if (prev.length === 1) return prev;
+        return prev.filter((p) => p !== profileId);
+      } else {
+        return [...prev, profileId];
+      }
+    });
+  };
+
+  const selectAllProfiles = () => {
+    const allProfileIds = profiles.map((p) => p.id);
+    setSelectedProfiles(allProfileIds);
+  };
+
+  const selectOnlyComplete = () => {
+    setSelectedProfiles(['complete']);
+  };
+
   const handleExport = async () => {
     setLoading(true);
     setError(null);
@@ -63,16 +89,45 @@ export default function SPSSExportModal({
     try {
       const exportCaseIds = caseId ? [caseId] : caseIds.length > 0 ? caseIds : undefined;
 
-      if (downloadType === 'bundle') {
-        await exportsApi.downloadSPSSBundle({
-          caseIds: exportCaseIds,
-          profile: selectedProfile,
-        });
+      if (selectedProfiles.length === 1) {
+        // Single profile export
+        const profile = selectedProfiles[0];
+        if (downloadType === 'bundle') {
+          await exportsApi.downloadSPSSBundle({
+            caseIds: exportCaseIds,
+            profile,
+          });
+        } else {
+          await exportsApi.downloadSPSS({
+            caseIds: exportCaseIds,
+            profile,
+          });
+        }
       } else {
-        await exportsApi.downloadSPSS({
-          caseIds: exportCaseIds,
-          profile: selectedProfile,
-        });
+        // Multiple profiles - download each one
+        setExportProgress({ current: 0, total: selectedProfiles.length });
+
+        for (let i = 0; i < selectedProfiles.length; i++) {
+          const profile = selectedProfiles[i];
+          setExportProgress({ current: i + 1, total: selectedProfiles.length });
+
+          if (downloadType === 'bundle') {
+            await exportsApi.downloadSPSSBundle({
+              caseIds: exportCaseIds,
+              profile,
+            });
+          } else {
+            await exportsApi.downloadSPSS({
+              caseIds: exportCaseIds,
+              profile,
+            });
+          }
+
+          // Small delay between downloads to avoid browser blocking
+          if (i < selectedProfiles.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+        }
       }
 
       onClose();
@@ -81,12 +136,19 @@ export default function SPSSExportModal({
       setError(err.message || 'Error al exportar datos');
     } finally {
       setLoading(false);
+      setExportProgress({ current: 0, total: 0 });
     }
   };
 
   const handleDownloadSyntax = async () => {
     try {
-      await exportsApi.downloadSPSSSyntax(selectedProfile);
+      // Download syntax for first selected profile (or all if multiple)
+      for (const profile of selectedProfiles) {
+        await exportsApi.downloadSPSSSyntax(profile);
+        if (selectedProfiles.length > 1) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      }
     } catch (err) {
       console.error('Error downloading syntax:', err);
       setError('Error al descargar sintaxis SPSS');
@@ -109,6 +171,11 @@ export default function SPSSExportModal({
     : caseIds.length > 0
       ? `${caseIds.length} casos seleccionados`
       : 'todos los casos de la organización';
+
+  const totalVariables = selectedProfiles.reduce((sum, pId) => {
+    const profile = profiles.find((p) => p.id === pId);
+    return sum + (profile?.variableCount || 0);
+  }, 0);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -142,7 +209,7 @@ export default function SPSSExportModal({
           </div>
 
           {/* Body */}
-          <div className="px-6 py-4 space-y-4">
+          <div className="px-6 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
             {/* Error */}
             {error && (
               <div className="p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-red-300 text-sm">
@@ -150,48 +217,81 @@ export default function SPSSExportModal({
               </div>
             )}
 
-            {/* Selección de perfil */}
+            {/* Selección de perfiles */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Perfil de exportación
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Perfiles de exportación
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={selectAllProfiles}
+                    className="text-xs text-surgical-400 hover:text-surgical-300 transition-colors"
+                  >
+                    Todos
+                  </button>
+                  <span className="text-dark-400">|</span>
+                  <button
+                    type="button"
+                    onClick={selectOnlyComplete}
+                    className="text-xs text-surgical-400 hover:text-surgical-300 transition-colors"
+                  >
+                    Solo completo
+                  </button>
+                </div>
+              </div>
+
+              {selectedProfiles.length > 1 && (
+                <p className="text-xs text-amber-400 mb-2">
+                  {selectedProfiles.length} perfiles seleccionados - se descargarán {selectedProfiles.length} archivos
+                </p>
+              )}
+
               {loadingProfiles ? (
                 <div className="text-gray-400 text-sm">Cargando perfiles...</div>
               ) : (
                 <div className="space-y-2">
-                  {profiles.map((profile) => (
-                    <label
-                      key={profile.id}
-                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                        selectedProfile === profile.id
-                          ? 'bg-surgical-900/50 border border-surgical-500'
-                          : 'bg-dark-600 border border-dark-500 hover:border-dark-400'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="profile"
-                        value={profile.id}
-                        checked={selectedProfile === profile.id}
-                        onChange={(e) => setSelectedProfile(e.target.value)}
-                        className="mt-1 w-4 h-4 text-surgical-500"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-200">
-                            {profile.name}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            ({profile.variableCount} variables)
-                          </span>
+                  {profiles.map((profile) => {
+                    const isSelected = selectedProfiles.includes(profile.id);
+                    return (
+                      <label
+                        key={profile.id}
+                        className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-surgical-900/50 border border-surgical-500'
+                            : 'bg-dark-600 border border-dark-500 hover:border-dark-400'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleProfile(profile.id)}
+                          className="mt-1 w-4 h-4 rounded text-surgical-500 bg-dark-600 border-dark-400 focus:ring-surgical-500 focus:ring-offset-dark-700"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-200">
+                              {profile.name}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({profile.variableCount} variables)
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-400 mt-0.5">
+                            {PROFILE_DESCRIPTIONS[profile.id] || profile.description}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-400 mt-0.5">
-                          {PROFILE_DESCRIPTIONS[profile.id] || profile.description}
-                        </p>
-                      </div>
-                    </label>
-                  ))}
+                      </label>
+                    );
+                  })}
                 </div>
+              )}
+
+              {selectedProfiles.length > 0 && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Total: {totalVariables} variables en {selectedProfiles.length} archivo(s)
+                </p>
               )}
             </div>
 
@@ -255,14 +355,14 @@ export default function SPSSExportModal({
                 onClick={handleDownloadSyntax}
                 className="flex-1 text-sm text-surgical-400 hover:text-surgical-300 py-2 transition-colors"
               >
-                Descargar solo sintaxis SPSS
+                Descargar sintaxis SPSS
               </button>
               <span className="text-dark-500">|</span>
               <button
                 onClick={handleDownloadDictionary}
                 className="flex-1 text-sm text-surgical-400 hover:text-surgical-300 py-2 transition-colors"
               >
-                Descargar diccionario de datos
+                Descargar diccionario
               </button>
             </div>
           </div>
@@ -275,7 +375,7 @@ export default function SPSSExportModal({
             <Button
               variant="primary"
               onClick={handleExport}
-              disabled={loading || loadingProfiles}
+              disabled={loading || loadingProfiles || selectedProfiles.length === 0}
             >
               {loading ? (
                 <>
@@ -283,14 +383,16 @@ export default function SPSSExportModal({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Exportando...
+                  {exportProgress.total > 1
+                    ? `Exportando ${exportProgress.current}/${exportProgress.total}...`
+                    : 'Exportando...'}
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Exportar
+                  Exportar {selectedProfiles.length > 1 ? `(${selectedProfiles.length})` : ''}
                 </>
               )}
             </Button>
