@@ -158,7 +158,7 @@ async function fetchBlob(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`;
   const token = await getToken();
 
-  console.log(`API Download: ${endpoint}`, { hasToken: !!token });
+  console.log(`API Download: ${endpoint}`, { hasToken: !!token, url });
 
   const config = {
     headers: {
@@ -169,8 +169,11 @@ async function fetchBlob(endpoint, options = {}) {
     ...options,
   };
 
+  console.log('fetchBlob config:', { url, method: config.method, hasBody: !!config.body });
+
   try {
     const response = await fetch(url, config);
+    console.log('fetchBlob response:', { status: response.status, ok: response.ok, contentType: response.headers.get('content-type') });
 
     if (response.status === 401) {
       throw new ApiError('No autorizado', 401, null);
@@ -183,6 +186,7 @@ async function fetchBlob(endpoint, options = {}) {
       if (contentType && contentType.includes('application/json')) {
         errorData = await response.json();
       }
+      console.error('fetchBlob error response:', errorData);
       throw new ApiError(
         errorData?.message || errorData?.error || 'Error al descargar archivo',
         response.status,
@@ -190,8 +194,11 @@ async function fetchBlob(endpoint, options = {}) {
       );
     }
 
-    return await response.blob();
+    const blob = await response.blob();
+    console.log('fetchBlob success:', { blobSize: blob.size, blobType: blob.type });
+    return blob;
   } catch (error) {
+    console.error('fetchBlob caught error:', error);
     if (error instanceof ApiError) {
       throw error;
     }
