@@ -2998,8 +2998,17 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
     throw new Error('No se pudieron procesar casos para exportar');
   }
 
+  // Clean undefined/null values - replace with empty string for SPSS compatibility
+  const cleanedRows = allRows.map(row => {
+    const cleaned = {};
+    for (const [key, value] of Object.entries(row)) {
+      cleaned[key] = value === undefined || value === null ? '' : value;
+    }
+    return cleaned;
+  });
+
   // Generate CSV
-  const fields = profile.variables || Object.keys(allRows[0]);
+  const fields = profile.variables || Object.keys(cleanedRows[0]);
   const parser = new Parser({
     fields,
     delimiter: ',',
@@ -3007,7 +3016,7 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
     header: true,
   });
 
-  return parser.parse(allRows);
+  return parser.parse(cleanedRows);
 }
 
 /**
