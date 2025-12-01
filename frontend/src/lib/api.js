@@ -151,6 +151,73 @@ async function fetcher(endpoint, options = {}) {
 }
 
 /**
+ * Fetch helper para descargar archivos binarios (CSV, ZIP, PDF)
+ * Usa la misma configuración base que fetcher pero retorna blob
+ */
+async function fetchBlob(endpoint, options = {}) {
+  const url = `${API_URL}${endpoint}`;
+  const token = await getToken();
+
+  console.log(`API Download: ${endpoint}`, { hasToken: !!token });
+
+  const config = {
+    headers: {
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
+    ...options,
+  };
+
+  try {
+    const response = await fetch(url, config);
+
+    if (response.status === 401) {
+      throw new ApiError('No autorizado', 401, null);
+    }
+
+    if (!response.ok) {
+      // Try to get error message from response
+      const contentType = response.headers.get('content-type');
+      let errorData = null;
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json();
+      }
+      throw new ApiError(
+        errorData?.message || errorData?.error || 'Error al descargar archivo',
+        response.status,
+        errorData
+      );
+    }
+
+    return await response.blob();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(
+      error.message || 'Error de conexión al descargar',
+      0,
+      null
+    );
+  }
+}
+
+/**
+ * Helper para descargar un blob como archivo
+ */
+function downloadBlobAsFile(blob, filename) {
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
+/**
  * API Client con métodos HTTP
  */
 export const api = {
@@ -491,30 +558,10 @@ export const exportsApi = {
    * @param {string|number} caseId - ID del caso
    */
   downloadPDF: async (caseId) => {
-    const url = `${API_URL}/exports/case/${caseId}/pdf`;
-    const token = await getToken();
-
-    const response = await fetch(url, {
+    const blob = await fetchBlob(`/exports/case/${caseId}/pdf`, {
       method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
     });
-
-    if (!response.ok) {
-      throw new Error('Error al descargar PDF');
-    }
-
-    // Descargar archivo
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `caso-${caseId}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    downloadBlobAsFile(blob, `caso-${caseId}.pdf`);
   },
 
   /**
@@ -533,30 +580,10 @@ export const exportsApi = {
    * @param {string} format - Formato: 'complete', 'summary', 'intraop'
    */
   downloadCSV: async (caseId, format = 'complete') => {
-    const url = `${API_URL}/exports/case/${caseId}/csv?format=${format}`;
-    const token = await getToken();
-
-    const response = await fetch(url, {
+    const blob = await fetchBlob(`/exports/case/${caseId}/csv?format=${format}`, {
       method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
     });
-
-    if (!response.ok) {
-      throw new Error('Error al descargar CSV');
-    }
-
-    // Descargar archivo
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `caso-${caseId}-${format}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    downloadBlobAsFile(blob, `caso-${caseId}-${format}.csv`);
   },
 
   // ============================================================================
@@ -569,31 +596,11 @@ export const exportsApi = {
    * @param {string} patientName - Nombre del paciente para el nombre del archivo
    */
   downloadPreopPDF: async (preopId, patientName = 'paciente') => {
-    const url = `${API_URL}/exports/preop/${preopId}/pdf`;
-    const token = await getToken();
-
-    const response = await fetch(url, {
+    const blob = await fetchBlob(`/exports/preop/${preopId}/pdf`, {
       method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
     });
-
-    if (!response.ok) {
-      throw new Error('Error al descargar PDF de evaluación');
-    }
-
-    // Descargar archivo
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
     const safeName = patientName.replace(/\s+/g, '_');
-    link.download = `evaluacion-pretrasplante-${safeName}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    downloadBlobAsFile(blob, `evaluacion-pretrasplante-${safeName}.pdf`);
   },
 
   /**
@@ -616,31 +623,11 @@ export const exportsApi = {
    * @param {string} patientName - Nombre del paciente para el nombre del archivo
    */
   downloadProcedurePDF: async (procedureId, patientName = 'paciente') => {
-    const url = `${API_URL}/exports/procedure/${procedureId}/pdf`;
-    const token = await getToken();
-
-    const response = await fetch(url, {
+    const blob = await fetchBlob(`/exports/procedure/${procedureId}/pdf`, {
       method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
     });
-
-    if (!response.ok) {
-      throw new Error('Error al descargar PDF del procedimiento');
-    }
-
-    // Descargar archivo
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
     const safeName = patientName.replace(/\s+/g, '_');
-    link.download = `procedimiento-${safeName}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    downloadBlobAsFile(blob, `procedimiento-${safeName}.pdf`);
   },
 
   /**
@@ -673,36 +660,13 @@ export const exportsApi = {
    * @param {Object} options.filters - Filtros opcionales (year, dateFrom, dateTo)
    */
   downloadSPSS: async ({ caseIds, profile = 'complete', filters = {} }) => {
-    const url = `${API_URL}/exports/spss`;
-    const token = await getToken();
-
-    console.log('SPSS Export Request:', { url, caseIds, profile, hasToken: !!token, tokenPreview: token ? token.substring(0, 20) + '...' : 'none' });
-
-    const response = await fetch(url, {
+    const blob = await fetchBlob('/exports/spss', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
       body: JSON.stringify({ caseIds, profile, filters }),
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al descargar CSV SPSS');
-    }
-
-    // Descargar archivo
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
     const timestamp = new Date().toISOString().slice(0, 10);
-    link.download = `spss-export-${profile}-${timestamp}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    downloadBlobAsFile(blob, `spss-export-${profile}-${timestamp}.csv`);
   },
 
   /**
@@ -710,30 +674,10 @@ export const exportsApi = {
    * @param {string} profile - ID del perfil
    */
   downloadSPSSSyntax: async (profile) => {
-    const url = `${API_URL}/exports/spss/syntax/${profile}`;
-    const token = await getToken();
-
-    const response = await fetch(url, {
+    const blob = await fetchBlob(`/exports/spss/syntax/${profile}`, {
       method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
     });
-
-    if (!response.ok) {
-      throw new Error('Error al descargar sintaxis SPSS');
-    }
-
-    // Descargar archivo
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `spss-syntax-${profile}.sps`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    downloadBlobAsFile(blob, `spss-syntax-${profile}.sps`);
   },
 
   /**
@@ -741,66 +685,23 @@ export const exportsApi = {
    * @param {Object} options - Opciones de exportación
    */
   downloadSPSSBundle: async ({ caseIds, profile = 'complete', filters = {} }) => {
-    const url = `${API_URL}/exports/spss/bundle`;
-    const token = await getToken();
-
-    console.log('SPSS Bundle Export Request:', { url, caseIds, profile, hasToken: !!token, tokenPreview: token ? token.substring(0, 20) + '...' : 'none' });
-
-    const response = await fetch(url, {
+    const blob = await fetchBlob('/exports/spss/bundle', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
       body: JSON.stringify({ caseIds, profile, filters }),
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'Error al descargar bundle SPSS');
-    }
-
-    // Descargar archivo ZIP
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
     const timestamp = new Date().toISOString().slice(0, 10);
-    link.download = `spss-bundle-${profile}-${timestamp}.zip`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    downloadBlobAsFile(blob, `spss-bundle-${profile}-${timestamp}.zip`);
   },
 
   /**
    * Descargar diccionario de datos
    */
   downloadDataDictionary: async () => {
-    const url = `${API_URL}/exports/data-dictionary`;
-    const token = await getToken();
-
-    const response = await fetch(url, {
+    const blob = await fetchBlob('/exports/data-dictionary', {
       method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
     });
-
-    if (!response.ok) {
-      throw new Error('Error al descargar diccionario de datos');
-    }
-
-    // Descargar archivo
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = 'diccionario-datos.txt';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    downloadBlobAsFile(blob, 'diccionario-datos.txt');
   },
 };
 
