@@ -652,6 +652,152 @@ export const exportsApi = {
     const url = `${API_URL}/exports/procedure/${procedureId}/email`;
     return api.post(url, { recipients });
   },
+
+  // ============================================================================
+  // SPSS EXPORTS
+  // ============================================================================
+
+  /**
+   * Obtener perfiles SPSS disponibles
+   * @returns {Promise<{profiles: Array}>}
+   */
+  getSPSSProfiles: async () => {
+    return api.get('/exports/spss/profiles');
+  },
+
+  /**
+   * Exportar casos como CSV compatible con SPSS
+   * @param {Object} options - Opciones de exportación
+   * @param {number[]} options.caseIds - IDs de casos a exportar (opcional)
+   * @param {string} options.profile - ID del perfil (demographic, comorbidities, etc.)
+   * @param {Object} options.filters - Filtros opcionales (year, dateFrom, dateTo)
+   */
+  downloadSPSS: async ({ caseIds, profile = 'complete', filters = {} }) => {
+    const url = `${API_URL}/exports/spss`;
+    const token = await getToken();
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify({ caseIds, profile, filters }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Error al descargar CSV SPSS');
+    }
+
+    // Descargar archivo
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    const timestamp = new Date().toISOString().slice(0, 10);
+    link.download = `spss-export-${profile}-${timestamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  /**
+   * Descargar sintaxis SPSS para un perfil
+   * @param {string} profile - ID del perfil
+   */
+  downloadSPSSSyntax: async (profile) => {
+    const url = `${API_URL}/exports/spss/syntax/${profile}`;
+    const token = await getToken();
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al descargar sintaxis SPSS');
+    }
+
+    // Descargar archivo
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `spss-syntax-${profile}.sps`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  /**
+   * Descargar bundle SPSS (ZIP con CSV + sintaxis + diccionario)
+   * @param {Object} options - Opciones de exportación
+   */
+  downloadSPSSBundle: async ({ caseIds, profile = 'complete', filters = {} }) => {
+    const url = `${API_URL}/exports/spss/bundle`;
+    const token = await getToken();
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify({ caseIds, profile, filters }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Error al descargar bundle SPSS');
+    }
+
+    // Descargar archivo ZIP
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    const timestamp = new Date().toISOString().slice(0, 10);
+    link.download = `spss-bundle-${profile}-${timestamp}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  /**
+   * Descargar diccionario de datos
+   */
+  downloadDataDictionary: async () => {
+    const url = `${API_URL}/exports/data-dictionary`;
+    const token = await getToken();
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al descargar diccionario de datos');
+    }
+
+    // Descargar archivo
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = 'diccionario-datos.txt';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
 };
 
 /**

@@ -26,6 +26,7 @@ import Card, {
 } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import IntraopCharts from '@/components/cases/IntraopCharts';
+import SPSSExportModal from '@/components/exports/SPSSExportModal';
 
 export default function CaseDetailPage() {
   return (
@@ -48,6 +49,7 @@ function CaseDetailPageContent() {
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Cargar datos del caso
   useEffect(() => {
@@ -115,17 +117,9 @@ function CaseDetailPageContent() {
     }
   };
 
-  // Handler para descargar CSV (solo registros intraoperatorios)
-  const handleDownloadCSV = async () => {
-    setDownloading(true);
-    try {
-      await exportsApi.downloadCSV(caseId, 'intraop');
-    } catch (err) {
-      console.error('Error al descargar CSV:', err);
-      alert('Error al descargar CSV: ' + err.message);
-    } finally {
-      setDownloading(false);
-    }
+  // Handler para abrir modal de exportación CSV/SPSS
+  const handleOpenExportModal = () => {
+    setShowExportModal(true);
   };
 
   // Handler para eliminar caso (solo admin)
@@ -277,12 +271,11 @@ function CaseDetailPageContent() {
                 {sending ? 'Enviando...' : 'Enviar PDF'}
               </Button>
 
-              {/* Descargar CSV */}
+              {/* Exportar CSV/SPSS */}
               <Button
                 variant="secondary"
-                onClick={handleDownloadCSV}
-                disabled={downloading}
-                title="Exportar registros intraoperatorios a CSV"
+                onClick={handleOpenExportModal}
+                title="Exportar datos a CSV compatible con SPSS"
               >
                 <svg
                   className="w-4 h-4 mr-2"
@@ -297,7 +290,7 @@ function CaseDetailPageContent() {
                     d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                CSV
+                Exportar CSV
               </Button>
 
               {/* Ver/Editar Evaluación Preoperatoria */}
@@ -1161,6 +1154,13 @@ function CaseDetailPageContent() {
           </div>
         </div>
       </div>
+
+      {/* Modal de exportación SPSS */}
+      <SPSSExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        caseId={parseInt(caseId)}
+      />
     </AppLayout>
   );
 }
