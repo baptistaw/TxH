@@ -634,9 +634,36 @@ async function exportSPSS(req, res) {
     logger.info(`Exporting ${targetCaseIds.length} cases with profile: ${profile}`);
 
     // Generate SPSS export
-    const { csv, metadata } = await csvService.generateSPSSExport(targetCaseIds, profile, {
+    logger.info(`Calling generateSPSSExport with ${targetCaseIds.length} cases, profile: ${profile}`);
+    const result = await csvService.generateSPSSExport(targetCaseIds, profile, {
       includeMetadata: true,
     });
+
+    // Validar que el resultado no sea undefined
+    if (!result || typeof result.csv !== 'string') {
+      logger.error('generateSPSSExport returned invalid result:', {
+        resultType: typeof result,
+        hasCSV: result?.csv !== undefined,
+        csvType: typeof result?.csv,
+      });
+      return res.status(500).json({
+        error: 'CSV generation failed',
+        message: 'El servicio de exportación no devolvió datos válidos',
+      });
+    }
+
+    const { csv, metadata } = result;
+
+    // Validación adicional
+    if (!csv || csv.length === 0) {
+      logger.error('CSV is empty or undefined');
+      return res.status(500).json({
+        error: 'CSV generation failed',
+        message: 'El CSV generado está vacío',
+      });
+    }
+
+    logger.info(`CSV generated successfully: ${csv.length} chars, ${metadata.totalCases} cases`);
 
     // Set headers for download
     const timestamp = new Date().toISOString().slice(0, 10);
@@ -728,10 +755,24 @@ async function exportSPSSBundle(req, res) {
     logger.info(`SPSS bundle export - ${targetCaseIds.length} cases, profile: ${profile}`);
 
     // Generate all components
-    const { csv, metadata, dataDictionary } = await csvService.generateSPSSExport(targetCaseIds, profile, {
+    const result = await csvService.generateSPSSExport(targetCaseIds, profile, {
       includeMetadata: true,
       includeDataDictionary: true,
     });
+
+    // Validar que el resultado no sea undefined
+    if (!result || typeof result.csv !== 'string') {
+      logger.error('generateSPSSExport (bundle) returned invalid result:', {
+        resultType: typeof result,
+        hasCSV: result?.csv !== undefined,
+      });
+      return res.status(500).json({
+        error: 'CSV generation failed',
+        message: 'El servicio de exportación no devolvió datos válidos',
+      });
+    }
+
+    const { csv, metadata, dataDictionary } = result;
 
     const syntax = csvService.generateSPSSSyntax(profile);
 

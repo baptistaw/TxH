@@ -2229,8 +2229,8 @@ async function generateCaseSummaryCSV(caseId) {
   const data = await getCaseDataComplete(caseId);
   const { case: c, patient, preop, preopLabs, postop, mortality, team, linesMonitoring, fluidsBlood } = data;
 
-  // Aggregate fluids
-  const fluids = aggregateFluidsBlood(fluidsBlood);
+  // Aggregate fluids - handle undefined/null fluidsBlood
+  const fluids = aggregateFluidsBlood(fluidsBlood || []);
 
   // Calculate age at transplant
   const age = patient.birthDate && c.startAt
@@ -2833,8 +2833,8 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
       const data = await getCaseDataComplete(caseId);
       const { case: c, patient, preop, preopLabs, postop, mortality, team, linesMonitoring, fluidsBlood } = data;
 
-      // Aggregate fluids
-      const fluids = aggregateFluidsBlood(fluidsBlood);
+      // Aggregate fluids - handle undefined/null fluidsBlood
+      const fluids = aggregateFluidsBlood(fluidsBlood || []);
 
       // Calculate age at transplant
       const age = patient.birthDate && c.startAt
@@ -3016,7 +3016,22 @@ async function generateSPSSExport(caseIds, profileId = 'complete', options = {})
     header: true,
   });
 
-  return parser.parse(cleanedRows);
+  const csv = parser.parse(cleanedRows);
+
+  // Return with metadata if requested
+  if (options.includeMetadata) {
+    return {
+      csv,
+      metadata: {
+        totalCases: cleanedRows.length,
+        profile: profileId,
+        variables: fields.length,
+        generatedAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  return csv;
 }
 
 /**
