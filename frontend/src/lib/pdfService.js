@@ -1,6 +1,6 @@
 // src/lib/pdfService.js - Servicio de generación de PDFs en el cliente
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Colores del tema
 const COLORS = {
@@ -268,7 +268,7 @@ export function generateCasePDF(caseData, preop, intraop = [], fluids = [], team
       t.clinician?.specialty || '-',
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPos,
       head: [['Rol', 'Nombre', 'Especialidad']],
       body: teamData,
@@ -323,7 +323,7 @@ export function generateCasePDF(caseData, preop, intraop = [], fluids = [], team
         r.temp || '-',
       ]);
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Hora', 'PAS', 'PAD', 'PAM', 'FC', 'SpO2', 'Temp']],
         body: tableData,
@@ -391,7 +391,7 @@ export function generateCasePDF(caseData, preop, intraop = [], fluids = [], team
       f.urine || 0,
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPos,
       head: [['Fase', 'Crist.', 'Col.', 'GR', 'PFC', 'Plaq.', 'Diuresis']],
       body: fluidTableData,
