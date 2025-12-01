@@ -34,7 +34,7 @@ const upload = multer({
 
 /**
  * GET /api/ocr/health
- * Diagnóstico de la conexión con Google Cloud Vision
+ * Diagnóstico de la conexión con Google Cloud Vision y Gemini
  * NO requiere autenticación para facilitar debugging
  */
 router.get('/health', async (req, res) => {
@@ -47,16 +47,21 @@ router.get('/health', async (req, res) => {
         : 'NOT SET',
       GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || 'NOT SET',
     },
+    geminiCredentials: {
+      GOOGLE_AI_API_KEY: process.env.GOOGLE_AI_API_KEY
+        ? `SET (${process.env.GOOGLE_AI_API_KEY.length} chars, starts with: ${process.env.GOOGLE_AI_API_KEY.substring(0, 10)}...)`
+        : 'NOT SET',
+    },
     visionApiTest: null,
+    geminiApiTest: null,
   };
 
   try {
-    // Intentar crear cliente y hacer una petición de prueba
+    // Test Vision API
     const { getVisionClient } = require('../services/googleVisionService');
     const client = getVisionClient();
     diagnostics.visionClientCreated = true;
 
-    // Imagen de prueba mínima (1x1 pixel)
     const testImageBuffer = Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       'base64'
@@ -72,9 +77,42 @@ router.get('/health', async (req, res) => {
       annotationsFound: result.textAnnotations?.length || 0,
     };
 
-    res.json({
-      success: true,
-      message: 'OCR service is healthy',
+    // Test Gemini API
+    try {
+      const { GoogleGenerativeAI } = require('@google/generative-ai');
+      const apiKey = process.env.GOOGLE_AI_API_KEY;
+
+      if (!apiKey) {
+        diagnostics.geminiApiTest = {
+          success: false,
+          error: 'GOOGLE_AI_API_KEY no está configurada',
+        };
+      } else {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+        // Test simple
+        const testResult = await model.generateContent('Responde solo "OK"');
+        const response = await testResult.response;
+
+        diagnostics.geminiApiTest = {
+          success: true,
+          message: 'Gemini API funcionando correctamente',
+          testResponse: response.text().substring(0, 50),
+        };
+      }
+    } catch (geminiError) {
+      diagnostics.geminiApiTest = {
+        success: false,
+        error: geminiError.message,
+      };
+    }
+
+    const allHealthy = diagnostics.visionApiTest?.success && diagnostics.geminiApiTest?.success;
+
+    res.status(allHealthy ? 200 : 500).json({
+      success: allHealthy,
+      message: allHealthy ? 'OCR service is healthy' : 'OCR service partially working',
       diagnostics,
     });
   } catch (error) {
