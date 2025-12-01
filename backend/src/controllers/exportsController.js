@@ -595,7 +595,7 @@ async function getSPSSProfiles(req, res) {
 async function exportSPSS(req, res) {
   try {
     const { caseIds, profile = 'complete', filters = {} } = req.body;
-    const organizationId = req.auth?.orgId;
+    const organizationId = req.user?.orgId;
 
     if (!organizationId) {
       return res.status(400).json({
@@ -691,7 +691,7 @@ async function getSPSSSyntax(req, res) {
 async function exportSPSSBundle(req, res) {
   try {
     const { caseIds, profile = 'complete', filters = {} } = req.body;
-    const organizationId = req.auth?.orgId;
+    const organizationId = req.user?.orgId;
 
     if (!organizationId) {
       return res.status(400).json({
