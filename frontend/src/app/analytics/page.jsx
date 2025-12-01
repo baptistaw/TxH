@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { analyticsApi } from '@/lib/api';
@@ -53,13 +53,18 @@ export default function AnalyticsDashboard() {
   const [endDate, setEndDate] = useState('');
   const [presetPeriod, setPresetPeriod] = useState(null);
 
+  // Ref para evitar cargas duplicadas
+  const dataLoaded = useRef(false);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
       return;
     }
 
-    if (user) {
+    // Solo cargar una vez cuando el usuario esté disponible
+    if (user && !dataLoaded.current) {
+      dataLoaded.current = true;
       loadInitialData();
     }
   }, [user, authLoading, router]);
@@ -169,7 +174,11 @@ export default function AnalyticsDashboard() {
     loadFilteredData({});
   };
 
-  if (authLoading || loading) {
+  // Solo mostrar spinner completo en la carga inicial (cuando no hay datos)
+  // Para recargas con filtros, mostrar los datos existentes con un indicador de loading pequeño
+  const isInitialLoad = authLoading || (loading && !kpiData && !clinicalData);
+
+  if (isInitialLoad) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-screen">
