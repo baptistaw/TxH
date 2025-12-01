@@ -43,6 +43,11 @@ const app = express();
 app.use(helmet());
 
 // CORS - Configurar orígenes permitidos
+logger.info('CORS configuration:', {
+  origin: config.cors.origin,
+  credentials: config.cors.credentials,
+  methods: config.cors.methods,
+});
 app.use(cors(config.cors));
 
 // Compression - Comprimir responses
