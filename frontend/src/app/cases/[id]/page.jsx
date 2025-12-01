@@ -1159,7 +1159,7 @@ function CaseDetailPageContent() {
       <SPSSExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
-        caseId={parseInt(caseId)}
+        caseId={caseId}
       />
     </AppLayout>
   );

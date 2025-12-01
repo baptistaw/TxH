@@ -26,8 +26,8 @@ const PROFILE_DESCRIPTIONS = {
 export default function SPSSExportModal({
   isOpen,
   onClose,
-  caseId = null, // null = exportar todos los casos de la organización
-  caseIds = [], // Lista específica de casos
+  caseId = null, // null = exportar todos los casos de la organización (string CUID)
+  caseIds = [], // Lista específica de casos (array de string CUIDs)
 }) {
   const [profiles, setProfiles] = useState([]);
   const [selectedProfiles, setSelectedProfiles] = useState(['complete']);
