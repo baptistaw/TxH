@@ -923,6 +923,49 @@ export const adminApi = {
   getStats: () => {
     return api.get('/admin/stats');
   },
+
+  // ============= RESEARCH EXPORT =============
+  /**
+   * Obtener opciones disponibles para exportación (años, fuentes de datos)
+   */
+  getResearchExportOptions: () => {
+    return api.get('/admin/research-export/options');
+  },
+
+  /**
+   * Obtener vista previa de los datos a exportar
+   * @param {string} queryString - Query string con filtros (yearStart, yearEnd, dataSources, etc.)
+   */
+  getResearchExportPreview: (queryString) => {
+    return api.get(`/admin/research-export/preview?${queryString}`);
+  },
+
+  /**
+   * Generar exportación para investigación (descarga ZIP)
+   * @param {Object} body - Opciones de exportación
+   * @param {Object} body.filters - Filtros (yearStart, yearEnd, dataSources, etc.)
+   * @param {Object} body.options - Opciones (tables, anonymize, includeDataDictionary)
+   */
+  generateResearchExport: async (body) => {
+    const blob = await fetchBlob('/admin/research-export/generate', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    const timestamp = new Date().toISOString().slice(0, 10);
+    downloadBlobAsFile(blob, `txh-research-export-${timestamp}.zip`);
+    return blob;
+  },
+
+  /**
+   * Descargar diccionario de datos como CSV
+   */
+  downloadResearchDictionary: async () => {
+    const blob = await fetchBlob('/admin/research-export/dictionary', {
+      method: 'GET',
+    });
+    downloadBlobAsFile(blob, 'txh-diccionario-datos.csv');
+    return blob;
+  },
 };
 
 /**

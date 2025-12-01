@@ -711,4 +711,162 @@ router.delete('/protocols/:protocolId/phases/:phaseId/antibiotics/:antibioticId'
   })
 );
 
+// ==============================================================================
+// EXPORTACIÓN PARA INVESTIGACIÓN (Research Export)
+// ==============================================================================
+
+const researchExportService = require('../services/researchExportService');
+
+/**
+ * GET /api/admin/research-export/preview
+ * Obtiene vista previa de la exportación (conteos sin generar datos)
+ */
+router.get('/research-export/preview',
+  asyncHandler(async (req, res) => {
+    const {
+      fromDate,
+      toDate,
+      year,
+      dataSources,
+      includeRetransplants,
+      includeHepatoRenal,
+    } = req.query;
+
+    const filters = {
+      organizationId: req.organizationId,
+      ...(fromDate && { fromDate }),
+      ...(toDate && { toDate }),
+      ...(year && { year: parseInt(year) }),
+      ...(dataSources && { dataSources: dataSources.split(',') }),
+      ...(includeRetransplants !== undefined && { includeRetransplants: includeRetransplants === 'true' }),
+      ...(includeHepatoRenal !== undefined && { includeHepatoRenal: includeHepatoRenal === 'true' }),
+    };
+
+    const preview = await researchExportService.getExportPreview(filters);
+
+    res.json(preview);
+  })
+);
+
+/**
+ * GET /api/admin/research-export/options
+ * Obtiene opciones disponibles (años, fuentes de datos)
+ */
+router.get('/research-export/options',
+  asyncHandler(async (req, res) => {
+    const [dataSources, years] = await Promise.all([
+      researchExportService.getAvailableDataSources(),
+      researchExportService.getAvailableYears(),
+    ]);
+
+    const availableTables = [
+      { id: 'patients', name: 'Pacientes', description: 'Datos demográficos y seguimiento' },
+      { id: 'cases', name: 'Casos', description: 'Datos del trasplante' },
+      { id: 'preop', name: 'Preoperatorio', description: 'Scores y comorbilidades' },
+      { id: 'preop_labs', name: 'Labs Preop', description: 'Laboratorios preoperatorios' },
+      { id: 'intraop', name: 'Intraoperatorio', description: 'Constantes vitales, labs, ROTEM, ETE' },
+      { id: 'fluids_blood', name: 'Fluidos/Hemoderivados', description: 'Balance por fase' },
+      { id: 'drugs', name: 'Fármacos', description: 'Fármacos administrados' },
+      { id: 'lines_monitoring', name: 'Líneas/Monitoreo', description: 'Accesos y equipamiento' },
+      { id: 'postop', name: 'Postoperatorio', description: 'Complicaciones y estancia' },
+      { id: 'mortality', name: 'Mortalidad', description: 'Supervivencia y reingresos' },
+      { id: 'team', name: 'Equipo', description: 'Equipo quirúrgico' },
+    ];
+
+    res.json({
+      dataSources,
+      years,
+      tables: availableTables,
+    });
+  })
+);
+
+/**
+ * POST /api/admin/research-export/generate
+ * Genera y descarga la exportación para investigación
+ */
+router.post('/research-export/generate',
+  asyncHandler(async (req, res) => {
+    const {
+      filters = {},
+      options = {},
+    } = req.body;
+
+    // Agregar organizationId del tenant
+    filters.organizationId = req.organizationId;
+
+    // Logging
+    console.log(`[Research Export] Admin ${req.user?.email} generating export`, {
+      filters,
+      options,
+    });
+
+    // Generar exportación
+    const { files, stats } = await researchExportService.generateResearchExport(filters, options);
+
+    if (files.length === 0) {
+      return res.status(404).json({
+        error: 'No data',
+        message: 'No se encontraron datos que coincidan con los filtros especificados',
+      });
+    }
+
+    // Crear ZIP
+    const zipBuffer = await researchExportService.createZipArchive(files);
+
+    // Nombre del archivo
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const filename = `txh-research-export-${timestamp}.zip`;
+
+    // Enviar archivo
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', zipBuffer.length);
+
+    res.send(zipBuffer);
+
+    console.log(`[Research Export] Successfully generated: ${stats.cases} cases, ${stats.intraopRecords} intraop records`);
+  })
+);
+
+/**
+ * GET /api/admin/research-export/dictionary
+ * Descarga solo el diccionario de datos
+ */
+router.get('/research-export/dictionary',
+  asyncHandler(async (req, res) => {
+    const dictionary = researchExportService.RESEARCH_DATA_DICTIONARY;
+
+    // Convertir a formato CSV
+    const rows = [];
+    Object.entries(dictionary).forEach(([tableName, fields]) => {
+      Object.entries(fields).forEach(([fieldName, def]) => {
+        rows.push({
+          table: tableName,
+          field: fieldName,
+          description: def.description || '',
+          type: def.type || '',
+          unit: def.unit || '',
+          values: def.values || '',
+          range: def.range || '',
+          normal: def.normal || '',
+          example: def.example || '',
+        });
+      });
+    });
+
+    // Generar CSV
+    const { Parser } = require('json2csv');
+    const parser = new Parser({
+      fields: ['table', 'field', 'description', 'type', 'unit', 'values', 'range', 'normal', 'example'],
+    });
+    const csv = parser.parse(rows);
+
+    const timestamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="txh-data-dictionary-${timestamp}.csv"`);
+    res.send('\ufeff' + csv);
+  })
+);
+
 module.exports = router;

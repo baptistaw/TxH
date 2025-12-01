@@ -140,6 +140,12 @@ export default function AdminDashboard() {
                 icon="📝"
                 href="/admin/catalogs"
               />
+              <AdminMenuCard
+                title="Exportación Investigación"
+                description="Exportar datos para análisis estadístico"
+                icon="📊"
+                href="/admin/research-export"
+              />
             </div>
           </CardContent>
         </Card>
