@@ -190,6 +190,29 @@ router.post(
 // ============================================================================
 
 /**
+ * Test endpoint for SPSS exports (debugging CORS issues)
+ * POST /api/exports/spss/test
+ */
+router.post(
+  '/spss/test',
+  authorize('ADMIN', 'VIEWER'),
+  (req, res) => {
+    console.log('SPSS Test endpoint hit:', {
+      body: req.body,
+      user: req.user?.email,
+      orgId: req.user?.orgId,
+    });
+    res.json({
+      success: true,
+      message: 'SPSS test endpoint works!',
+      receivedData: req.body,
+      user: req.user?.email,
+      orgId: req.user?.orgId,
+    });
+  }
+);
+
+/**
  * Get available SPSS export profiles
  * GET /api/exports/spss/profiles
  *

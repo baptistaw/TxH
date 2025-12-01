@@ -593,18 +593,30 @@ async function getSPSSProfiles(req, res) {
  * }
  */
 async function exportSPSS(req, res) {
+  logger.info('=== SPSS EXPORT ENDPOINT HIT ===', {
+    body: req.body,
+    user: req.user?.email,
+    orgId: req.user?.orgId,
+    headers: {
+      origin: req.headers.origin,
+      contentType: req.headers['content-type'],
+      authorization: req.headers.authorization ? 'present' : 'missing',
+    },
+  });
+
   try {
     const { caseIds, profile = 'complete', filters = {} } = req.body;
     const organizationId = req.user?.orgId;
 
     if (!organizationId) {
+      logger.warn('SPSS export failed: No organization ID');
       return res.status(400).json({
         error: 'Organization required',
         message: 'No organization ID found in request',
       });
     }
 
-    logger.info(`SPSS export requested - profile: ${profile}, org: ${organizationId}`);
+    logger.info(`SPSS export requested - profile: ${profile}, org: ${organizationId}, caseIds: ${JSON.stringify(caseIds)}`);
 
     // Get case IDs if not provided
     let targetCaseIds = caseIds;
