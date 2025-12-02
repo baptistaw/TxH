@@ -26,10 +26,10 @@ export default function SignInPage() {
     );
   }
 
-  // Si ya está autenticado con org, redirigir a dashboard
-  if (isSignedIn && organization) {
+  // Si ya está autenticado, redirigir a dashboard (el ProtectedRoute activará la org)
+  if (isSignedIn) {
     console.log('SignInPage: Already authenticated, redirecting to dashboard...');
-    if (typeof window !== 'undefined' && window.location.pathname === '/sign-in') {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/sign-in')) {
       window.location.replace('/dashboard');
     }
     return (
