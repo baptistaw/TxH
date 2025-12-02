@@ -7,13 +7,13 @@ import { useUser, useOrganizationList } from '@clerk/nextjs';
 import { authApi } from '@/lib/api';
 import { useOrganization } from '@/hooks/useOrganization';
 
+// Valores deben coincidir con enum Specialty en schema.prisma
 const SPECIALTIES = [
-  { value: 'ANESTESIOLOGIA', label: 'Anestesiología' },
-  { value: 'CIRUGIA', label: 'Cirugía' },
-  { value: 'NEFROLOGIA', label: 'Nefrología' },
-  { value: 'HEPATOLOGIA', label: 'Hepatología' },
-  { value: 'CARDIOLOGIA', label: 'Cardiología' },
+  { value: 'ANESTESIOLOGO', label: 'Anestesiólogo' },
+  { value: 'CIRUJANO', label: 'Cirujano' },
   { value: 'INTENSIVISTA', label: 'Intensivista' },
+  { value: 'HEPATOLOGO', label: 'Hepatólogo' },
+  { value: 'COORDINADORA', label: 'Coordinador/a' },
   { value: 'OTRO', label: 'Otro' },
 ];
 
@@ -33,7 +33,7 @@ export default function BootstrapPage() {
 
   const [formData, setFormData] = useState({
     name: '',
-    specialty: 'ANESTESIOLOGIA',
+    specialty: 'ANESTESIOLOGO',
   });
 
   // Activar automáticamente la primera organización si el usuario tiene una pero no está activa
