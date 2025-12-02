@@ -46,13 +46,8 @@ const getAllPatients = async ({
   // Construir array de condiciones AND
   const andConditions = [baseFilters];
 
-  // Multi-tenancy: datos de org actual O históricos sin org
-  andConditions.push({
-    OR: [
-      { organizationId },
-      { organizationId: null },
-    ],
-  });
+  // Multi-tenancy: solo datos de la organización actual
+  andConditions.push({ organizationId });
 
   // Búsqueda por texto
   if (search) {
@@ -135,11 +130,7 @@ const getPatientById = async (id, organizationId) => {
   const patient = await prisma.patient.findFirst({
     where: {
       id,
-      // Multi-tenancy: permitir datos de org actual O históricos sin org
-      OR: [
-        { organizationId },
-        { organizationId: null },
-      ],
+      organizationId, // Multi-tenancy: solo datos de la organización actual
       deletedAt: null, // Solo registros activos
     },
     include: {
