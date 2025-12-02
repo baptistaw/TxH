@@ -204,6 +204,17 @@ async function bootstrap(req, res, next) {
     const { clerkId, email, orgRole, orgId, orgSlug } = req.user;
     const { name, specialty, organizationName } = req.body;
 
+    // Debug logging
+    logger.info('Bootstrap request received', {
+      clerkId,
+      email,
+      orgRole,
+      orgId,
+      orgSlug,
+      bodyName: name,
+      bodySpecialty: specialty,
+    });
+
     // 1. Verificar que el usuario sea org:admin en Clerk
     if (orgRole !== 'org:admin') {
       logger.warn('Bootstrap attempt without org:admin role', {
