@@ -2,15 +2,20 @@
 // Protege rutas que requieren autenticación
 'use client';
 
-import { useUser, useOrganization } from '@clerk/nextjs';
+import { useUser, useOrganization, useOrganizationList } from '@clerk/nextjs';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageSpinner } from '@/components/ui/Spinner';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function ProtectedRoute({ children, requiredRoles = [] }) {
   // Estado de Clerk (fuente de verdad para autenticación)
   const { isLoaded: userLoaded, isSignedIn } = useUser();
   const { organization, isLoaded: orgLoaded } = useOrganization();
+  const { userMemberships, setActive, isLoaded: orgListLoaded } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
+  const [activatingOrg, setActivatingOrg] = useState(false);
 
   // Estado de AuthContext (para roles y datos de BD)
   const { loading: authLoading, hasAnyRole, user } = useAuth();
@@ -19,16 +24,48 @@ export default function ProtectedRoute({ children, requiredRoles = [] }) {
   console.log('ProtectedRoute:', {
     userLoaded,
     orgLoaded,
+    orgListLoaded,
     isSignedIn,
     hasOrg: !!organization,
     orgId: organization?.id,
+    memberships: userMemberships?.data?.length || 0,
+    activatingOrg,
     authLoading,
     userRole: user?.role
   });
 
+  // Auto-activar organización si el usuario tiene membresía pero no org activa
+  useEffect(() => {
+    async function activateFirstOrganization() {
+      if (!orgListLoaded || !userLoaded || !isSignedIn || activatingOrg || organization) return;
+
+      const memberships = userMemberships?.data || [];
+      if (memberships.length > 0) {
+        const firstOrg = memberships[0].organization;
+        console.log('ProtectedRoute: Activating organization:', firstOrg.name);
+        setActivatingOrg(true);
+
+        try {
+          await setActive({ organization: firstOrg.id });
+        } catch (err) {
+          console.error('ProtectedRoute: Error activating organization:', err);
+          setActivatingOrg(false);
+        }
+      }
+    }
+
+    activateFirstOrganization();
+  }, [orgListLoaded, userLoaded, isSignedIn, organization, userMemberships, setActive, activatingOrg]);
+
   // 1. Esperar a que Clerk cargue
-  if (!userLoaded || !orgLoaded) {
+  if (!userLoaded || !orgLoaded || !orgListLoaded) {
     console.log('ProtectedRoute: Waiting for Clerk to load...');
+    return <PageSpinner />;
+  }
+
+  // 1.5 Si estamos activando una organización, mostrar spinner
+  if (activatingOrg) {
+    console.log('ProtectedRoute: Activating organization...');
     return <PageSpinner />;
   }
 
