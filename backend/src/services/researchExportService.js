@@ -1014,12 +1014,25 @@ async function generateResearchExport(filters = {}, options = {}) {
     format = 'multiple', // 'multiple' or 'single'
   } = options;
 
+  // Obtener nombre de la organización
+  let organizationName = 'Sistema TxH';
+  if (filters.organizationId) {
+    const org = await prisma.organization.findUnique({
+      where: { id: filters.organizationId },
+      select: { name: true },
+    });
+    if (org?.name) {
+      organizationName = org.name;
+    }
+  }
+
   const files = [];
   const stats = {
     patients: 0,
     cases: 0,
     intraopRecords: 0,
     generatedAt: new Date().toISOString(),
+    organizationName,
   };
 
   // Step 1: Get patients and generate codes
@@ -1200,7 +1213,7 @@ NOTAS IMPORTANTES:
 
 CONTACTO:
 Sistema TxH Registro Anestesiológico
-Hospital de Clínicas - Montevideo, Uruguay
+${stats.organizationName}
 
 =============================================================================
 `;

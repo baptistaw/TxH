@@ -80,6 +80,7 @@ async function getCaseDataForPDF(caseId) {
     where: { id: caseId },
     include: {
       patient: true,
+      organization: true,
       team: {
         include: {
           clinician: true,
@@ -170,6 +171,7 @@ async function getCaseDataForPDF(caseId) {
   return {
     case: caseData,
     patient: caseData.patient,
+    organization: caseData.organization,
     preop,
     intraopByPhase,
     fluidsByPhase,
