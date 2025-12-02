@@ -19,14 +19,19 @@ export default function SignInPage() {
     hasOrg: !!organization
   });
 
-  // Redirigir a dashboard cuando el usuario está autenticado
+  // Redirigir cuando el usuario está autenticado
   useEffect(() => {
-    if (userLoaded && isSignedIn && !hasRedirected.current) {
-      console.log('SignInPage: Already authenticated, redirecting to dashboard...');
+    if (userLoaded && orgLoaded && isSignedIn && !hasRedirected.current) {
       hasRedirected.current = true;
-      window.location.href = '/dashboard';
+      if (organization) {
+        console.log('SignInPage: Authenticated with org, redirecting to dashboard...');
+        window.location.href = '/dashboard';
+      } else {
+        console.log('SignInPage: Authenticated without org, redirecting to bootstrap...');
+        window.location.href = '/bootstrap';
+      }
     }
-  }, [userLoaded, isSignedIn]);
+  }, [userLoaded, orgLoaded, isSignedIn, organization]);
 
   // Mostrar loading mientras Clerk carga o si estamos redirigiendo
   if (!userLoaded || !orgLoaded || isSignedIn) {
