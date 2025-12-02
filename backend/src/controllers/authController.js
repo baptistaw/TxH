@@ -336,8 +336,16 @@ async function bootstrap(req, res, next) {
       });
     }
 
+    // Generar ID para el nuevo clinician (el schema usa Int @id sin autoincrement)
+    // Usamos el máximo ID existente + 1, o 99999 como base para usuarios de Clerk
+    const maxIdResult = await prisma.clinician.aggregate({
+      _max: { id: true },
+    });
+    const newId = Math.max((maxIdResult._max.id || 0) + 1, 99999);
+
     const newAdmin = await prisma.clinician.create({
       data: {
+        id: newId,
         clerkId,
         email,
         name,
