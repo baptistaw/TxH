@@ -4,10 +4,12 @@
 
 import { SignIn, useUser, useOrganization } from '@clerk/nextjs';
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 
 export default function SignInPage() {
   const { isLoaded: userLoaded, isSignedIn } = useUser();
   const { organization, isLoaded: orgLoaded } = useOrganization();
+  const hasRedirected = useRef(false);
 
   // Debug
   console.log('SignInPage:', {
@@ -17,21 +19,17 @@ export default function SignInPage() {
     hasOrg: !!organization
   });
 
-  // Mostrar loading mientras Clerk carga
-  if (!userLoaded || !orgLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-dark-500">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-surgical-500"></div>
-      </div>
-    );
-  }
-
-  // Si ya está autenticado, redirigir a dashboard (el ProtectedRoute activará la org)
-  if (isSignedIn) {
-    console.log('SignInPage: Already authenticated, redirecting to dashboard...');
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/sign-in')) {
-      window.location.replace('/dashboard');
+  // Redirigir a dashboard cuando el usuario está autenticado
+  useEffect(() => {
+    if (userLoaded && isSignedIn && !hasRedirected.current) {
+      console.log('SignInPage: Already authenticated, redirecting to dashboard...');
+      hasRedirected.current = true;
+      window.location.href = '/dashboard';
     }
+  }, [userLoaded, isSignedIn]);
+
+  // Mostrar loading mientras Clerk carga o si estamos redirigiendo
+  if (!userLoaded || !orgLoaded || isSignedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-500">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-surgical-500"></div>
