@@ -15,6 +15,16 @@ export function AuthProvider({ children }) {
   const { signOut } = useClerk();
   const { organization: activeOrg, isLoaded: orgLoaded } = useOrganization();
 
+  // Debug AuthProvider
+  console.log('AuthProvider:', {
+    isClerkLoaded,
+    orgLoaded,
+    isSignedIn,
+    hasActiveOrg: !!activeOrg,
+    activeOrgId: activeOrg?.id,
+    activeOrgName: activeOrg?.name
+  });
+
   // Estado local para datos de BD
   const [dbUser, setDbUser] = useState(null);
   const [loading, setLoading] = useState(true);
