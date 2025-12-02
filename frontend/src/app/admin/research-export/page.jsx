@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminApi } from '@/lib/api';
@@ -17,8 +17,10 @@ export default function ResearchExportPage() {
   const [options, setOptions] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingPreview, setLoadingPreview] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
+  const initialLoadDone = useRef(false);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -37,25 +39,49 @@ export default function ResearchExportPage() {
     includeDataDictionary: true,
   });
 
-  // Auth check
+  // Load preview with current filters
+  const loadPreview = useCallback(async (currentFilters) => {
+    try {
+      setLoadingPreview(true);
+      const queryParams = new URLSearchParams();
+      if (currentFilters.fromDate) queryParams.set('fromDate', currentFilters.fromDate);
+      if (currentFilters.toDate) queryParams.set('toDate', currentFilters.toDate);
+      if (currentFilters.year) queryParams.set('year', currentFilters.year);
+      if (currentFilters.dataSources.length > 0) queryParams.set('dataSources', currentFilters.dataSources.join(','));
+      queryParams.set('includeRetransplants', currentFilters.includeRetransplants);
+      queryParams.set('includeHepatoRenal', currentFilters.includeHepatoRenal);
+
+      const data = await adminApi.getResearchExportPreview(queryParams.toString());
+      setPreview(data);
+    } catch (err) {
+      console.error('Error loading preview:', err);
+    } finally {
+      setLoadingPreview(false);
+    }
+  }, []);
+
+  // Auth check and initial load
   useEffect(() => {
-    if (!authLoading && (!user || user.role !== 'ADMIN')) {
+    if (authLoading) return;
+
+    if (!user || user.role !== 'ADMIN') {
       router.push('/');
       return;
     }
 
-    if (user && user.role === 'ADMIN') {
-      loadOptions();
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+      loadInitialData();
     }
   }, [user, authLoading, router]);
 
-  // Load available options
-  const loadOptions = async () => {
+  // Load initial data
+  const loadInitialData = async () => {
     try {
       setLoading(true);
       const data = await adminApi.getResearchExportOptions();
       setOptions(data);
-      await loadPreview();
+      await loadPreview(filters);
     } catch (err) {
       console.error('Error loading options:', err);
       setError('Error al cargar las opciones de exportación');
@@ -64,33 +90,15 @@ export default function ResearchExportPage() {
     }
   };
 
-  // Load preview with current filters
-  const loadPreview = async () => {
-    try {
-      const queryParams = new URLSearchParams();
-      if (filters.fromDate) queryParams.set('fromDate', filters.fromDate);
-      if (filters.toDate) queryParams.set('toDate', filters.toDate);
-      if (filters.year) queryParams.set('year', filters.year);
-      if (filters.dataSources.length > 0) queryParams.set('dataSources', filters.dataSources.join(','));
-      queryParams.set('includeRetransplants', filters.includeRetransplants);
-      queryParams.set('includeHepatoRenal', filters.includeHepatoRenal);
-
-      const data = await adminApi.getResearchExportPreview(queryParams.toString());
-      setPreview(data);
-    } catch (err) {
-      console.error('Error loading preview:', err);
-    }
-  };
-
-  // Update preview when filters change
+  // Update preview when filters change (after initial load)
   useEffect(() => {
-    if (options) {
-      const debounce = setTimeout(() => {
-        loadPreview();
-      }, 300);
-      return () => clearTimeout(debounce);
-    }
-  }, [filters]);
+    if (!options || !initialLoadDone.current) return;
+
+    const debounce = setTimeout(() => {
+      loadPreview(filters);
+    }, 500);
+    return () => clearTimeout(debounce);
+  }, [filters, options, loadPreview]);
 
   // Handle export
   const handleExport = async () => {
@@ -386,7 +394,7 @@ export default function ResearchExportPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {preview ? (
-                  <>
+                  <div className={loadingPreview ? 'opacity-50' : ''}>
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-gray-400">Casos</span>
@@ -403,7 +411,7 @@ export default function ResearchExportPage() {
                     </div>
 
                     {preview.dateRange?.from && (
-                      <div className="border-t border-dark-300 pt-3">
+                      <div className="border-t border-dark-300 pt-3 mt-3">
                         <div className="text-sm text-gray-400">Período de datos:</div>
                         <div className="text-gray-200">
                           {preview.dateRange.from} - {preview.dateRange.to}
@@ -411,7 +419,7 @@ export default function ResearchExportPage() {
                       </div>
                     )}
 
-                    <div className="border-t border-dark-300 pt-3">
+                    <div className="border-t border-dark-300 pt-3 mt-3">
                       <div className="text-sm text-gray-400 mb-2">
                         Tablas seleccionadas: {exportOptions.tables.length}
                       </div>
@@ -423,10 +431,10 @@ export default function ResearchExportPage() {
                         ))}
                       </div>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <div className="text-gray-500 text-center py-4">
-                    Cargando...
+                    <Spinner size="sm" className="mx-auto" />
                   </div>
                 )}
 
