@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middlewares/auth');
+const { tenantMiddleware } = require('../middlewares/tenant');
 const { asyncHandler } = require('../middlewares/errorHandler');
 const prisma = require('../lib/prisma');
 
@@ -9,71 +10,86 @@ const prisma = require('../lib/prisma');
 // DATOS HISTÓRICOS MANUALES (del PDF de Gestión de Calidad)
 // Tiempo cero de registro: 1 de enero de 2023
 // Estos datos fueron recopilados manualmente antes de la implementación del sistema
+// MULTI-TENANCY: Estos datos son específicos del "Programa Nacional de Trasplante Hepático"
+// y solo deben mostrarse a la organización correspondiente
 // ============================================================================
-const HISTORICAL_DATA = {
-  // Fecha de inicio del registro manual
-  startDate: new Date('2023-01-01'),
 
-  // Datos anuales por indicador (del PDF de Gestión de Calidad)
-  yearly: {
-    2023: {
-      totalTransplants: 14, // Basado en datos del PDF
-      bloodReplacement: {
-        rate: 92.8,
-        applied: 13,
-        notApplied: 1,
-        notEvaluated: 0,
-      },
-      antibiotic: {
-        rate: 87.7,
-        applied: 12,
-        notApplied: 2, // Estimado basado en el porcentaje
-        notEvaluated: 0,
-      },
-      pdfSent: {
-        rate: 100.0,
-        sent: 14,
-        notSent: 0,
-      },
-      // Fast Track no se registró en 2023
-      fastTrack: null,
-    },
-    2024: {
-      totalTransplants: 20, // Basado en datos del PDF
-      bloodReplacement: {
-        rate: 100.0,
-        applied: 20,
-        notApplied: 0,
-        notEvaluated: 0,
-      },
-      antibiotic: {
-        rate: 100.0,
-        applied: 20,
-        notApplied: 0,
-        notEvaluated: 0,
-      },
-      pdfSent: {
-        rate: 100.0,
-        sent: 20,
-        notSent: 0,
-      },
-      // Fast Track no se registró en 2024
-      fastTrack: null,
-    },
-  },
+// ID de la organización del Programa Nacional de Trasplante Hepático
+// Esto debe coincidir con el ID de Clerk para esa organización
+const PROGRAMA_NACIONAL_ORG_ID = 'org_36BKhTFJLE7BbTBZfxsWPmgA57j';
 
-  // Tendencia trimestral histórica (estimaciones basadas en los datos anuales)
-  quarterly: {
-    '2023-Q1': { total: 3, bloodReplacementRate: 92.8, antibioticRate: 87.7, pdfSentRate: 100.0 },
-    '2023-Q2': { total: 4, bloodReplacementRate: 92.8, antibioticRate: 87.7, pdfSentRate: 100.0 },
-    '2023-Q3': { total: 3, bloodReplacementRate: 92.8, antibioticRate: 87.7, pdfSentRate: 100.0 },
-    '2023-Q4': { total: 4, bloodReplacementRate: 92.8, antibioticRate: 87.7, pdfSentRate: 100.0 },
-    '2024-Q1': { total: 5, bloodReplacementRate: 100.0, antibioticRate: 100.0, pdfSentRate: 100.0 },
-    '2024-Q2': { total: 5, bloodReplacementRate: 100.0, antibioticRate: 100.0, pdfSentRate: 100.0 },
-    '2024-Q3': { total: 5, bloodReplacementRate: 100.0, antibioticRate: 100.0, pdfSentRate: 100.0 },
-    '2024-Q4': { total: 5, bloodReplacementRate: 100.0, antibioticRate: 100.0, pdfSentRate: 100.0 },
-  },
-};
+// Función para obtener datos históricos (solo para la organización autorizada)
+function getHistoricalDataForOrg(organizationId) {
+  // Solo devolver datos históricos si es la organización del Programa Nacional
+  if (organizationId !== PROGRAMA_NACIONAL_ORG_ID) {
+    return null;
+  }
+
+  return {
+    // Fecha de inicio del registro manual
+    startDate: new Date('2023-01-01'),
+
+    // Datos anuales por indicador (del PDF de Gestión de Calidad)
+    yearly: {
+      2023: {
+        totalTransplants: 14, // Basado en datos del PDF
+        bloodReplacement: {
+          rate: 92.8,
+          applied: 13,
+          notApplied: 1,
+          notEvaluated: 0,
+        },
+        antibiotic: {
+          rate: 87.7,
+          applied: 12,
+          notApplied: 2, // Estimado basado en el porcentaje
+          notEvaluated: 0,
+        },
+        pdfSent: {
+          rate: 100.0,
+          sent: 14,
+          notSent: 0,
+        },
+        // Fast Track no se registró en 2023
+        fastTrack: null,
+      },
+      2024: {
+        totalTransplants: 20, // Basado en datos del PDF
+        bloodReplacement: {
+          rate: 100.0,
+          applied: 20,
+          notApplied: 0,
+          notEvaluated: 0,
+        },
+        antibiotic: {
+          rate: 100.0,
+          applied: 20,
+          notApplied: 0,
+          notEvaluated: 0,
+        },
+        pdfSent: {
+          rate: 100.0,
+          sent: 20,
+          notSent: 0,
+        },
+        // Fast Track no se registró en 2024
+        fastTrack: null,
+      },
+    },
+
+    // Tendencia trimestral histórica (estimaciones basadas en los datos anuales)
+    quarterly: {
+      '2023-Q1': { total: 3, bloodReplacementRate: 92.8, antibioticRate: 87.7, pdfSentRate: 100.0 },
+      '2023-Q2': { total: 4, bloodReplacementRate: 92.8, antibioticRate: 87.7, pdfSentRate: 100.0 },
+      '2023-Q3': { total: 3, bloodReplacementRate: 92.8, antibioticRate: 87.7, pdfSentRate: 100.0 },
+      '2023-Q4': { total: 4, bloodReplacementRate: 92.8, antibioticRate: 87.7, pdfSentRate: 100.0 },
+      '2024-Q1': { total: 5, bloodReplacementRate: 100.0, antibioticRate: 100.0, pdfSentRate: 100.0 },
+      '2024-Q2': { total: 5, bloodReplacementRate: 100.0, antibioticRate: 100.0, pdfSentRate: 100.0 },
+      '2024-Q3': { total: 5, bloodReplacementRate: 100.0, antibioticRate: 100.0, pdfSentRate: 100.0 },
+      '2024-Q4': { total: 5, bloodReplacementRate: 100.0, antibioticRate: 100.0, pdfSentRate: 100.0 },
+    },
+  };
+}
 
 // Fecha de corte: cuando el sistema entró en producción (datos automáticos a partir de esta fecha)
 // TODO: Actualizar esta fecha cuando el sistema entre en producción
@@ -88,14 +104,17 @@ function isHistoricalData(date) {
 }
 
 /**
- * Obtiene los datos históricos para un año específico
+ * Obtiene los datos históricos para un año específico (solo si la org tiene acceso)
  */
-function getHistoricalYearData(year) {
-  return HISTORICAL_DATA.yearly[year] || null;
+function getHistoricalYearData(year, organizationId) {
+  const historicalData = getHistoricalDataForOrg(organizationId);
+  if (!historicalData) return null;
+  return historicalData.yearly[year] || null;
 }
 
 // GET /api/analytics/kpis - Obtener indicadores de calidad
-router.get('/kpis', authenticate, asyncHandler(async (req, res) => {
+router.get('/kpis', authenticate, tenantMiddleware, asyncHandler(async (req, res) => {
+  const { organizationId } = req;
   const { year, startDate, endDate } = req.query;
 
   // Construir filtros de fecha
@@ -118,9 +137,10 @@ router.get('/kpis', authenticate, asyncHandler(async (req, res) => {
     };
   }
 
-  // Obtener solo procedimientos de trasplante
+  // Obtener solo procedimientos de trasplante (filtrado por organización)
   const transplants = await prisma.procedure.findMany({
     where: {
+      organizationId, // Multi-tenancy
       procedureType: {
         in: ['TRASPLANTE_HEPATICO', 'RETRASPLANTE_HEPATICO']
       },
@@ -235,15 +255,18 @@ router.get('/kpis', authenticate, asyncHandler(async (req, res) => {
   };
 
   // Determinar si usar datos históricos o del sistema
+  // MULTI-TENANCY: Solo obtener datos históricos si la organización tiene acceso
   const yearNum = year ? parseInt(year) : null;
-  const historicalData = yearNum ? getHistoricalYearData(yearNum) : null;
+  const orgHistoricalData = getHistoricalDataForOrg(organizationId);
+  const historicalData = yearNum ? getHistoricalYearData(yearNum, organizationId) : null;
 
   // Si no hay filtro y sistema no está en producción, combinar datos históricos de todos los años
+  // Solo si la organización tiene acceso a datos históricos
   let combinedHistoricalData = null;
-  if (!year && !startDate && !endDate && !SYSTEM_PRODUCTION_DATE) {
+  if (!year && !startDate && !endDate && !SYSTEM_PRODUCTION_DATE && orgHistoricalData) {
     // Combinar datos de 2023 y 2024
-    const data2023 = HISTORICAL_DATA.yearly[2023];
-    const data2024 = HISTORICAL_DATA.yearly[2024];
+    const data2023 = orgHistoricalData.yearly[2023];
+    const data2024 = orgHistoricalData.yearly[2024];
     if (data2023 && data2024) {
       const totalTx = data2023.totalTransplants + data2024.totalTransplants;
       combinedHistoricalData = {
@@ -402,10 +425,11 @@ router.get('/kpis', authenticate, asyncHandler(async (req, res) => {
   }
 
   // Preparar datos de tendencia histórica si corresponde
+  // MULTI-TENANCY: Solo si la organización tiene acceso a datos históricos
   let historicalTrend = [];
-  if (!SYSTEM_PRODUCTION_DATE) {
+  if (!SYSTEM_PRODUCTION_DATE && orgHistoricalData) {
     // Agregar tendencia trimestral histórica
-    historicalTrend = Object.entries(HISTORICAL_DATA.quarterly).map(([quarter, data]) => ({
+    historicalTrend = Object.entries(orgHistoricalData.quarterly).map(([quarter, data]) => ({
       period: quarter,
       periodType: 'quarter',
       total: data.total,
@@ -438,14 +462,15 @@ router.get('/kpis', authenticate, asyncHandler(async (req, res) => {
     trend: trendArray,
     historicalTrend,
     nonComplianceReasons,
-    // Información sobre años disponibles con datos históricos
-    availableHistoricalYears: Object.keys(HISTORICAL_DATA.yearly).map(Number),
+    // Información sobre años disponibles con datos históricos (solo si la org tiene acceso)
+    availableHistoricalYears: orgHistoricalData ? Object.keys(orgHistoricalData.yearly).map(Number) : [],
     systemProductionDate: SYSTEM_PRODUCTION_DATE,
   });
 }));
 
 // GET /api/analytics/clinical - KPIs clínicos adicionales
-router.get('/clinical', authenticate, asyncHandler(async (req, res) => {
+router.get('/clinical', authenticate, tenantMiddleware, asyncHandler(async (req, res) => {
+  const { organizationId } = req;
   const { year, startDate, endDate } = req.query;
 
   // Construir filtros de fecha para trasplantes
@@ -471,9 +496,13 @@ router.get('/clinical', authenticate, asyncHandler(async (req, res) => {
   // 1. ESTADÍSTICAS DE TRASPLANTES
   // ============================================================================
 
-  // Obtener casos de trasplante con datos completos
+  // Obtener casos de trasplante con datos completos (filtrado por organización)
   const transplantCases = await prisma.transplantCase.findMany({
-    where: dateFilter,
+    where: {
+      organizationId, // Multi-tenancy
+      deletedAt: null, // Solo registros activos
+      ...dateFilter,
+    },
     include: {
       patient: {
         select: {
@@ -605,18 +634,22 @@ router.get('/clinical', authenticate, asyncHandler(async (req, res) => {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-  // Pacientes ingresados a lista en el último año
+  // Pacientes ingresados a lista en el último año (filtrado por organización)
   const patientsAddedLastYear = await prisma.patient.count({
     where: {
+      organizationId, // Multi-tenancy
+      deletedAt: null,
       admissionDate: {
         gte: oneYearAgo
       }
     }
   });
 
-  // Pacientes trasplantados en el último año
+  // Pacientes trasplantados en el último año (filtrado por organización)
   const patientsTransplantedLastYear = await prisma.patient.count({
     where: {
+      organizationId, // Multi-tenancy
+      deletedAt: null,
       transplanted: true,
       cases: {
         some: {
@@ -628,22 +661,30 @@ router.get('/clinical', authenticate, asyncHandler(async (req, res) => {
     }
   });
 
-  // Total de pacientes trasplantados (histórico)
+  // Total de pacientes trasplantados (histórico, filtrado por organización)
   const totalPatientsTransplanted = await prisma.patient.count({
-    where: { transplanted: true }
+    where: {
+      organizationId, // Multi-tenancy
+      deletedAt: null,
+      transplanted: true
+    }
   });
 
-  // Pacientes en lista de espera (ingresaron en el último año y no se trasplantaron aún)
+  // Pacientes en lista de espera (filtrado por organización)
   const patientsInList = await prisma.patient.count({
     where: {
+      organizationId, // Multi-tenancy
+      deletedAt: null,
       transplanted: false,
       admissionDate: { gte: oneYearAgo }
     }
   });
 
-  // Tiempo promedio en lista para pacientes trasplantados EN EL ÚLTIMO AÑO
+  // Tiempo promedio en lista para pacientes trasplantados EN EL ÚLTIMO AÑO (filtrado por organización)
   const waitingTimeData = await prisma.patient.findMany({
     where: {
+      organizationId, // Multi-tenancy
+      deletedAt: null,
       transplanted: true,
       admissionDate: { not: null },
       cases: {
@@ -828,20 +869,26 @@ router.get('/clinical', authenticate, asyncHandler(async (req, res) => {
 }));
 
 // GET /api/analytics/kpis/years - Obtener años disponibles para filtro
-router.get('/kpis/years', authenticate, asyncHandler(async (req, res) => {
-  // Años con datos en la base de datos
+router.get('/kpis/years', authenticate, tenantMiddleware, asyncHandler(async (req, res) => {
+  const { organizationId } = req;
+
+  // Años con datos en la base de datos (filtrado por organización)
   const dbYears = await prisma.$queryRaw`
     SELECT DISTINCT EXTRACT(YEAR FROM "startAt") as year
     FROM procedures
     WHERE "procedureType" IN ('TRASPLANTE_HEPATICO', 'RETRASPLANTE_HEPATICO')
       AND "startAt" IS NOT NULL
+      AND "organizationId" = ${organizationId}
     ORDER BY year DESC
   `;
 
   const systemYears = dbYears.map(y => parseInt(y.year));
 
-  // Combinar con años históricos
-  const historicalYears = Object.keys(HISTORICAL_DATA.yearly).map(Number);
+  // Obtener datos históricos para esta organización (si tiene acceso)
+  const orgHistoricalData = getHistoricalDataForOrg(organizationId);
+
+  // Combinar con años históricos (solo si la organización tiene acceso)
+  const historicalYears = orgHistoricalData ? Object.keys(orgHistoricalData.yearly).map(Number) : [];
   const allYears = [...new Set([...historicalYears, ...systemYears])].sort((a, b) => b - a);
 
   res.json({
