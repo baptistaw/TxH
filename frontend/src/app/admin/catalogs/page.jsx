@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { catalogsApi } from '@/lib/api';
@@ -23,44 +23,33 @@ export default function CatalogsManagement() {
   const [loading, setLoading] = useState(true);
   const [itemsLoading, setItemsLoading] = useState(false);
 
+  // Ref para evitar doble carga inicial
+  const hasLoadedRef = useRef(false);
+
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [formData, setFormData] = useState({ code: '', label: '', description: '', order: 0, active: true });
 
-  // Verificar autenticación
+  // Verificar autenticación y cargar datos solo una vez
   useEffect(() => {
-    if (!authLoading && (!user || user.role !== 'ADMIN')) {
+    if (authLoading) return;
+
+    if (!user || user.role !== 'ADMIN') {
       router.push('/');
       return;
     }
 
-    if (user && user.role === 'ADMIN') {
-      loadCatalogs();
-    }
-  }, [user, authLoading, router]);
+    // Evitar doble carga en React Strict Mode
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
 
-  // Cargar lista de catálogos disponibles
-  const loadCatalogs = async () => {
-    try {
-      setLoading(true);
-      const response = await catalogsApi.list();
-      setCatalogs(response.data || []);
+    loadCatalogs();
+  }, [user, authLoading]); // Removido router de las dependencias
 
-      // Seleccionar el primer catálogo por defecto
-      if (response.data && response.data.length > 0) {
-        loadCatalogItems(response.data[0]);
-      }
-    } catch (error) {
-      console.error('Error loading catalogs:', error);
-      alert('Error al cargar catálogos');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Cargar items de un catálogo específico
-  const loadCatalogItems = async (catalog) => {
+  // Cargar items de un catálogo específico (memoizado)
+  const loadCatalogItems = useCallback(async (catalog) => {
+    if (!catalog) return;
     try {
       setItemsLoading(true);
       setSelectedCatalog(catalog);
@@ -74,7 +63,35 @@ export default function CatalogsManagement() {
     } finally {
       setItemsLoading(false);
     }
-  };
+  }, []);
+
+  // Cargar lista de catálogos disponibles
+  const loadCatalogs = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await catalogsApi.list();
+      const catalogList = response.data || [];
+      setCatalogs(catalogList);
+
+      // Seleccionar el primer catálogo por defecto
+      if (catalogList.length > 0) {
+        // Establecer el catálogo seleccionado antes de cargar items
+        setSelectedCatalog(catalogList[0]);
+        // Cargar items directamente sin causar re-render adicional
+        try {
+          const itemsResponse = await catalogsApi.getByName(catalogList[0].name, { includeInactive: true });
+          setCatalogItems(itemsResponse.items || []);
+        } catch (itemsError) {
+          console.error('Error loading initial catalog items:', itemsError);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading catalogs:', error);
+      alert('Error al cargar catálogos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Abrir modal para crear nuevo item
   const handleCreate = () => {
@@ -118,15 +135,30 @@ export default function CatalogsManagement() {
         alert('Item actualizado exitosamente');
       } else {
         // Crear nuevo item
-        await catalogsApi.createItem(selectedCatalog.id, formData);
+        // Para catálogos estáticos, usar el nombre como ID
+        const catalogIdForApi = selectedCatalog.isStatic ? selectedCatalog.name : selectedCatalog.id;
+        await catalogsApi.createItem(catalogIdForApi, formData);
         alert('Item creado exitosamente');
       }
 
       setShowModal(false);
-      loadCatalogItems(selectedCatalog);
+
+      // Recargar catálogos para obtener el catálogo actualizado desde BD
+      // (especialmente importante si era un catálogo estático que ahora está en BD)
+      const response = await catalogsApi.list();
+      const catalogList = response.data || [];
+      setCatalogs(catalogList);
+
+      // Encontrar el catálogo actualizado y recargar sus items
+      const updatedCatalog = catalogList.find(c => c.name === selectedCatalog.name);
+      if (updatedCatalog) {
+        setSelectedCatalog(updatedCatalog);
+        const itemsResponse = await catalogsApi.getByName(updatedCatalog.name, { includeInactive: true });
+        setCatalogItems(itemsResponse.items || []);
+      }
     } catch (error) {
       console.error('Error saving item:', error);
-      alert(error.message || 'Error al guardar item');
+      alert(error.response?.data?.error || error.message || 'Error al guardar item');
     }
   };
 
