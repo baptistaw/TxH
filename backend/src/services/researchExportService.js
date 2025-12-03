@@ -1247,9 +1247,15 @@ async function createZipArchive(files) {
 async function getExportPreview(filters = {}) {
   const caseWhere = buildCaseFilters(filters);
 
+  // Build patient filter with organizationId (multi-tenancy)
+  const patientWhere = {
+    deletedAt: null,
+    ...(filters.organizationId && { organizationId: filters.organizationId }),
+  };
+
   const [caseCount, patientCount, intraopCount] = await Promise.all([
     prisma.transplantCase.count({ where: caseWhere }),
-    prisma.patient.count(),
+    prisma.patient.count({ where: patientWhere }),
     prisma.intraopRecord.count({
       where: {
         case: caseWhere,
