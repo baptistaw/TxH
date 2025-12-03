@@ -8,14 +8,15 @@ const { validate, schemas } = require('../middlewares/validate');
 const { z } = require('zod');
 
 // Schema de validación para crear paciente
+// NOTA: provider y sex ahora son catálogos dinámicos, por lo que aceptamos cualquier string
 const createPatientSchema = z.object({
   id: schemas.ci,
   ciRaw: z.string().optional(),
   name: z.string().min(1),
   fnr: z.string().optional(),
   birthDate: z.coerce.date().optional(),
-  sex: z.enum(['M', 'F', 'O']).optional(),
-  provider: z.enum(['ASSE', 'FEMI', 'CASMU', 'MP', 'OTRA']).optional(),
+  sex: z.string().max(10).optional(), // Catálogo dinámico
+  provider: z.string().max(50).optional(), // Catálogo dinámico
   height: z.number().positive().optional(),
   weight: z.number().positive().optional(),
   bloodGroup: z.string().max(5).optional(),
@@ -34,8 +35,8 @@ const querySchema = z.object({
   q: z.string().optional(),
   // Filtros avanzados
   transplanted: z.enum(['true', 'false']).optional(),
-  provider: z.enum(['ASSE', 'FEMI', 'CASMU', 'MP', 'OTRA']).optional(),
-  sex: z.enum(['M', 'F', 'O']).optional(),
+  provider: z.string().max(50).optional(), // Catálogo dinámico
+  sex: z.string().max(10).optional(), // Catálogo dinámico
   admissionDateFrom: z.string().optional(),
   admissionDateTo: z.string().optional(),
   myPatients: z.enum(['true', 'false']).optional(),
