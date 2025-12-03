@@ -36,26 +36,27 @@ const tenantMiddleware = async (req, res, next) => {
       });
     }
 
-    // Buscar o crear la organización en nuestra BD
+    // Buscar la organización en nuestra BD
     let organization = await prisma.organization.findUnique({
       where: { id: orgId },
     });
 
-    // Si la organización no existe, crearla (sincronización con Clerk)
+    // Si la organización no existe, NO crearla automáticamente
+    // Las organizaciones deben ser creadas explícitamente por un admin
     if (!organization) {
-      // Obtener datos de la organización desde el token de Clerk
-      // (el nombre y logo vendrán del frontend en el primer request)
-      organization = await prisma.organization.create({
-        data: {
-          id: orgId,
-          name: orgSlug || 'Nueva Organización', // Se actualiza después
-          slug: orgSlug,
-        },
-      });
-
-      logger.info('Organization created from Clerk', {
+      logger.warn('Organization not found in database', {
         orgId,
         orgSlug,
+        email: req.user.email,
+      });
+
+      return res.status(403).json({
+        error: 'Organization not configured',
+        message: 'Tu organización no está configurada en el sistema. Contacta al administrador para que la configure.',
+        details: {
+          orgId,
+          orgSlug,
+        },
       });
     }
 
