@@ -26,7 +26,7 @@ const createIntraopSchema = z.object({
   timestamp: z.string().datetime().or(z.date()),
 
   // Ventilación
-  ventMode: z.enum(['ESPONTANEA', 'VC', 'PC', 'SIMV', 'PSV', 'CPAP', 'OTRO']).optional().nullable(),
+  ventMode: z.string().max(30).optional().nullable(), // Catálogo dinámico: VentilationMode
   fio2: z.number().min(0).max(1).optional().nullable(), // 0-1 (ej: 0.5 = 50%)
   tidalVolume: z.number().int().min(200).max(1500).optional().nullable(),
   respRate: z.number().int().min(4).max(60).optional().nullable(),
@@ -131,7 +131,7 @@ const createIntraopSchema = z.object({
   rotemA5Aptem: z.number().int().min(0).max(120).optional().nullable(),
 
   // Fármacos (registro binario)
-  inhalAgent: z.enum(['Isoflurano', 'Sevoflurano', 'Desflurano']).optional().nullable(),
+  inhalAgent: z.string().max(30).optional().nullable(), // Catálogo dinámico
   opioidBolus: z.boolean().optional(),
   opioidInfusion: z.boolean().optional(),
   hypnoticBolus: z.boolean().optional(),
@@ -162,7 +162,7 @@ const updateIntraopSchema = z.object({
   timestamp: z.string().datetime().or(z.date()).optional(),
 
   // Ventilación
-  ventMode: z.enum(['ESPONTANEA', 'VC', 'PC', 'SIMV', 'PSV', 'CPAP', 'OTRO']).optional().nullable(),
+  ventMode: z.string().max(30).optional().nullable(), // Catálogo dinámico: VentilationMode
   fio2: z.number().min(0).max(1).optional().nullable(),
   tidalVolume: z.number().int().min(200).max(1500).optional().nullable(),
   respRate: z.number().int().min(4).max(60).optional().nullable(),
@@ -267,7 +267,7 @@ const updateIntraopSchema = z.object({
   rotemA5Aptem: z.number().int().min(0).max(120).optional().nullable(),
 
   // Fármacos (registro binario)
-  inhalAgent: z.enum(['Isoflurano', 'Sevoflurano', 'Desflurano']).optional().nullable(),
+  inhalAgent: z.string().max(30).optional().nullable(), // Catálogo dinámico
   opioidBolus: z.boolean().optional(),
   opioidInfusion: z.boolean().optional(),
   hypnoticBolus: z.boolean().optional(),

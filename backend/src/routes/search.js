@@ -24,11 +24,11 @@ const advancedPatientSearchSchema = z.object({
   // Búsqueda de texto
   q: z.string().optional(),
   // Filtros demográficos
-  sex: z.enum(['M', 'F', 'O']).optional(),
+  sex: z.string().max(10).optional(), // Catálogo dinámico
   ageMin: z.coerce.number().int().min(0).optional(),
   ageMax: z.coerce.number().int().max(120).optional(),
   bloodGroup: z.string().optional(),
-  provider: z.enum(['ASSE', 'FEMI', 'CASMU', 'MP', 'OTRA']).optional(),
+  provider: z.string().max(50).optional(), // Catálogo dinámico
   // Filtros de estado
   transplanted: z.enum(['true', 'false', 'all']).optional(),
   hasPreop: z.enum(['true', 'false']).optional(),
@@ -52,7 +52,7 @@ const advancedProcedureSearchSchema = z.object({
   // Filtros de tipo
   procedureType: z.string().optional(),
   location: z.string().optional(),
-  asa: z.enum(['I', 'II', 'III', 'IV', 'V', 'VI']).optional(),
+  asa: z.string().max(10).optional(), // Catálogo dinámico: ASA
   // Filtros de protocolo (KPIs)
   bloodReplacementProtocol: z.enum(['true', 'false', 'null']).optional(),
   antibioticProphylaxisProtocol: z.enum(['true', 'false', 'null']).optional(),
