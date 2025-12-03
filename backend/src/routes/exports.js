@@ -8,11 +8,13 @@ const express = require('express');
 const router = express.Router();
 const exportsController = require('../controllers/exportsController');
 const { authenticate, authorize } = require('../middlewares/auth');
+const { tenantMiddleware } = require('../middlewares/tenant');
 
 /**
- * All export routes require authentication
+ * All export routes require authentication and tenant context
  */
 router.use(authenticate);
+router.use(tenantMiddleware);
 
 /**
  * Export single case as PDF

@@ -196,16 +196,23 @@ router.put('/users/:id',
 );
 
 // DELETE /api/admin/users/:id - Eliminar usuario
-router.delete('/users/:id', authenticate, authorize(ROLES.ADMIN),
+router.delete('/users/:id',
   asyncHandler(async (req, res) => {
     const userId = parseInt(req.params.id);
 
-    // Verificar que no sea el admin principal
-    const user = await prisma.clinician.findUnique({
-      where: { id: userId },
+    // Verificar que el usuario pertenece a esta organización
+    const user = await prisma.clinician.findFirst({
+      where: {
+        id: userId,
+        organizationId: req.organizationId, // Multi-tenancy
+      },
     });
 
-    if (user?.userRole === 'ADMIN') {
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    if (user.userRole === 'ADMIN') {
       return res.status(403).json({
         error: 'No se puede eliminar un usuario administrador',
       });
@@ -224,12 +231,14 @@ router.delete('/users/:id', authenticate, authorize(ROLES.ADMIN),
 // ==============================================================================
 
 // GET /api/admin/patients - Listar pacientes con filtros avanzados
-router.get('/patients', authenticate, authorize(ROLES.ADMIN),
+router.get('/patients',
   asyncHandler(async (req, res) => {
     const { page = 1, limit = 50, search, provider, transplanted } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const where = {
+      organizationId: req.organizationId, // Multi-tenancy
+      deletedAt: null, // Solo activos
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
@@ -272,12 +281,17 @@ router.get('/patients', authenticate, authorize(ROLES.ADMIN),
 );
 
 // GET /api/admin/patients/:id - Obtener paciente completo
-router.get('/patients/:id', authenticate, authorize(ROLES.ADMIN),
+router.get('/patients/:id',
   asyncHandler(async (req, res) => {
-    const patient = await prisma.patient.findUnique({
-      where: { id: req.params.id },
+    const patient = await prisma.patient.findFirst({
+      where: {
+        id: req.params.id,
+        organizationId: req.organizationId, // Multi-tenancy
+        deletedAt: null,
+      },
       include: {
         cases: {
+          where: { deletedAt: null },
           orderBy: { startAt: 'desc' },
           include: {
             team: {
@@ -460,8 +474,10 @@ router.put('/catalogs/locations/:id', authenticate, authorize(ROLES.ADMIN),
 // ESTADÍSTICAS DEL SISTEMA
 // ==============================================================================
 
-router.get('/stats', authenticate, authorize(ROLES.ADMIN),
+router.get('/stats',
   asyncHandler(async (req, res) => {
+    const orgId = req.organizationId;
+
     const [
       totalUsers,
       totalPatients,
@@ -471,13 +487,14 @@ router.get('/stats', authenticate, authorize(ROLES.ADMIN),
       usersByRole,
       casesByMonthRaw,
     ] = await Promise.all([
-      prisma.clinician.count(),
-      prisma.patient.count(),
-      prisma.transplantCase.count(),
-      prisma.procedure.count(),
-      prisma.preopEvaluation.count(),
+      prisma.clinician.count({ where: { organizationId: orgId } }),
+      prisma.patient.count({ where: { organizationId: orgId, deletedAt: null } }),
+      prisma.transplantCase.count({ where: { organizationId: orgId, deletedAt: null } }),
+      prisma.procedure.count({ where: { organizationId: orgId } }),
+      prisma.preopEvaluation.count({ where: { organizationId: orgId } }),
       prisma.clinician.groupBy({
         by: ['userRole'],
+        where: { organizationId: orgId },
         _count: true,
       }),
       prisma.$queryRaw`
@@ -486,6 +503,8 @@ router.get('/stats', authenticate, authorize(ROLES.ADMIN),
           COUNT(*) as count
         FROM transplant_cases
         WHERE "startAt" IS NOT NULL
+          AND "organizationId" = ${orgId}
+          AND "deletedAt" IS NULL
         GROUP BY month
         ORDER BY month DESC
         LIMIT 12

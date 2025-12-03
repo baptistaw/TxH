@@ -42,6 +42,12 @@ const STATIC_ENUMS = {
     { code: 'F', label: 'Femenino' },
     { code: 'O', label: 'Otro' },
   ],
+  FunctionalClass: [
+    { code: 'I', label: 'Clase I - Sin limitación' },
+    { code: 'II', label: 'Clase II - Limitación leve' },
+    { code: 'III', label: 'Clase III - Limitación marcada' },
+    { code: 'IV', label: 'Clase IV - Incapacidad' },
+  ],
   Provider: [
     { code: 'ASSE', label: 'ASSE' },
     { code: 'ASOC_ESPANOLA', label: 'Asociación Española' },
