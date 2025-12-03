@@ -4,38 +4,10 @@ const router = express.Router();
 const { asyncHandler } = require('../middlewares/errorHandler');
 const prisma = require('../lib/prisma');
 const { authenticate, authorize, ROLES } = require('../middlewares/auth');
-
-/**
- * GET /api/catalogs
- * Obtener lista de todos los catálogos disponibles (público)
- */
-router.get(
-  '/',
-  asyncHandler(async (req, res) => {
-    const catalogs = await prisma.catalog.findMany({
-      where: { active: true },
-      include: {
-        items: {
-          where: { active: true },
-          orderBy: { order: 'asc' },
-          select: {
-            id: true,
-            code: true,
-            label: true,
-            description: true,
-            order: true,
-            active: true,
-          },
-        },
-      },
-      orderBy: { label: 'asc' },
-    });
-
-    res.json({ data: catalogs });
-  })
-);
+const { tenantMiddleware } = require('../middlewares/tenant');
 
 // Enums de Prisma como catálogos estáticos
+// IMPORTANTE: Mover esta definición al inicio para que esté disponible en todas las rutas
 const STATIC_ENUMS = {
   Sex: [
     { code: 'M', label: 'Masculino' },
@@ -228,38 +200,98 @@ const STATIC_ENUMS = {
 };
 
 /**
- * GET /api/catalogs/:name
- * Obtener items de un catálogo específico por nombre (público)
- * Soporta tanto catálogos de BD como enums estáticos
- * Query params:
- *   - includeInactive: 'true' para incluir items inactivos (solo admin)
+ * GET /api/catalogs
+ * Obtener lista de todos los catálogos disponibles
+ *
+ * ESTRATEGIA MULTI-TENANT:
+ * 1. Si el usuario está autenticado, devolver catálogos de su organización
+ * 2. Incluir catálogos estáticos (enums) que no están en BD
+ * 3. Si no hay catálogos en BD para la org, crear catálogos virtuales de los estáticos
  */
 router.get(
-  '/:name',
+  '/',
+  authenticate,
+  tenantMiddleware,
   asyncHandler(async (req, res) => {
-    const { name } = req.params;
-    const { includeInactive } = req.query;
+    const organizationId = req.organizationId;
 
-    // Verificar si es un enum estático
-    if (STATIC_ENUMS[name]) {
-      return res.json({
+    // 1. Buscar catálogos de la organización en BD
+    const dbCatalogs = await prisma.catalog.findMany({
+      where: {
+        active: true,
+        organizationId
+      },
+      include: {
+        items: {
+          where: { active: true },
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            code: true,
+            label: true,
+            description: true,
+            order: true,
+            active: true,
+          },
+        },
+      },
+      orderBy: { label: 'asc' },
+    });
+
+    // 2. Crear catálogos virtuales para los enums estáticos que no tienen catálogo en BD
+    const dbCatalogNames = new Set(dbCatalogs.map(c => c.name));
+    const staticCatalogs = Object.entries(STATIC_ENUMS)
+      .filter(([name]) => !dbCatalogNames.has(name))
+      .map(([name, items]) => ({
+        id: name, // Usar el nombre como ID para catálogos estáticos
         name,
         label: name,
-        items: STATIC_ENUMS[name].map((item, index) => ({
+        isStatic: true,
+        items: items.map((item, index) => ({
           id: item.code,
           code: item.code,
           label: item.label,
           order: index,
           active: true,
         })),
-      });
-    }
+      }));
 
-    // Buscar en catálogos de BD
+    // 3. Combinar catálogos de BD con estáticos
+    const allCatalogs = [...dbCatalogs, ...staticCatalogs];
+
+    res.json({ data: allCatalogs });
+  })
+);
+
+/**
+ * GET /api/catalogs/:name
+ * Obtener items de un catálogo específico por nombre
+ *
+ * ESTRATEGIA HÍBRIDA:
+ * 1. Si el usuario está autenticado con organización, buscar primero en BD por orgId
+ * 2. Si no hay catálogo en BD para esa org, usar STATIC_ENUMS como fallback
+ * 3. Si no hay enum estático, buscar catálogo global en BD (organizationId = null)
+ *
+ * Query params:
+ *   - includeInactive: 'true' para incluir items inactivos (solo admin)
+ */
+router.get(
+  '/:name',
+  authenticate,
+  tenantMiddleware,
+  asyncHandler(async (req, res) => {
+    const { name } = req.params;
+    const { includeInactive } = req.query;
+    const organizationId = req.organizationId;
     const showInactive = includeInactive === 'true';
 
-    const catalog = await prisma.catalog.findUnique({
-      where: { name, active: true },
+    // 1. Buscar catálogo específico de la organización en BD
+    let catalog = await prisma.catalog.findFirst({
+      where: {
+        name,
+        organizationId,
+        active: true,
+      },
       include: {
         items: {
           where: showInactive ? {} : { active: true },
@@ -276,11 +308,55 @@ router.get(
       },
     });
 
-    if (!catalog) {
-      return res.status(404).json({ error: `Catálogo '${name}' no encontrado` });
+    // 2. Si existe en BD para esta org, devolverlo
+    if (catalog) {
+      return res.json(catalog);
     }
 
-    res.json(catalog);
+    // 3. Si hay un enum estático, devolverlo como fallback
+    if (STATIC_ENUMS[name]) {
+      return res.json({
+        name,
+        label: name,
+        isStatic: true, // Indicador para el frontend
+        items: STATIC_ENUMS[name].map((item, index) => ({
+          id: item.code,
+          code: item.code,
+          label: item.label,
+          order: index,
+          active: true,
+        })),
+      });
+    }
+
+    // 4. Buscar catálogo global (sin organizationId) como último recurso
+    catalog = await prisma.catalog.findFirst({
+      where: {
+        name,
+        organizationId: null,
+        active: true,
+      },
+      include: {
+        items: {
+          where: showInactive ? {} : { active: true },
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            code: true,
+            label: true,
+            description: true,
+            order: true,
+            active: true,
+          },
+        },
+      },
+    });
+
+    if (catalog) {
+      return res.json(catalog);
+    }
+
+    return res.status(404).json({ error: `Catálogo '${name}' no encontrado` });
   })
 );
 
@@ -296,9 +372,23 @@ router.put(
   '/admin/:catalogId',
   authenticate,
   authorize(ROLES.ADMIN),
+  tenantMiddleware,
   asyncHandler(async (req, res) => {
     const { catalogId } = req.params;
     const { label, description, active } = req.body;
+    const organizationId = req.organizationId;
+
+    // Verificar que el catálogo pertenezca a la organización del usuario
+    const existingCatalog = await prisma.catalog.findFirst({
+      where: {
+        id: catalogId,
+        organizationId,
+      },
+    });
+
+    if (!existingCatalog) {
+      return res.status(404).json({ error: 'Catálogo no encontrado o no pertenece a su organización' });
+    }
 
     const catalog = await prisma.catalog.update({
       where: { id: catalogId },
@@ -312,18 +402,86 @@ router.put(
 /**
  * POST /api/catalogs/admin/:catalogId/items
  * Crear un nuevo item en un catálogo (solo admin)
+ *
+ * ESTRATEGIA HÍBRIDA MULTI-TENANT:
+ * 1. Si catalogId es un nombre de enum estático (ej: "Provider"), convertirlo a catálogo BD
+ * 2. Si es un ID de catálogo BD, verificar que pertenezca a la organización del usuario
+ * 3. Crear el item en el catálogo correspondiente
  */
 router.post(
   '/admin/:catalogId/items',
   authenticate,
   authorize(ROLES.ADMIN),
+  tenantMiddleware,
   asyncHandler(async (req, res) => {
     const { catalogId } = req.params;
     const { code, label, description, order } = req.body;
+    const organizationId = req.organizationId;
 
+    let actualCatalogId = catalogId;
+
+    // Verificar si catalogId es un nombre de enum estático (ej: "Provider")
+    if (STATIC_ENUMS[catalogId]) {
+      // Es un catálogo estático - necesitamos crear/obtener el catálogo en BD para esta org
+      let catalog = await prisma.catalog.findFirst({
+        where: {
+          name: catalogId,
+          organizationId,
+        },
+      });
+
+      if (!catalog) {
+        // Crear el catálogo en BD con los items estáticos base
+        catalog = await prisma.catalog.create({
+          data: {
+            name: catalogId,
+            label: catalogId,
+            organizationId,
+            active: true,
+            items: {
+              create: STATIC_ENUMS[catalogId].map((item, index) => ({
+                code: item.code,
+                label: item.label,
+                order: index,
+                active: true,
+              })),
+            },
+          },
+        });
+        console.log(`Catálogo "${catalogId}" creado en BD para org ${organizationId}`);
+      }
+
+      actualCatalogId = catalog.id;
+    } else {
+      // catalogId es un ID de catálogo BD - verificar que pertenezca a la org
+      const existingCatalog = await prisma.catalog.findFirst({
+        where: {
+          id: catalogId,
+          organizationId,
+        },
+      });
+
+      if (!existingCatalog) {
+        return res.status(404).json({ error: 'Catálogo no encontrado o no pertenece a su organización' });
+      }
+    }
+
+    // Verificar que el código no exista ya en el catálogo
+    const existingItem = await prisma.catalogItem.findFirst({
+      where: {
+        catalogId: actualCatalogId,
+        code,
+      },
+    });
+
+    if (existingItem) {
+      return res.status(400).json({ error: `Ya existe un item con el código "${code}" en este catálogo` });
+    }
+
+    // Crear el item
     const item = await prisma.catalogItem.create({
       data: {
-        catalogId,
+        catalogId: actualCatalogId,
         code,
         label,
         description,
@@ -343,9 +501,23 @@ router.put(
   '/admin/items/:itemId',
   authenticate,
   authorize(ROLES.ADMIN),
+  tenantMiddleware,
   asyncHandler(async (req, res) => {
     const { itemId } = req.params;
     const { code, label, description, order, active } = req.body;
+    const organizationId = req.organizationId;
+
+    // Verificar que el item pertenezca a un catálogo de la organización del usuario
+    const existingItem = await prisma.catalogItem.findFirst({
+      where: {
+        id: itemId,
+        catalog: { organizationId },
+      },
+    });
+
+    if (!existingItem) {
+      return res.status(404).json({ error: 'Item no encontrado o no pertenece a su organización' });
+    }
 
     const item = await prisma.catalogItem.update({
       where: { id: itemId },
@@ -364,8 +536,22 @@ router.delete(
   '/admin/items/:itemId',
   authenticate,
   authorize(ROLES.ADMIN),
+  tenantMiddleware,
   asyncHandler(async (req, res) => {
     const { itemId } = req.params;
+    const organizationId = req.organizationId;
+
+    // Verificar que el item pertenezca a un catálogo de la organización del usuario
+    const existingItem = await prisma.catalogItem.findFirst({
+      where: {
+        id: itemId,
+        catalog: { organizationId },
+      },
+    });
+
+    if (!existingItem) {
+      return res.status(404).json({ error: 'Item no encontrado o no pertenece a su organización' });
+    }
 
     // Soft delete - solo marca como inactivo
     await prisma.catalogItem.update({
