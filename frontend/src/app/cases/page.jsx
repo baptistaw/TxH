@@ -277,13 +277,23 @@ function CasesPageContent() {
     <AppLayout>
       <div className="h-full px-8 py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">
-            Casos de Trasplante
-          </h1>
-          <p className="text-gray-400">
-            Registros de procedimientos de trasplante hepático
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-100 mb-2">
+              Casos de Trasplante
+            </h1>
+            <p className="text-gray-400">
+              Registros de procedimientos de trasplante hepático
+            </p>
+          </div>
+          <Link href="/cases/new">
+            <Button>
+              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Nuevo Trasplante
+            </Button>
+          </Link>
         </div>
 
         <Card>
