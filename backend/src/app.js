@@ -31,6 +31,7 @@ const rotemRouter = require('./routes/rotem');
 const ocrRouter = require('./routes/ocr');
 const contactRouter = require('./routes/contact.routes');
 const signaturesRouter = require('./routes/signatures');
+const webhooksRouter = require('./routes/webhooks');
 
 // Crear app
 const app = express();
@@ -129,6 +130,7 @@ app.get('/api', (req, res) => {
       rotem: '/api/rotem',
       ocr: '/api/ocr',
       signatures: '/api/signatures',
+      webhooks: '/api/webhooks',
     },
   });
 });
@@ -155,6 +157,9 @@ app.use('/api/rotem', rotemRouter);
 app.use('/api/ocr', ocrRouter);
 app.use('/api/contact', contactRouter);
 app.use('/api/signatures', signaturesRouter);
+
+// Webhooks (sin autenticación, usa verificación de firma Svix)
+app.use('/api/webhooks', webhooksRouter);
 
 // ==============================================================================
 // MANEJO DE ERRORES
