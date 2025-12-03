@@ -107,7 +107,7 @@ function NewCaseContent() {
 
     try {
       setSearchingPatients(true);
-      const response = await patientsApi.list({ q: query, limit: 10 });
+      const response = await patientsApi.list({ q: query, limit: 50 });
       setPatients(response.data || []);
     } catch (err) {
       console.error('Error searching patients:', err);
