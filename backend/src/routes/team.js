@@ -25,11 +25,14 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
   res.json(clinician);
 }));
 
-// POST /api/team - Crear clínico (solo admin)
+// POST /api/team - DESHABILITADO
+// Los usuarios deben crearse en Clerk y luego vincularse al sistema
 router.post('/', authenticate, authorize(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
-    const clinician = await prisma.clinician.create({ data: req.body });
-    res.status(201).json(clinician);
+    return res.status(403).json({
+      error: 'Operación no permitida',
+      message: 'Los usuarios deben crearse desde Clerk. Usa el panel de administración de Clerk para agregar usuarios y luego vincúlalos al sistema.',
+    });
   })
 );
 

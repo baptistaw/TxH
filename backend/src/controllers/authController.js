@@ -239,24 +239,25 @@ async function bootstrap(req, res, next) {
       });
     }
 
-    // 3. Buscar o crear la Organization en nuestra BD
-    let organization = await prisma.organization.findUnique({
+    // 3. Buscar la Organization en nuestra BD (debe existir previamente)
+    const organization = await prisma.organization.findUnique({
       where: { id: orgId },
     });
 
     if (!organization) {
-      organization = await prisma.organization.create({
-        data: {
-          id: orgId,
-          name: organizationName || orgSlug || 'Nueva Organización',
-          slug: orgSlug,
-        },
-      });
-
-      logger.info('Organization created during bootstrap', {
+      logger.warn('Bootstrap attempted with unconfigured organization', {
         orgId,
         orgSlug,
-        name: organization.name,
+        email,
+      });
+
+      return res.status(403).json({
+        error: 'Organización no configurada',
+        message: 'La organización no está configurada en el sistema. Un administrador del sistema debe configurarla primero.',
+        details: {
+          orgId,
+          orgSlug,
+        },
       });
     }
 

@@ -91,53 +91,14 @@ router.get('/users/:id',
   })
 );
 
-// POST /api/admin/users - Crear usuario en la organización
+// POST /api/admin/users - DESHABILITADO
+// Los usuarios deben crearse en Clerk y se vinculan automáticamente via bootstrap
 router.post('/users',
   asyncHandler(async (req, res) => {
-    const bcrypt = require('bcrypt');
-    const { name, email, specialty, phone, userRole, password } = req.body;
-
-    // Validar campos requeridos
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Nombre y email son requeridos' });
-    }
-
-    // Validar email único globalmente
-    const existing = await prisma.clinician.findUnique({
-      where: { email },
+    return res.status(403).json({
+      error: 'Operación no permitida',
+      message: 'Los usuarios deben crearse desde el panel de Clerk. Una vez creados en Clerk y agregados a la organización, podrán acceder al sistema y se vincularán automáticamente.',
     });
-
-    if (existing) {
-      return res.status(400).json({ error: 'El email ya está en uso' });
-    }
-
-    // Generar ID único
-    const maxId = await prisma.clinician.findFirst({
-      orderBy: { id: 'desc' },
-      select: { id: true },
-    });
-    const newId = (maxId?.id || 0) + 1;
-
-    // Hashear contraseña si se proporciona (legacy - ahora se usa Clerk)
-    const SALT_ROUNDS = 10;
-    const hashedPassword = password
-      ? await bcrypt.hash(password, SALT_ROUNDS)
-      : null;
-
-    const user = await prisma.clinician.create({
-      data: {
-        id: newId,
-        name,
-        email,
-        specialty,
-        phone,
-        userRole: userRole || 'VIEWER',
-        password: hashedPassword,
-        organizationId: req.organizationId, // Multi-tenancy: asignar a esta org
-      },
-    });
-
-    res.status(201).json(user);
   })
 );
 
