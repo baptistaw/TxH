@@ -222,6 +222,7 @@ async function handleMembershipCreated(data) {
 
     // Mapear rol de Clerk a nuestro sistema
     const userRole = mapClerkRoleToSystemRole(role);
+    const specialty = getSpecialtyForClerkRole(role);
 
     // Buscar si el usuario ya existe por email
     let clinician = await prisma.clinician.findUnique({
@@ -230,14 +231,22 @@ async function handleMembershipCreated(data) {
 
     if (clinician) {
       // Usuario existe - actualizar con clerkId y asignar a organización
+      // Solo actualizar specialty si es admin (para no sobreescribir config existente)
+      const updateData = {
+        clerkId: userId,
+        organizationId: orgId,
+        userRole,
+        name: userName || clinician.name,
+      };
+
+      // Si es admin, asegurar que sea ANESTESIOLOGO
+      if (userRole === 'ADMIN') {
+        updateData.specialty = 'ANESTESIOLOGO';
+      }
+
       await prisma.clinician.update({
         where: { id: clinician.id },
-        data: {
-          clerkId: userId,
-          organizationId: orgId,
-          userRole,
-          name: userName || clinician.name,
-        },
+        data: updateData,
       });
 
       logger.info('Existing clinician linked to Clerk user', {
@@ -258,7 +267,7 @@ async function handleMembershipCreated(data) {
           clerkId: userId,
           email: userEmail,
           name: userName || userEmail.split('@')[0],
-          specialty: 'OTRO',
+          specialty, // ANESTESIOLOGO para admin, OTRO para members
           userRole,
           organizationId: orgId,
         },
@@ -269,6 +278,7 @@ async function handleMembershipCreated(data) {
         email: userEmail,
         orgId,
         role: userRole,
+        specialty,
       });
     }
   } catch (error) {
@@ -291,12 +301,19 @@ async function handleMembershipUpdated(data) {
   try {
     const userRole = mapClerkRoleToSystemRole(role);
 
+    const updateData = {
+      userRole,
+      organizationId: orgId,
+    };
+
+    // Si es admin, asegurar que sea ANESTESIOLOGO
+    if (userRole === 'ADMIN') {
+      updateData.specialty = 'ANESTESIOLOGO';
+    }
+
     await prisma.clinician.updateMany({
       where: { clerkId: userId },
-      data: {
-        userRole,
-        organizationId: orgId,
-      },
+      data: updateData,
     });
 
     logger.info('Membership updated successfully', { userId, orgId, userRole });
@@ -400,18 +417,33 @@ async function handleUserDeleted(data) {
 /**
  * Mapear roles de Clerk a roles del sistema
  * Clerk usa: org:admin, org:member, etc.
+ *
+ * - Admin en Clerk → ADMIN (siempre anestesiólogo con permisos totales)
+ * - Member en Clerk → VIEWER (un admin debe configurar su rol/specialty después)
  */
 function mapClerkRoleToSystemRole(clerkRole) {
   const roleMapping = {
     'org:admin': 'ADMIN',
     'admin': 'ADMIN',
-    'org:member': 'ANESTESIOLOGO', // Miembros regulares son anestesiólogos
-    'member': 'ANESTESIOLOGO',
+    'org:member': 'VIEWER', // Members empiezan como VIEWER, admin les asigna rol
+    'member': 'VIEWER',
     'org:viewer': 'VIEWER',
     'viewer': 'VIEWER',
   };
 
   return roleMapping[clerkRole] || 'VIEWER';
+}
+
+/**
+ * Obtener specialty según el rol de Clerk
+ * - Admin → siempre ANESTESIOLOGO
+ * - Member → OTRO (admin configura después)
+ */
+function getSpecialtyForClerkRole(clerkRole) {
+  if (clerkRole === 'org:admin' || clerkRole === 'admin') {
+    return 'ANESTESIOLOGO';
+  }
+  return 'OTRO';
 }
 
 module.exports = router;
