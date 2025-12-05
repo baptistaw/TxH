@@ -59,13 +59,14 @@ const getAllCases = async ({
   // Multi-tenancy: solo datos de la organización actual
   andConditions.push({ organizationId });
 
-  // Búsqueda por texto
+  // Búsqueda por texto (parcial, case-insensitive)
   if (search) {
+    const searchTerm = search.trim();
     andConditions.push({
       OR: [
-        { id: { contains: search } },
-        { patientId: { contains: search } },
-        { patient: { name: { contains: search, mode: 'insensitive' } } },
+        { id: { contains: searchTerm, mode: 'insensitive' } },
+        { patientId: { contains: searchTerm, mode: 'insensitive' } },
+        { patient: { name: { contains: searchTerm, mode: 'insensitive' } } },
       ],
     });
   }

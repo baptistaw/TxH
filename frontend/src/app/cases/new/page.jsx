@@ -63,6 +63,9 @@ function NewCaseContent() {
   // Equipo quirúrgico - arrays de IDs
   const [anesthesiologists, setAnesthesiologists] = useState([]);
   const [surgeons, setSurgeons] = useState([]);
+  const [hepatologists, setHepatologists] = useState([]);
+  const [intensivists, setIntensivists] = useState([]);
+  const [nurseCoordinators, setNurseCoordinators] = useState([]);
 
   // Cargar paciente preseleccionado
   useEffect(() => {
@@ -91,7 +94,10 @@ function NewCaseContent() {
     try {
       setLoadingClinicians(true);
       const data = await cliniciansApi.list();
-      setClinicians(data.data || []);
+      // cliniciansApi.list() retorna el array directamente (response.data del backend)
+      // pero por compatibilidad manejamos ambos casos
+      const cliniciansList = Array.isArray(data) ? data : (data?.data || []);
+      setClinicians(cliniciansList);
     } catch (err) {
       console.error('Error loading clinicians:', err);
     } finally {
@@ -159,6 +165,42 @@ function NewCaseContent() {
     setSurgeons(prev => prev.filter(id => id !== clinicianId));
   };
 
+  // Agregar hepatólogo
+  const addHepatologist = (clinicianId) => {
+    if (clinicianId && !hepatologists.includes(clinicianId)) {
+      setHepatologists(prev => [...prev, clinicianId]);
+    }
+  };
+
+  // Eliminar hepatólogo
+  const removeHepatologist = (clinicianId) => {
+    setHepatologists(prev => prev.filter(id => id !== clinicianId));
+  };
+
+  // Agregar intensivista
+  const addIntensivist = (clinicianId) => {
+    if (clinicianId && !intensivists.includes(clinicianId)) {
+      setIntensivists(prev => [...prev, clinicianId]);
+    }
+  };
+
+  // Eliminar intensivista
+  const removeIntensivist = (clinicianId) => {
+    setIntensivists(prev => prev.filter(id => id !== clinicianId));
+  };
+
+  // Agregar nurse coordinadora
+  const addNurseCoordinator = (clinicianId) => {
+    if (clinicianId && !nurseCoordinators.includes(clinicianId)) {
+      setNurseCoordinators(prev => [...prev, clinicianId]);
+    }
+  };
+
+  // Eliminar nurse coordinadora
+  const removeNurseCoordinator = (clinicianId) => {
+    setNurseCoordinators(prev => prev.filter(id => id !== clinicianId));
+  };
+
   const handleSubmit = async () => {
     setError(null);
     setLoading(true);
@@ -203,6 +245,30 @@ function NewCaseContent() {
         teamPromises.push(casesApi.addTeamMember(newCase.id, {
           clinicianId: parseInt(clinicianId),
           role: 'CIRUJANO'
+        }));
+      });
+
+      // Agregar hepatólogos
+      hepatologists.forEach(clinicianId => {
+        teamPromises.push(casesApi.addTeamMember(newCase.id, {
+          clinicianId: parseInt(clinicianId),
+          role: 'HEPATOLOGO'
+        }));
+      });
+
+      // Agregar intensivistas
+      intensivists.forEach(clinicianId => {
+        teamPromises.push(casesApi.addTeamMember(newCase.id, {
+          clinicianId: parseInt(clinicianId),
+          role: 'INTENSIVISTA'
+        }));
+      });
+
+      // Agregar nurse coordinadoras
+      nurseCoordinators.forEach(clinicianId => {
+        teamPromises.push(casesApi.addTeamMember(newCase.id, {
+          clinicianId: parseInt(clinicianId),
+          role: 'NURSE_COORD'
         }));
       });
 
@@ -669,6 +735,168 @@ function NewCaseContent() {
                       )}
                     </div>
 
+                    {/* Hepatólogos */}
+                    <div className="border-t border-dark-400 pt-4">
+                      <h4 className="text-sm font-semibold text-gray-300 mb-3">
+                        Hepatólogos
+                      </h4>
+
+                      <div className="flex gap-2 mb-3">
+                        <select
+                          id="hepatologist-selector"
+                          className="flex-1 px-4 py-2 rounded-lg bg-dark-700 border border-dark-400 text-gray-100 focus:outline-none focus:ring-2 focus:ring-surgical-500"
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              addHepatologist(e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                        >
+                          <option value="">Seleccionar hepatólogo...</option>
+                          {clinicians
+                            .filter(c => c.specialty === 'HEPATOLOGO' && !hepatologists.includes(c.id.toString()))
+                            .map(clinician => (
+                              <option key={clinician.id} value={clinician.id}>
+                                {clinician.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+
+                      {hepatologists.length > 0 ? (
+                        <div className="space-y-2">
+                          {hepatologists.map(clinicianId => {
+                            const clinician = clinicians.find(c => c.id === parseInt(clinicianId));
+                            return (
+                              <div key={clinicianId} className="flex items-center justify-between bg-dark-700 rounded-lg p-3 border border-dark-400">
+                                <span className="text-gray-200">{clinician?.name || 'Desconocido'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeHepatologist(clinicianId)}
+                                  className="text-red-400 hover:text-red-300 transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No hay hepatólogos agregados</p>
+                      )}
+                    </div>
+
+                    {/* Intensivistas */}
+                    <div className="border-t border-dark-400 pt-4">
+                      <h4 className="text-sm font-semibold text-gray-300 mb-3">
+                        Intensivistas
+                      </h4>
+
+                      <div className="flex gap-2 mb-3">
+                        <select
+                          id="intensivist-selector"
+                          className="flex-1 px-4 py-2 rounded-lg bg-dark-700 border border-dark-400 text-gray-100 focus:outline-none focus:ring-2 focus:ring-surgical-500"
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              addIntensivist(e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                        >
+                          <option value="">Seleccionar intensivista...</option>
+                          {clinicians
+                            .filter(c => c.specialty === 'INTENSIVISTA' && !intensivists.includes(c.id.toString()))
+                            .map(clinician => (
+                              <option key={clinician.id} value={clinician.id}>
+                                {clinician.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+
+                      {intensivists.length > 0 ? (
+                        <div className="space-y-2">
+                          {intensivists.map(clinicianId => {
+                            const clinician = clinicians.find(c => c.id === parseInt(clinicianId));
+                            return (
+                              <div key={clinicianId} className="flex items-center justify-between bg-dark-700 rounded-lg p-3 border border-dark-400">
+                                <span className="text-gray-200">{clinician?.name || 'Desconocido'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeIntensivist(clinicianId)}
+                                  className="text-red-400 hover:text-red-300 transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No hay intensivistas agregados</p>
+                      )}
+                    </div>
+
+                    {/* Nurse Coordinadoras */}
+                    <div className="border-t border-dark-400 pt-4">
+                      <h4 className="text-sm font-semibold text-gray-300 mb-3">
+                        Nurse Coordinadoras
+                      </h4>
+
+                      <div className="flex gap-2 mb-3">
+                        <select
+                          id="nurse-selector"
+                          className="flex-1 px-4 py-2 rounded-lg bg-dark-700 border border-dark-400 text-gray-100 focus:outline-none focus:ring-2 focus:ring-surgical-500"
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              addNurseCoordinator(e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                        >
+                          <option value="">Seleccionar nurse coordinadora...</option>
+                          {clinicians
+                            .filter(c => c.specialty === 'COORDINADORA' && !nurseCoordinators.includes(c.id.toString()))
+                            .map(clinician => (
+                              <option key={clinician.id} value={clinician.id}>
+                                {clinician.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+
+                      {nurseCoordinators.length > 0 ? (
+                        <div className="space-y-2">
+                          {nurseCoordinators.map(clinicianId => {
+                            const clinician = clinicians.find(c => c.id === parseInt(clinicianId));
+                            return (
+                              <div key={clinicianId} className="flex items-center justify-between bg-dark-700 rounded-lg p-3 border border-dark-400">
+                                <span className="text-gray-200">{clinician?.name || 'Desconocido'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeNurseCoordinator(clinicianId)}
+                                  className="text-red-400 hover:text-red-300 transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No hay nurse coordinadoras agregadas</p>
+                      )}
+                    </div>
+
                     {/* Nota informativa */}
                     <div className="bg-blue-900/20 border border-blue-500/50 rounded-lg p-4">
                       <div className="flex gap-3">
@@ -678,7 +906,7 @@ function NewCaseContent() {
                         <div>
                           <p className="text-sm text-blue-400 font-medium">Nota</p>
                           <p className="text-xs text-gray-400 mt-1">
-                            Puedes agregar tantos anestesiólogos y cirujanos como necesites. El equipo puede ser modificado posteriormente.
+                            Puedes agregar tantos miembros del equipo como necesites. El equipo puede ser modificado posteriormente.
                           </p>
                         </div>
                       </div>
@@ -779,7 +1007,49 @@ function NewCaseContent() {
                         </div>
                       </div>
                     )}
-                    {anesthesiologists.length === 0 && surgeons.length === 0 && (
+                    {hepatologists.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-400 mb-2">
+                          Hepatólogos ({hepatologists.length}):
+                        </h4>
+                        <div className="space-y-1 pl-2">
+                          {hepatologists.map(id => (
+                            <p key={id} className="text-gray-300">
+                              • {clinicians.find(c => c.id === parseInt(id))?.name || 'Desconocido'}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {intensivists.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-400 mb-2">
+                          Intensivistas ({intensivists.length}):
+                        </h4>
+                        <div className="space-y-1 pl-2">
+                          {intensivists.map(id => (
+                            <p key={id} className="text-gray-300">
+                              • {clinicians.find(c => c.id === parseInt(id))?.name || 'Desconocido'}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {nurseCoordinators.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-400 mb-2">
+                          Nurse Coordinadoras ({nurseCoordinators.length}):
+                        </h4>
+                        <div className="space-y-1 pl-2">
+                          {nurseCoordinators.map(id => (
+                            <p key={id} className="text-gray-300">
+                              • {clinicians.find(c => c.id === parseInt(id))?.name || 'Desconocido'}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {anesthesiologists.length === 0 && surgeons.length === 0 && hepatologists.length === 0 && intensivists.length === 0 && nurseCoordinators.length === 0 && (
                       <p className="text-gray-500 italic">No se seleccionó equipo clínico</p>
                     )}
                   </div>

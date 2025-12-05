@@ -12,6 +12,7 @@ import {
 import { casesApi, cliniciansApi } from '@/lib/api';
 import { formatDate, formatDateTime, formatCI, formatDuration, formatBoolean, calculateAge, debounce } from '@/lib/utils';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import DataTable, { TablePagination } from '@/components/ui/Table';
 import Input from '@/components/ui/Input';
@@ -34,6 +35,7 @@ export default function CasesPage() {
 }
 
 function CasesPageContent() {
+  const { user } = useAuth();
   const [cases, setCases] = useState([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -68,6 +70,25 @@ function CasesPageContent() {
 
   // Estado para mostrar/ocultar filtros avanzados
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Estado para eliminar caso
+  const [deletingCaseId, setDeletingCaseId] = useState(null);
+
+  // Helpers para verificar permisos (definidos antes de las columnas)
+  const isAdmin = user?.role === 'ADMIN';
+
+  const canEditCase = (caseRow) => {
+    if (!user) return false;
+    if (isAdmin) return true;
+    // Anestesiólogo puede editar si es parte del equipo
+    if (user.role === 'ANESTESIOLOGO') {
+      const team = caseRow.team || [];
+      return team.some(member => member.clinicianId === user.id);
+    }
+    return false;
+  };
+
+  const canDeleteCase = isAdmin;
 
   // Definir columnas
   const columns = useMemo(
@@ -178,19 +199,68 @@ function CasesPageContent() {
         ),
         size: 150,
       }),
-      columnHelper.accessor('id', {
+      columnHelper.display({
+        id: 'actions',
         header: 'Acciones',
-        cell: (info) => (
-          <Link href={`/cases/${info.getValue()}`}>
-            <Button size="sm" variant="outline">
-              Ver Detalles
-            </Button>
-          </Link>
-        ),
-        size: 120,
+        cell: ({ row }) => {
+          const caseData = row.original;
+          const caseId = caseData.id;
+          const patientName = caseData.patient?.name || 'este paciente';
+          const showEdit = canEditCase(caseData);
+          const showDelete = canDeleteCase;
+
+          return (
+            <div className="flex items-center gap-1">
+              {/* Ver - Siempre visible */}
+              <Link href={`/cases/${caseId}`}>
+                <Button size="sm" variant="ghost" title="Ver detalles">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </Button>
+              </Link>
+
+              {/* Editar - Admin o Anestesiólogo del equipo */}
+              {showEdit && (
+                <Link href={`/cases/${caseId}/edit`}>
+                  <Button size="sm" variant="ghost" title="Editar trasplante">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </Button>
+                </Link>
+              )}
+
+              {/* Eliminar - Solo Admin */}
+              {showDelete && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                  title="Eliminar trasplante"
+                  onClick={() => handleDeleteCase(caseId, patientName)}
+                  disabled={deletingCaseId === caseId}
+                >
+                  {deletingCaseId === caseId ? (
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  )}
+                </Button>
+              )}
+            </div>
+          );
+        },
+        size: 140,
       }),
     ],
-    []
+    [user, isAdmin, canDeleteCase, deletingCaseId]
   );
 
   // Cargar clínicos
@@ -198,7 +268,9 @@ function CasesPageContent() {
     const fetchClinicians = async () => {
       try {
         const data = await cliniciansApi.list();
-        setClinicians(data.data || []);
+        // cliniciansApi.list() puede retornar el array directamente o { data: [...] }
+        const cliniciansList = Array.isArray(data) ? data : (data?.data || []);
+        setClinicians(cliniciansList);
       } catch (err) {
         console.error('Error loading clinicians:', err);
       } finally {
@@ -236,6 +308,25 @@ function CasesPageContent() {
   useEffect(() => {
     fetchCases();
   }, [filters]);
+
+  // Función para eliminar un caso
+  const handleDeleteCase = async (caseId, patientName) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar el trasplante de ${patientName}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    setDeletingCaseId(caseId);
+    try {
+      await casesApi.delete(caseId);
+      // Recargar la lista
+      fetchCases();
+    } catch (err) {
+      console.error('Error deleting case:', err);
+      alert('Error al eliminar el trasplante: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setDeletingCaseId(null);
+    }
+  };
 
   // Configurar tabla
   const table = useReactTable({
