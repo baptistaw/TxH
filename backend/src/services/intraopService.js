@@ -13,15 +13,71 @@ function calculateMAP(sys, dia) {
 }
 
 /**
- * Aplicar cálculos automáticos a los datos
+ * Redondear a N decimales (devuelve null si el valor es null/undefined)
+ */
+function round(value, decimals) {
+  if (value === null || value === undefined) return null;
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+}
+
+/**
+ * Normalizar precisión de decimales según tipo de campo
+ * - pH: 2 decimales
+ * - Iones (Na, K, Ca, Mg, Cl, P): 1 decimal
+ * - Hb, Hto: 1 decimal
+ * - Glucosa, lactato: 1 decimal
+ * - Gases (paO2, paCO2, BE, HCO3): enteros
+ */
+function normalizeDecimals(data) {
+  const result = { ...data };
+
+  // pH: 2 decimales
+  if (result.pH !== undefined) result.pH = round(result.pH, 2);
+  if (result.pvpH !== undefined) result.pvpH = round(result.pvpH, 2);
+
+  // Iones: 1 decimal
+  if (result.sodium !== undefined) result.sodium = round(result.sodium, 1);
+  if (result.potassium !== undefined) result.potassium = round(result.potassium, 1);
+  if (result.ionicCalcium !== undefined) result.ionicCalcium = round(result.ionicCalcium, 1);
+  if (result.magnesium !== undefined) result.magnesium = round(result.magnesium, 1);
+  if (result.chloride !== undefined) result.chloride = round(result.chloride, 1);
+  if (result.phosphorus !== undefined) result.phosphorus = round(result.phosphorus, 1);
+
+  // Hematología: 1 decimal
+  if (result.hb !== undefined) result.hb = round(result.hb, 1);
+  if (result.hto !== undefined) result.hto = round(result.hto, 1);
+
+  // Metabólicos: 1 decimal
+  if (result.glucose !== undefined) result.glucose = round(result.glucose, 1);
+  if (result.lactate !== undefined) result.lactate = round(result.lactate, 1);
+
+  // Gases arteriales: enteros
+  if (result.paO2 !== undefined) result.paO2 = round(result.paO2, 0);
+  if (result.paCO2 !== undefined) result.paCO2 = round(result.paCO2, 0);
+  if (result.baseExcess !== undefined) result.baseExcess = round(result.baseExcess, 0);
+  if (result.hco3 !== undefined) result.hco3 = round(result.hco3, 0);
+
+  // Gases venosos: enteros
+  if (result.pvO2 !== undefined) result.pvO2 = round(result.pvO2, 0);
+  if (result.pvCO2 !== undefined) result.pvCO2 = round(result.pvCO2, 0);
+
+  return result;
+}
+
+/**
+ * Aplicar cálculos automáticos y normalización a los datos
  */
 function applyCalculations(data) {
-  const result = { ...data };
+  let result = { ...data };
 
   // Calcular PAm si no está presente pero hay PAS y PAD
   if (!result.pam && result.pas && result.pad) {
     result.pam = calculateMAP(result.pas, result.pad);
   }
+
+  // Normalizar decimales
+  result = normalizeDecimals(result);
 
   return result;
 }
@@ -577,4 +633,5 @@ module.exports = {
   duplicateLastRecord,
   getPhaseStats,
   calculateMAP,
+  normalizeDecimals,
 };
