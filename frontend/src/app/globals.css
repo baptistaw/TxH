@@ -3,11 +3,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fuentes (usando system fonts por ahora) */
+/* Fuentes y variables de branding */
 :root {
   --font-inter: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
   --font-roboto-mono: 'Courier New', Courier, monospace;
+
+  /* Branding dinámico - Valores por defecto (se sobrescriben por BrandingProvider) */
+  --brand-primary: #00a0a0;
+  --brand-primary-50: hsl(180, 100%, 95%);
+  --brand-primary-100: hsl(180, 100%, 85%);
+  --brand-primary-200: hsl(180, 100%, 75%);
+  --brand-primary-300: hsl(180, 100%, 65%);
+  --brand-primary-400: hsl(180, 100%, 55%);
+  --brand-primary-500: hsl(180, 100%, 45%);
+  --brand-primary-600: hsl(180, 100%, 38%);
+  --brand-primary-700: hsl(180, 100%, 30%);
+  --brand-primary-800: hsl(180, 100%, 22%);
+  --brand-primary-900: hsl(180, 100%, 14%);
 }
 
 /* Tema oscuro quirófano-friendly */

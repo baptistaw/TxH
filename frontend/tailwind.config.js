@@ -8,6 +8,20 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Branding dinámico (usa CSS variables)
+        brand: {
+          50: 'var(--brand-primary-50)',
+          100: 'var(--brand-primary-100)',
+          200: 'var(--brand-primary-200)',
+          300: 'var(--brand-primary-300)',
+          400: 'var(--brand-primary-400)',
+          500: 'var(--brand-primary-500)',
+          600: 'var(--brand-primary-600)',
+          700: 'var(--brand-primary-700)',
+          800: 'var(--brand-primary-800)',
+          900: 'var(--brand-primary-900)',
+          DEFAULT: 'var(--brand-primary)',
+        },
         // Tema oscuro quirófano-friendly
         surgical: {
           50: '#e6f7f7',
@@ -51,8 +65,9 @@ module.exports = {
         mono: ['var(--font-roboto-mono)', 'monospace'],
       },
       boxShadow: {
-        glow: '0 0 20px rgba(0, 160, 160, 0.3)',
-        'glow-lg': '0 0 40px rgba(0, 160, 160, 0.4)',
+        glow: '0 0 20px var(--brand-primary-500, rgba(0, 160, 160, 0.3))',
+        'glow-lg': '0 0 40px var(--brand-primary-500, rgba(0, 160, 160, 0.4))',
+        'glow-brand': '0 0 20px color-mix(in srgb, var(--brand-primary) 30%, transparent)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
