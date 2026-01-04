@@ -77,18 +77,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-dark-500 overflow-x-hidden">
-      {/* Floating Login Button */}
-      <div className={`fixed top-6 right-6 z-50 transition-all duration-500 ${scrolled ? 'scale-100 opacity-100' : 'scale-95 opacity-90'}`}>
-        <Link
-          href="/sign-in"
-          className="group flex items-center gap-2 px-5 py-2.5 bg-dark-600/80 backdrop-blur-xl border border-dark-400/50 hover:border-surgical-500/50 text-white rounded-full font-medium transition-all duration-300 hover:shadow-lg hover:shadow-surgical-500/20"
-        >
-          <span>Acceder</span>
-          <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-        </Link>
-      </div>
 
       {/* Hero Section - Full Screen */}
       <section className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
@@ -137,17 +125,17 @@ export default function LandingPage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link
-              href="/sign-in"
+            <a
+              href="#contact"
               className="group relative px-8 py-4 bg-gradient-to-r from-surgical-500 to-surgical-600 text-white rounded-2xl font-semibold text-lg transition-all duration-300 hover:shadow-2xl hover:shadow-surgical-500/30 hover:scale-105"
             >
               <span className="relative z-10 flex items-center gap-2">
-                Comenzar ahora
+                Solicitar una demo
                 <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </span>
-            </Link>
+            </a>
             <a
               href="#ai-features"
               className="px-8 py-4 text-gray-300 hover:text-white font-medium transition-colors flex items-center gap-2"
