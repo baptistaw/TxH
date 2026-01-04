@@ -47,8 +47,8 @@ export function AuthProvider({ children }) {
 
       // Wrapper que obtiene token con org claims
       const getTokenWithOrg = async () => {
-        // Usar skipCache solo cuando realmente necesitamos un token fresco
-        const token = await getToken();
+        // Forzar token fresco para asegurar que incluya org_id
+        const token = await getToken({ skipCache: true });
 
         // Debug solo en desarrollo
         if (process.env.NODE_ENV === 'development' && token) {
